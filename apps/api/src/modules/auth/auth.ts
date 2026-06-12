@@ -1,18 +1,42 @@
 import { expo } from "@better-auth/expo"
 import { prisma } from "@santiago/database"
+import { APIError } from "better-auth/api"
 import { betterAuth } from "better-auth"
 import { prismaAdapter } from "better-auth/adapters/prisma"
 import { username } from "better-auth/plugins"
 
 import { corsOrigins, env } from "@/config/env"
-import type { PublicAuthRole } from "@/types/auth"
+import { sendPasswordResetEmail, sendVerificationEmail } from "@/services/email-service"
+
+import {
+  getEmailVerificationUrl,
+  getPasswordResetUrl,
+  getTrustedRedirectOrigins,
+} from "./auth-urls"
+import {
+  consumeEmailVerificationToken,
+  findEmailVerificationToken,
+  storeEmailVerificationToken,
+} from "./email-verification-tokens"
+import type { PublicAuthRole } from "./schemas"
 
 function isPublicAuthRole(value: unknown): value is PublicAuthRole {
   return value === "CLIENT" || value === "PROFESSIONAL"
 }
 
 function getPublicAuthRole(value: unknown): PublicAuthRole {
-  return isPublicAuthRole(value) ? value : "CLIENT"
+  if (value === undefined || value === null || value === "") {
+    return "CLIENT"
+  }
+
+  if (isPublicAuthRole(value)) {
+    return value
+  }
+
+  throw APIError.from("FORBIDDEN", {
+    code: "PUBLIC_ADMIN_SIGN_UP_BLOCKED",
+    message: "Cadastro publico permite apenas CLIENT ou PROFESSIONAL.",
+  })
 }
 
 export const auth = betterAuth({
@@ -23,12 +47,68 @@ export const auth = betterAuth({
   }),
   trustedOrigins: [
     ...corsOrigins,
-    "santiago://",
-    "santiago://*",
+    ...getTrustedRedirectOrigins(),
     ...(process.env.NODE_ENV === "development" ? ["exp://", "exp://**"] : []),
   ],
   emailAndPassword: {
     enabled: true,
+    autoSignIn: false,
+    minPasswordLength: 8,
+    maxPasswordLength: 128,
+    requireEmailVerification: true,
+    resetPasswordTokenExpiresIn: 60 * 60,
+    revokeSessionsOnPasswordReset: true,
+    sendResetPassword: async ({ user, token }) => {
+      await sendPasswordResetEmail({
+        to: user.email,
+        url: getPasswordResetUrl(token),
+        userName: user.name,
+      })
+    },
+    customSyntheticUser: ({ additionalFields, coreFields, id }) => ({
+      ...coreFields,
+      ...additionalFields,
+      id,
+      role: "CLIENT",
+    }),
+  },
+  emailVerification: {
+    autoSignInAfterVerification: false,
+    expiresIn: 60 * 60,
+    sendOnSignIn: true,
+    sendOnSignUp: true,
+    beforeEmailVerification: async (user, request) => {
+      const url = request ? new URL(request.url) : null
+      const token = url?.searchParams.get("token")
+      const verification = token ? await findEmailVerificationToken(token) : null
+
+      if (!verification || verification.value !== user.email.toLowerCase()) {
+        throw APIError.from("BAD_REQUEST", {
+          code: "INVALID_TOKEN",
+          message: "Token de verificacao invalido ou expirado.",
+        })
+      }
+    },
+    afterEmailVerification: async (_user, request) => {
+      const url = request ? new URL(request.url) : null
+      const token = url?.searchParams.get("token")
+
+      if (token) {
+        await consumeEmailVerificationToken(token)
+      }
+    },
+    sendVerificationEmail: async ({ user, token }) => {
+      await storeEmailVerificationToken({
+        token,
+        email: user.email,
+        expiresInSeconds: 60 * 60,
+      })
+      await sendVerificationEmail({
+        to: user.email,
+        url: getEmailVerificationUrl(token),
+        userName: user.name,
+      })
+    },
   },
   user: {
     fields: {
@@ -54,6 +134,7 @@ export const auth = betterAuth({
           return {
             data: {
               ...user,
+              emailVerified: false,
               role: getPublicAuthRole(user.role),
             },
           }

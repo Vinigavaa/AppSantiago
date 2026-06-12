@@ -1,0 +1,10 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(python -c \"import json,sys; d=json.loads\\(sys.stdin.read\\(\\)\\); print\\('resend' in d.get\\('packages',{}\\).get\\('node_modules/resend',{}\\).get\\('name','none'\\)\\)\")",
+      "Bash(npm run *])",
+      "Bash(npx tsx *)",
+      "Bash(EMAIL_PROVIDER=console npx tsx --tsconfig apps/api/tsconfig.json scripts/auth-security-smoke.ts)"
+    ]
+  }
+}

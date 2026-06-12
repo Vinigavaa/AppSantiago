@@ -39,5 +39,28 @@ export const signUpSchema = z.object({
   }),
 })
 
+export const forgotPasswordSchema = z.object({
+  email: z.email("Informe um email válido.").trim(),
+})
+
+export const resetPasswordSchema = z
+  .object({
+    token: z.string().trim().min(1, "Informe o token de redefinição."),
+    password: z
+      .string()
+      .min(8, "A senha deve ter pelo menos 8 caracteres.")
+      .max(128, "A senha deve ter no máximo 128 caracteres."),
+    passwordConfirmation: z
+      .string()
+      .min(8, "A confirmação deve ter pelo menos 8 caracteres.")
+      .max(128, "A confirmação deve ter no máximo 128 caracteres."),
+  })
+  .refine((data) => data.password === data.passwordConfirmation, {
+    message: "As senhas não conferem.",
+    path: ["passwordConfirmation"],
+  })
+
+export type ForgotPasswordInput = z.infer<typeof forgotPasswordSchema>
+export type ResetPasswordInput = z.infer<typeof resetPasswordSchema>
 export type SignInInput = z.infer<typeof signInSchema>
 export type SignUpInput = z.infer<typeof signUpSchema>

@@ -52,7 +52,8 @@
     "db:migrate:dev": "npm --workspace @santiago/database run db:migrate:dev",
     "db:studio": "npm --workspace @santiago/database run db:studio",
     "db:seed": "npm --workspace @santiago/database run db:seed",
-    "db:validate": "npm --workspace @santiago/database run db:validate"
+    "db:validate": "npm --workspace @santiago/database run db:validate",
+    "auth:smoke": "tsx --tsconfig apps/api/tsconfig.json scripts/auth-security-smoke.ts"
   },
   "private": true
 }

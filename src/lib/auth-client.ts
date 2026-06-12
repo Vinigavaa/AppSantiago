@@ -27,8 +27,10 @@ function getAuthBaseUrl() {
   return "http://localhost:3333"
 }
 
+export const authBaseUrl = getAuthBaseUrl()
+
 export const authClient = createAuthClient({
-  baseURL: getAuthBaseUrl(),
+  baseURL: authBaseUrl,
   plugins: [
     inferAdditionalFields({
       user: {

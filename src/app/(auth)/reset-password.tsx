@@ -1,5 +1,5 @@
 import { zodResolver } from "@hookform/resolvers/zod"
-import { Link } from "expo-router"
+import { Link, useLocalSearchParams } from "expo-router"
 import { Controller, useForm } from "react-hook-form"
 import { KeyboardAvoidingView, Platform, ScrollView, StyleSheet, Text, View } from "react-native"
 
@@ -7,20 +7,24 @@ import { Button } from "@/components/ui/Button"
 import { Input } from "@/components/ui/Input"
 import { routes } from "@/constants/routes"
 import { useAuth } from "@/features/auth/hooks/useAuth"
-import { signInSchema, type SignInInput } from "@/features/auth/schemas/auth-schemas"
+import {
+  resetPasswordSchema,
+  type ResetPasswordInput,
+} from "@/features/auth/schemas/auth-schemas"
 
-export default function Login() {
-  const { errorMessage, isSubmitting, signIn } = useAuth()
+export default function ResetPassword() {
+  const params = useLocalSearchParams<{ token?: string }>()
+  const { errorMessage, isSubmitting, resetPassword, successMessage } = useAuth()
   const {
     control,
     handleSubmit,
     formState: { errors },
-  } = useForm<SignInInput>({
-    resolver: zodResolver(signInSchema),
+  } = useForm<ResetPasswordInput>({
+    resolver: zodResolver(resetPasswordSchema),
     defaultValues: {
-      username: "",
-      email: "",
+      token: params.token ?? "",
       password: "",
+      passwordConfirmation: "",
     },
   })
 
@@ -28,37 +32,21 @@ export default function Login() {
     <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : undefined} style={styles.container}>
       <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
         <View style={styles.header}>
-          <Text style={styles.title}>Entrar</Text>
-          <Text style={styles.subtitle}>Acesse sua conta para continuar.</Text>
+          <Text style={styles.title}>Nova senha</Text>
+          <Text style={styles.subtitle}>Informe o token recebido e escolha uma nova senha.</Text>
         </View>
 
         <View style={styles.form}>
           <Controller
             control={control}
-            name="username"
+            name="token"
             render={({ field: { onChange, value } }) => (
               <Input
-                autoComplete="username"
-                error={errors.username?.message}
-                label="Username"
+                autoCapitalize="none"
+                error={errors.token?.message}
+                label="Token"
                 onChangeText={onChange}
-                placeholder="seu.username"
-                value={value}
-              />
-            )}
-          />
-
-          <Controller
-            control={control}
-            name="email"
-            render={({ field: { onChange, value } }) => (
-              <Input
-                autoComplete="email"
-                error={errors.email?.message}
-                inputMode="email"
-                label="Email"
-                onChangeText={onChange}
-                placeholder="voce@email.com"
+                placeholder="Token de redefinição"
                 value={value}
               />
             )}
@@ -69,11 +57,25 @@ export default function Login() {
             name="password"
             render={({ field: { onChange, value } }) => (
               <Input
-                autoComplete="password"
+                autoComplete="new-password"
                 error={errors.password?.message}
-                label="Senha"
+                label="Nova senha"
                 onChangeText={onChange}
-                placeholder="Sua senha"
+                secureTextEntry
+                value={value}
+              />
+            )}
+          />
+
+          <Controller
+            control={control}
+            name="passwordConfirmation"
+            render={({ field: { onChange, value } }) => (
+              <Input
+                autoComplete="new-password"
+                error={errors.passwordConfirmation?.message}
+                label="Confirmar senha"
+                onChangeText={onChange}
                 secureTextEntry
                 value={value}
               />
@@ -81,20 +83,18 @@ export default function Login() {
           />
 
           {errorMessage ? <Text style={styles.error}>{errorMessage}</Text> : null}
+          {successMessage ? <Text style={styles.success}>{successMessage}</Text> : null}
 
-          <Button disabled={isSubmitting} label={isSubmitting ? "Entrando..." : "Entrar"} onPress={handleSubmit(signIn)} />
-
-          <Link href={routes.forgotPassword} style={styles.forgotPassword}>
-            Esqueci minha senha
-          </Link>
+          <Button
+            disabled={isSubmitting}
+            label={isSubmitting ? "Redefinindo..." : "Redefinir senha"}
+            onPress={handleSubmit(resetPassword)}
+          />
         </View>
 
-        <View style={styles.footer}>
-          <Text style={styles.footerText}>Ainda não tem conta?</Text>
-          <Link href={routes.register} style={styles.link}>
-            Criar conta
-          </Link>
-        </View>
+        <Link href={routes.login} style={styles.link}>
+          Voltar para login
+        </Link>
       </ScrollView>
     </KeyboardAvoidingView>
   )
@@ -116,22 +116,6 @@ const styles = StyleSheet.create({
     color: "#991B1B",
     padding: 12,
   },
-  footer: {
-    alignItems: "center",
-    flexDirection: "row",
-    gap: 6,
-    justifyContent: "center",
-    marginTop: 24,
-  },
-  footerText: {
-    color: "#475569",
-  },
-  forgotPassword: {
-    alignSelf: "center",
-    color: "#0F766E",
-    fontWeight: "700",
-    marginTop: 2,
-  },
   form: {
     gap: 14,
   },
@@ -140,12 +124,20 @@ const styles = StyleSheet.create({
     marginBottom: 28,
   },
   link: {
+    alignSelf: "center",
     color: "#0F766E",
     fontWeight: "700",
+    marginTop: 24,
   },
   subtitle: {
     color: "#475569",
     fontSize: 16,
+  },
+  success: {
+    backgroundColor: "#DCFCE7",
+    borderRadius: 8,
+    color: "#166534",
+    padding: 12,
   },
   title: {
     color: "#0F172A",

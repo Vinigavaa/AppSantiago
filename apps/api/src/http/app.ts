@@ -2,6 +2,10 @@ import { Hono } from "hono"
 import { cors } from "hono/cors"
 
 import { corsOrigins } from "@/config/env"
+import { authRateLimit } from "@/http/rate-limit"
+import { landingPages } from "@/http/landing-pages"
+import { emailVerificationGuard } from "@/modules/auth/email-verification-guard"
+import { publicSignUpGuard } from "@/modules/auth/public-sign-up-guard"
 import { authRoutes } from "@/modules/auth/routes"
 
 export const app = new Hono()
@@ -26,4 +30,8 @@ app.get("/health", (context) => {
   return context.json({ ok: true })
 })
 
+app.use("/api/auth/*", authRateLimit)
+app.use("/api/auth/*", publicSignUpGuard)
+app.use("/api/auth/*", emailVerificationGuard)
 app.route("/api/auth", authRoutes)
+app.route("/", landingPages)

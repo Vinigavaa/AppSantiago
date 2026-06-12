@@ -1,6 +1,11 @@
-import { authClient } from "@/lib/auth-client"
+import { authBaseUrl, authClient } from "@/lib/auth-client"
 
-import type { SignInInput, SignUpInput } from "../schemas/auth-schemas"
+import type {
+  ForgotPasswordInput,
+  ResetPasswordInput,
+  SignInInput,
+  SignUpInput,
+} from "../schemas/auth-schemas"
 
 type AuthResult = {
   success: boolean
@@ -16,6 +21,14 @@ function getFriendlyAuthError(message?: string) {
 
   if (normalized.includes("invalid username") || normalized.includes("invalid email") || normalized.includes("invalid password")) {
     return "Credenciais inválidas. Confira os dados e tente novamente."
+  }
+
+  if (normalized.includes("email_not_verified") || normalized.includes("email not verified") || normalized.includes("verify")) {
+    return "Verifique seu email antes de entrar."
+  }
+
+  if (normalized.includes("rate") || normalized.includes("too many")) {
+    return "Muitas tentativas. Aguarde um pouco e tente novamente."
   }
 
   if (normalized.includes("already") || normalized.includes("taken")) {
@@ -67,7 +80,10 @@ export async function signUp(input: SignUpInput): Promise<AuthResult> {
     }
   }
 
-  return { success: true }
+  return {
+    success: true,
+    message: "Conta criada. Verifique seu email antes de entrar.",
+  }
 }
 
 export async function signOut(): Promise<AuthResult> {
@@ -81,4 +97,56 @@ export async function signOut(): Promise<AuthResult> {
   }
 
   return { success: true }
+}
+
+async function postAuth(path: string, body: Record<string, unknown>) {
+  const response = await fetch(`${authBaseUrl}/api/auth${path}`, {
+    method: "POST",
+    headers: {
+      "content-type": "application/json",
+    },
+    body: JSON.stringify(body),
+  })
+
+  const payload = (await response.json().catch(() => null)) as { message?: string } | null
+
+  if (!response.ok) {
+    return {
+      success: false,
+      message: getFriendlyAuthError(payload?.message),
+    }
+  }
+
+  return { success: true }
+}
+
+export async function requestPasswordReset(input: ForgotPasswordInput): Promise<AuthResult> {
+  const result = await postAuth("/request-password-reset", {
+    email: input.email,
+  })
+
+  if (!result.success) {
+    return result
+  }
+
+  return {
+    success: true,
+    message: "Se o email existir, enviaremos um link de redefinição.",
+  }
+}
+
+export async function resetPassword(input: ResetPasswordInput): Promise<AuthResult> {
+  const result = await postAuth("/reset-password", {
+    token: input.token,
+    newPassword: input.password,
+  })
+
+  if (!result.success) {
+    return result
+  }
+
+  return {
+    success: true,
+    message: "Senha redefinida. Entre com sua nova senha.",
+  }
 }

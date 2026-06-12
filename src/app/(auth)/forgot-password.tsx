@@ -5,24 +5,23 @@ import { KeyboardAvoidingView, Platform, ScrollView, StyleSheet, Text, View } fr
 
 import { Button } from "@/components/ui/Button"
 import { Input } from "@/components/ui/Input"
-import { ProfileTypeSelector } from "@/components/ui/ProfileTypeSelector"
 import { routes } from "@/constants/routes"
 import { useAuth } from "@/features/auth/hooks/useAuth"
-import { signUpSchema, type SignUpInput } from "@/features/auth/schemas/auth-schemas"
+import {
+  forgotPasswordSchema,
+  type ForgotPasswordInput,
+} from "@/features/auth/schemas/auth-schemas"
 
-export default function Register() {
-  const { errorMessage, isSubmitting, signUp, successMessage } = useAuth()
+export default function ForgotPassword() {
+  const { errorMessage, isSubmitting, requestPasswordReset, successMessage } = useAuth()
   const {
     control,
     handleSubmit,
     formState: { errors },
-  } = useForm<SignUpInput>({
-    resolver: zodResolver(signUpSchema),
+  } = useForm<ForgotPasswordInput>({
+    resolver: zodResolver(forgotPasswordSchema),
     defaultValues: {
-      username: "",
       email: "",
-      password: "",
-      role: "CLIENT",
     },
   })
 
@@ -30,26 +29,11 @@ export default function Register() {
     <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : undefined} style={styles.container}>
       <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
         <View style={styles.header}>
-          <Text style={styles.title}>Criar conta</Text>
-          <Text style={styles.subtitle}>Escolha como você vai usar o app.</Text>
+          <Text style={styles.title}>Recuperar senha</Text>
+          <Text style={styles.subtitle}>Informe seu email para receber o link de redefinição.</Text>
         </View>
 
         <View style={styles.form}>
-          <Controller
-            control={control}
-            name="username"
-            render={({ field: { onChange, value } }) => (
-              <Input
-                autoComplete="username"
-                error={errors.username?.message}
-                label="Username"
-                onChangeText={onChange}
-                placeholder="seu.username"
-                value={value}
-              />
-            )}
-          />
-
           <Controller
             control={control}
             name="email"
@@ -66,42 +50,19 @@ export default function Register() {
             )}
           />
 
-          <Controller
-            control={control}
-            name="password"
-            render={({ field: { onChange, value } }) => (
-              <Input
-                autoComplete="new-password"
-                error={errors.password?.message}
-                label="Senha"
-                onChangeText={onChange}
-                placeholder="Mínimo de 8 caracteres"
-                secureTextEntry
-                value={value}
-              />
-            )}
-          />
-
-          <Controller
-            control={control}
-            name="role"
-            render={({ field: { onChange, value } }) => (
-              <ProfileTypeSelector error={errors.role?.message} onChange={onChange} value={value} />
-            )}
-          />
-
           {errorMessage ? <Text style={styles.error}>{errorMessage}</Text> : null}
           {successMessage ? <Text style={styles.success}>{successMessage}</Text> : null}
 
-          <Button disabled={isSubmitting} label={isSubmitting ? "Criando..." : "Criar conta"} onPress={handleSubmit(signUp)} />
+          <Button
+            disabled={isSubmitting}
+            label={isSubmitting ? "Enviando..." : "Enviar link"}
+            onPress={handleSubmit(requestPasswordReset)}
+          />
         </View>
 
-        <View style={styles.footer}>
-          <Text style={styles.footerText}>Já tem conta?</Text>
-          <Link href={routes.login} style={styles.link}>
-            Entrar
-          </Link>
-        </View>
+        <Link href={routes.login} style={styles.link}>
+          Voltar para login
+        </Link>
       </ScrollView>
     </KeyboardAvoidingView>
   )
@@ -123,16 +84,6 @@ const styles = StyleSheet.create({
     color: "#991B1B",
     padding: 12,
   },
-  footer: {
-    alignItems: "center",
-    flexDirection: "row",
-    gap: 6,
-    justifyContent: "center",
-    marginTop: 24,
-  },
-  footerText: {
-    color: "#475569",
-  },
   form: {
     gap: 14,
   },
@@ -141,8 +92,10 @@ const styles = StyleSheet.create({
     marginBottom: 28,
   },
   link: {
+    alignSelf: "center",
     color: "#0F766E",
     fontWeight: "700",
+    marginTop: 24,
   },
   subtitle: {
     color: "#475569",
