@@ -1,0 +1,367 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum UserRole {
+  CLIENT
+  PROFESSIONAL
+  ADMIN
+}
+
+enum ServiceRequestStatus {
+  OPEN
+  IN_NEGOTIATION
+  ACCEPTED
+  IN_PROGRESS
+  COMPLETED
+  CANCELED
+}
+
+enum ProposalStatus {
+  PENDING
+  ACCEPTED
+  REJECTED
+  CANCELED
+}
+
+enum ServiceContractStatus {
+  ACCEPTED
+  IN_PROGRESS
+  COMPLETED
+  CANCELED
+}
+
+enum NotificationType {
+  SYSTEM
+  PROPOSAL_RECEIVED
+  PROPOSAL_ACCEPTED
+  PROPOSAL_REJECTED
+  MESSAGE_RECEIVED
+  SERVICE_UPDATED
+  REVIEW_RECEIVED
+}
+
+model User {
+  id                  String               @id @default(uuid()) @db.Uuid
+  name                String
+  email               String               @unique
+  emailVerified       Boolean              @default(false)
+  username            String?              @unique
+  displayUsername     String?
+  passwordHash        String?
+  phone               String?
+  role                UserRole             @default(CLIENT)
+  avatarUrl           String?
+  createdAt           DateTime             @default(now())
+  updatedAt           DateTime             @updatedAt
+  sessions            Session[]
+  accounts            Account[]
+  clientProfile       ClientProfile?
+  professionalProfile ProfessionalProfile?
+  sentMessages        Message[]            @relation("MessageSender")
+  notifications       Notification[]
+  reviewsWritten      Review[]             @relation("ReviewReviewer")
+  reviewsReceived     Review[]             @relation("ReviewReviewed")
+
+  @@index([email])
+  @@index([username])
+}
+
+model Session {
+  id        String   @id @default(uuid()) @db.Uuid
+  expiresAt DateTime
+  token     String   @unique
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  ipAddress String?
+  userAgent String?
+  userId    String   @db.Uuid
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([token])
+}
+
+model Account {
+  id                    String    @id @default(uuid()) @db.Uuid
+  accountId             String
+  providerId            String
+  userId                String    @db.Uuid
+  accessToken           String?
+  refreshToken          String?
+  idToken               String?
+  accessTokenExpiresAt  DateTime?
+  refreshTokenExpiresAt DateTime?
+  scope                 String?
+  password              String?
+  createdAt             DateTime  @default(now())
+  updatedAt             DateTime  @updatedAt
+  user                  User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([accountId])
+}
+
+model Verification {
+  id         String    @id @default(uuid()) @db.Uuid
+  identifier String
+  value      String
+  expiresAt  DateTime
+  createdAt  DateTime? @default(now())
+  updatedAt  DateTime? @updatedAt
+
+  @@index([identifier])
+}
+
+model ClientProfile {
+  id               String            @id @default(uuid()) @db.Uuid
+  userId           String            @unique @db.Uuid
+  document         String?           @unique
+  createdAt        DateTime          @default(now())
+  updatedAt        DateTime          @updatedAt
+  user             User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  serviceRequests  ServiceRequest[]
+  serviceContracts ServiceContract[]
+  chats            Chat[]
+}
+
+model ProfessionalProfile {
+  id                   String                      @id @default(uuid()) @db.Uuid
+  userId               String                      @unique @db.Uuid
+  document             String?                     @unique
+  bio                  String?                     @db.Text
+  experience           Int?
+  portfolioDescription String?                     @db.Text
+  isAvailable          Boolean                     @default(true)
+  ratingAverage        Decimal                     @default(0) @db.Decimal(3, 2)
+  ratingCount          Int                         @default(0)
+  createdAt            DateTime                    @default(now())
+  updatedAt            DateTime                    @updatedAt
+  user                 User                        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  categories           ProfessionalCategory[]
+  cities               ProfessionalCity[]
+  proposals            Proposal[]
+  serviceContracts     ServiceContract[]
+  chats                Chat[]
+  portfolioItems       ProfessionalPortfolioItem[]
+}
+
+model Category {
+  id              String                 @id @default(uuid()) @db.Uuid
+  name            String                 @unique
+  slug            String                 @unique
+  description     String?                @db.Text
+  isActive        Boolean                @default(true)
+  createdAt       DateTime               @default(now())
+  updatedAt       DateTime               @updatedAt
+  professionals   ProfessionalCategory[]
+  serviceRequests ServiceRequest[]
+
+  @@index([slug])
+}
+
+model ProfessionalCategory {
+  id             String              @id @default(uuid()) @db.Uuid
+  professionalId String              @db.Uuid
+  categoryId     String              @db.Uuid
+  createdAt      DateTime            @default(now())
+  professional   ProfessionalProfile @relation(fields: [professionalId], references: [id], onDelete: Cascade)
+  category       Category            @relation(fields: [categoryId], references: [id], onDelete: Restrict)
+
+  @@unique([professionalId, categoryId])
+  @@index([professionalId])
+  @@index([categoryId])
+}
+
+model City {
+  id            String             @id @default(uuid()) @db.Uuid
+  name          String
+  state         String
+  createdAt     DateTime           @default(now())
+  updatedAt     DateTime           @updatedAt
+  professionals ProfessionalCity[]
+  requests      ServiceRequest[]
+
+  @@unique([name, state])
+}
+
+model ProfessionalCity {
+  id             String              @id @default(uuid()) @db.Uuid
+  professionalId String              @db.Uuid
+  cityId         String              @db.Uuid
+  createdAt      DateTime            @default(now())
+  professional   ProfessionalProfile @relation(fields: [professionalId], references: [id], onDelete: Cascade)
+  city           City                @relation(fields: [cityId], references: [id], onDelete: Restrict)
+
+  @@unique([professionalId, cityId])
+  @@index([professionalId])
+  @@index([cityId])
+}
+
+model ServiceRequest {
+  id                  String                @id @default(uuid()) @db.Uuid
+  clientId            String                @db.Uuid
+  categoryId          String                @db.Uuid
+  cityId              String                @db.Uuid
+  title               String
+  description         String                @db.Text
+  status              ServiceRequestStatus  @default(OPEN)
+  addressStreet       String
+  addressNumber       String
+  addressNeighborhood String
+  addressComplement   String?
+  addressZipCode      String
+  latitude            Float?
+  longitude           Float?
+  createdAt           DateTime              @default(now())
+  updatedAt           DateTime              @updatedAt
+  client              ClientProfile         @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  category            Category              @relation(fields: [categoryId], references: [id], onDelete: Restrict)
+  city                City                  @relation(fields: [cityId], references: [id], onDelete: Restrict)
+  photos              ServiceRequestPhoto[]
+  proposals           Proposal[]
+  serviceContract     ServiceContract?
+  chats               Chat[]
+
+  @@index([clientId])
+  @@index([categoryId])
+  @@index([cityId])
+  @@index([status])
+}
+
+model ServiceRequestPhoto {
+  id               String         @id @default(uuid()) @db.Uuid
+  serviceRequestId String         @db.Uuid
+  url              String
+  createdAt        DateTime       @default(now())
+  serviceRequest   ServiceRequest @relation(fields: [serviceRequestId], references: [id], onDelete: Cascade)
+
+  @@index([serviceRequestId])
+}
+
+model Proposal {
+  id               String              @id @default(uuid()) @db.Uuid
+  serviceRequestId String              @db.Uuid
+  professionalId   String              @db.Uuid
+  price            Decimal             @db.Decimal(10, 2)
+  description      String              @db.Text
+  estimatedDays    Int?
+  status           ProposalStatus      @default(PENDING)
+  createdAt        DateTime            @default(now())
+  updatedAt        DateTime            @updatedAt
+  serviceRequest   ServiceRequest      @relation(fields: [serviceRequestId], references: [id], onDelete: Cascade)
+  professional     ProfessionalProfile @relation(fields: [professionalId], references: [id], onDelete: Cascade)
+  serviceContract  ServiceContract?
+
+  @@unique([serviceRequestId, professionalId])
+  @@index([serviceRequestId])
+  @@index([professionalId])
+  @@index([status])
+}
+
+model ServiceContract {
+  id               String                @id @default(uuid()) @db.Uuid
+  serviceRequestId String                @unique @db.Uuid
+  proposalId       String                @unique @db.Uuid
+  clientId         String                @db.Uuid
+  professionalId   String                @db.Uuid
+  status           ServiceContractStatus @default(ACCEPTED)
+  acceptedAt       DateTime              @default(now())
+  startedAt        DateTime?
+  completedAt      DateTime?
+  canceledAt       DateTime?
+  createdAt        DateTime              @default(now())
+  updatedAt        DateTime              @updatedAt
+  serviceRequest   ServiceRequest        @relation(fields: [serviceRequestId], references: [id], onDelete: Restrict)
+  proposal         Proposal              @relation(fields: [proposalId], references: [id], onDelete: Restrict)
+  client           ClientProfile         @relation(fields: [clientId], references: [id], onDelete: Restrict)
+  professional     ProfessionalProfile   @relation(fields: [professionalId], references: [id], onDelete: Restrict)
+  reviews          Review[]
+  chats            Chat[]
+
+  @@index([clientId])
+  @@index([professionalId])
+  @@index([status])
+}
+
+model Review {
+  id                String          @id @default(uuid()) @db.Uuid
+  serviceContractId String          @db.Uuid
+  reviewerId        String          @db.Uuid
+  reviewedId        String          @db.Uuid
+  rating            Int
+  comment           String?         @db.Text
+  createdAt         DateTime        @default(now())
+  serviceContract   ServiceContract @relation(fields: [serviceContractId], references: [id], onDelete: Cascade)
+  reviewer          User            @relation("ReviewReviewer", fields: [reviewerId], references: [id], onDelete: Restrict)
+  reviewed          User            @relation("ReviewReviewed", fields: [reviewedId], references: [id], onDelete: Restrict)
+
+  @@unique([serviceContractId, reviewerId, reviewedId])
+  @@index([reviewerId])
+  @@index([reviewedId])
+}
+
+model Chat {
+  id                String              @id @default(uuid()) @db.Uuid
+  serviceRequestId  String              @db.Uuid
+  serviceContractId String?             @db.Uuid
+  clientId          String              @db.Uuid
+  professionalId    String              @db.Uuid
+  createdAt         DateTime            @default(now())
+  updatedAt         DateTime            @updatedAt
+  serviceRequest    ServiceRequest      @relation(fields: [serviceRequestId], references: [id], onDelete: Cascade)
+  serviceContract   ServiceContract?    @relation(fields: [serviceContractId], references: [id], onDelete: SetNull)
+  client            ClientProfile       @relation(fields: [clientId], references: [id], onDelete: Restrict)
+  professional      ProfessionalProfile @relation(fields: [professionalId], references: [id], onDelete: Restrict)
+  messages          Message[]
+
+  @@unique([serviceRequestId, professionalId])
+  @@index([clientId])
+  @@index([professionalId])
+  @@index([serviceRequestId])
+}
+
+model Message {
+  id        String    @id @default(uuid()) @db.Uuid
+  chatId    String    @db.Uuid
+  senderId  String    @db.Uuid
+  content   String    @db.Text
+  readAt    DateTime?
+  createdAt DateTime  @default(now())
+  chat      Chat      @relation(fields: [chatId], references: [id], onDelete: Cascade)
+  sender    User      @relation("MessageSender", fields: [senderId], references: [id], onDelete: Restrict)
+
+  @@index([chatId])
+  @@index([senderId])
+}
+
+model Notification {
+  id        String           @id @default(uuid()) @db.Uuid
+  userId    String           @db.Uuid
+  title     String
+  message   String           @db.Text
+  type      NotificationType @default(SYSTEM)
+  readAt    DateTime?
+  createdAt DateTime         @default(now())
+  user      User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([type])
+}
+
+model ProfessionalPortfolioItem {
+  id             String              @id @default(uuid()) @db.Uuid
+  professionalId String              @db.Uuid
+  title          String
+  description    String?             @db.Text
+  imageUrl       String
+  createdAt      DateTime            @default(now())
+  updatedAt      DateTime            @updatedAt
+  professional   ProfessionalProfile @relation(fields: [professionalId], references: [id], onDelete: Cascade)
+
+  @@index([professionalId])
+}
