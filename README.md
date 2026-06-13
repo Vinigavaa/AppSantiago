@@ -136,21 +136,30 @@ EMAIL_FROM="Santiago <no-reply@santiago.local>"
 RESEND_API_KEY=""
 ```
 
-Em producao, `EMAIL_PROVIDER=console` e bloqueado. Configure Resend e HTTPS publico:
+Em producao, `EMAIL_PROVIDER=console` e bloqueado. A API publica esta hospedada
+no Render em `https://appsantiago.onrender.com`. Configure as variaveis abaixo no
+painel do Render (Environment), nao em arquivos `.env` versionados:
 
 ```env
-EXPO_PUBLIC_AUTH_BASE_URL="https://api.seudominio.com"
-BETTER_AUTH_URL="https://api.seudominio.com"
+# App mobile (build EAS / EXPO):
+EXPO_PUBLIC_AUTH_BASE_URL="https://appsantiago.onrender.com"
+
+# API no Render:
+BETTER_AUTH_URL="https://appsantiago.onrender.com"
+CORS_ORIGIN="https://appsantiago.onrender.com"
 EMAIL_PROVIDER="resend"
-EMAIL_FROM="Santiago <no-reply@seudominio.com>"
+EMAIL_FROM="Santiago <noreply@appsantiago.online>"
 RESEND_API_KEY="re_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+# EMAIL_REPLY_TO="suporte@appsantiago.online" # opcional
 ```
 
 Importante:
 
-- O dominio do `EMAIL_FROM` precisa estar verificado em https://resend.com/domains.
-  Sem dominio verificado, a Resend so aceita envios para o email do dono da conta
-  (e o `from` precisa ser `onboarding@resend.dev`).
+- O dominio `appsantiago.online` precisa permanecer verificado em
+  https://resend.com/domains (registros SPF, DKIM e Return-Path/MX ativos no DNS).
+  Sem dominio verificado, a Resend so aceita envios para o email do dono da conta.
+- O app e apenas nativo (iOS/Android), que nao envia header `Origin`, entao o
+  `CORS_ORIGIN` nao afeta o fluxo mobile. Mantido na URL do Render por seguranca.
 - `APP_DEEP_LINK_SCHEME` casa com `scheme` do `app.json` do Expo. Os links de
   reset de senha usam esse esquema.
 - Nunca coloque `DATABASE_URL`, `BETTER_AUTH_SECRET` ou `RESEND_API_KEY` no app mobile.
@@ -271,10 +280,10 @@ npm run db:validate
 
 Antes de publicar o app em lojas:
 
-- Hospede `apps/api` em HTTPS publico.
-- Configure `BETTER_AUTH_URL` com o mesmo dominio HTTPS.
-- Configure `EXPO_PUBLIC_AUTH_BASE_URL` no app apontando para a API publica.
-- Verifique o dominio em https://resend.com/domains e ajuste `EMAIL_FROM`.
+- A `apps/api` ja esta hospedada em HTTPS publico no Render (`https://appsantiago.onrender.com`).
+- Configure `BETTER_AUTH_URL=https://appsantiago.onrender.com` no Render.
+- Configure `EXPO_PUBLIC_AUTH_BASE_URL=https://appsantiago.onrender.com` no build do app.
+- Verifique o dominio em https://resend.com/domains e ajuste `EMAIL_FROM` para usar esse dominio.
 - Configure `RESEND_API_KEY` (chave de producao) e `EMAIL_PROVIDER=resend`.
 - Defina `APP_WEB_URL` se houver uma landing web — habilita o fallback nos emails.
 - Mantenha `DATABASE_URL`, `BETTER_AUTH_SECRET` e `RESEND_API_KEY` somente no backend.
