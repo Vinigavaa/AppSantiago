@@ -35,6 +35,16 @@ async function sendViaResend(input: SendEmailInput) {
   })
 
   if (response.ok) {
+    const body = (await response.json().catch(() => null)) as { id?: string } | null
+    console.info(
+      JSON.stringify({
+        type: "email_sent",
+        provider: "resend",
+        to: input.to,
+        subject: input.subject,
+        resendId: body?.id ?? null,
+      }),
+    )
     return
   }
 

@@ -98,6 +98,12 @@ export const auth = betterAuth({
       }
     },
     sendVerificationEmail: async ({ user, token }) => {
+      console.info(
+        JSON.stringify({
+          type: "email_verification_hook",
+          to: user.email,
+        }),
+      )
       await storeEmailVerificationToken({
         token,
         email: user.email,
