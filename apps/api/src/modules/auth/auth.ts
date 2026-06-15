@@ -75,7 +75,9 @@ export const auth = betterAuth({
   emailVerification: {
     autoSignInAfterVerification: true,
     expiresIn: 60 * 60,
-    sendOnSignIn: true,
+    // false: o reenvio é feito pela tela de verificação (botão dedicado). Com
+    // true, cada login silencioso de polling reenviaria um email duplicado.
+    sendOnSignIn: false,
     sendOnSignUp: true,
     beforeEmailVerification: async (user, request) => {
       const url = request ? new URL(request.url) : null

@@ -14,12 +14,52 @@ import { routes } from "@/constants/routes"
 import { useEmailVerification } from "@/features/auth/hooks/useEmailVerification"
 import { canOpenMailApp, openMailApp } from "@/features/auth/lib/open-mail-app"
 import { clearPendingCredentials } from "@/features/auth/services/pending-credentials"
-import { clearPendingVerificationEmail } from "@/features/auth/services/verification-storage"
+import {
+  clearPendingVerificationEmail,
+  getPendingVerificationEmail,
+} from "@/features/auth/services/verification-storage"
 
 export default function VerifyEmail() {
   const params = useLocalSearchParams<{ email?: string }>()
-  const email = typeof params.email === "string" && params.email ? params.email : null
+  const [email, setEmail] = useState<string | null | undefined>(() =>
+    typeof params.email === "string" && params.email ? params.email : undefined,
+  )
 
+  // Sem param (ex.: app reaberto), tenta recuperar o email persistido.
+  useEffect(() => {
+    if (email !== undefined) {
+      return
+    }
+
+    let active = true
+
+    getPendingVerificationEmail().then((stored) => {
+      if (active) {
+        setEmail(stored ?? null)
+      }
+    })
+
+    return () => {
+      active = false
+    }
+  }, [email])
+
+  if (email === undefined) {
+    return (
+      <View style={styles.loading}>
+        <ActivityIndicator color="#0F766E" />
+      </View>
+    )
+  }
+
+  if (email === null) {
+    return <Redirect href={routes.login} />
+  }
+
+  return <VerifyEmailContent email={email} />
+}
+
+function VerifyEmailContent({ email }: { email: string }) {
   const [canOpenMail, setCanOpenMail] = useState(false)
 
   const handleVerified = useCallback(async () => {
@@ -60,10 +100,6 @@ export default function VerifyEmail() {
       setCanOpenMail(false)
     }
   }, [])
-
-  if (!email) {
-    return <Redirect href={routes.login} />
-  }
 
   const resendLabel =
     resendStatus === "loading"
@@ -215,6 +251,12 @@ const styles = StyleSheet.create({
     color: "#0F766E",
     fontWeight: "700",
     marginTop: 28,
+  },
+  loading: {
+    alignItems: "center",
+    backgroundColor: "#F8FAFC",
+    flex: 1,
+    justifyContent: "center",
   },
   subtitle: {
     color: "#475569",

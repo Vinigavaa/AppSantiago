@@ -33,6 +33,14 @@ export function useEmailVerification({ email, onVerified }: Params) {
 
   const lastAttemptRef = useRef(0)
 
+  // Apenas checa se já existe sessão verificada (não dispara login/email).
+  // Usado no mount para evitar reenvio de email logo após o cadastro.
+  const checkExistingSession = useCallback(async () => {
+    if (await isEmailVerified().catch(() => false)) {
+      onVerifiedRef.current()
+    }
+  }, [])
+
   const syncCooldown = useCallback(async () => {
     const sentAt = await getVerificationSentAt()
 
@@ -91,11 +99,11 @@ export function useEmailVerification({ email, onVerified }: Params) {
     return () => clearTimeout(timeoutId)
   }, [cooldownRemaining])
 
-  // Ao montar: restaura cooldown persistido e checa o status silenciosamente.
+  // Ao montar: restaura cooldown e checa só a sessão (sem disparar login/email).
   useEffect(() => {
     void syncCooldown()
-    void attemptVerification(false)
-  }, [syncCooldown, attemptVerification])
+    void checkExistingSession()
+  }, [syncCooldown, checkExistingSession])
 
   // Ao voltar para o primeiro plano: re-sincroniza cooldown e re-checa o status.
   useEffect(() => {
