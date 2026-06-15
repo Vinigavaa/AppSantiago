@@ -204,7 +204,7 @@ export const authRateLimit = createRateLimitMiddleware([
   },
   {
     id: "auth:signup:ip",
-    limit: 5,
+    limit: 20,
     windowMs: 10 * 60 * 1000,
     key: getIpKey,
     matcher: (context) => {

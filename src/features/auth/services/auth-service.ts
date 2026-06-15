@@ -12,12 +12,36 @@ type AuthResult = {
   message?: string
 }
 
-function getFriendlyAuthError(message?: string) {
-  if (!message) {
-    return "Não foi possível autenticar agora. Tente novamente."
+type AuthErrorDetails = {
+  message?: string
+  code?: string
+  status?: number
+}
+
+function getFriendlyAuthError(error?: AuthErrorDetails | string | null) {
+  const details: AuthErrorDetails =
+    typeof error === "string" ? { message: error } : error ?? {}
+
+  const normalized = (details.message ?? "").toLowerCase()
+  const code = (details.code ?? "").toUpperCase()
+
+  if (
+    details.status === 429 ||
+    code === "RATE_LIMITED" ||
+    normalized.includes("muitas tentativas") ||
+    normalized.includes("rate") ||
+    normalized.includes("too many")
+  ) {
+    return "Muitas tentativas. Aguarde alguns minutos e tente novamente."
   }
 
-  const normalized = message.toLowerCase()
+  if (details.status === 503 || code === "AUTH_PROTECTION_UNAVAILABLE") {
+    return "Servidor indisponível no momento. Tente novamente em instantes."
+  }
+
+  if (!details.message) {
+    return "Não foi possível autenticar agora. Tente novamente."
+  }
 
   if (normalized.includes("invalid username") || normalized.includes("invalid email") || normalized.includes("invalid password")) {
     return "Credenciais inválidas. Confira os dados e tente novamente."
@@ -27,19 +51,29 @@ function getFriendlyAuthError(message?: string) {
     return "Verifique seu email antes de entrar."
   }
 
-  if (normalized.includes("rate") || normalized.includes("too many")) {
-    return "Muitas tentativas. Aguarde um pouco e tente novamente."
-  }
-
-  if (normalized.includes("already") || normalized.includes("taken")) {
+  if (normalized.includes("already") || normalized.includes("taken") || normalized.includes("já existe")) {
     return "Já existe uma conta com esses dados."
   }
 
-  if (normalized.includes("network") || normalized.includes("fetch")) {
+  if (normalized.includes("network") || normalized.includes("fetch") || normalized.includes("failed to fetch")) {
     return "Não foi possível conectar ao servidor. Verifique sua conexão."
   }
 
   return "Não foi possível concluir a autenticação. Tente novamente."
+}
+
+function toAuthErrorDetails(error: unknown): AuthErrorDetails {
+  if (!error || typeof error !== "object") {
+    return {}
+  }
+
+  const candidate = error as { message?: unknown; code?: unknown; status?: unknown }
+
+  return {
+    message: typeof candidate.message === "string" ? candidate.message : undefined,
+    code: typeof candidate.code === "string" ? candidate.code : undefined,
+    status: typeof candidate.status === "number" ? candidate.status : undefined,
+  }
 }
 
 export async function signIn(input: SignInInput): Promise<AuthResult> {
@@ -56,7 +90,7 @@ export async function signIn(input: SignInInput): Promise<AuthResult> {
   if (response.error) {
     return {
       success: false,
-      message: getFriendlyAuthError(response.error.message),
+      message: getFriendlyAuthError(toAuthErrorDetails(response.error)),
     }
   }
 
@@ -76,7 +110,7 @@ export async function signUp(input: SignUpInput): Promise<AuthResult> {
   if (response.error) {
     return {
       success: false,
-      message: getFriendlyAuthError(response.error.message),
+      message: getFriendlyAuthError(toAuthErrorDetails(response.error)),
     }
   }
 
@@ -92,7 +126,7 @@ export async function signOut(): Promise<AuthResult> {
   if (response.error) {
     return {
       success: false,
-      message: getFriendlyAuthError(response.error.message),
+      message: getFriendlyAuthError(toAuthErrorDetails(response.error)),
     }
   }
 
@@ -108,12 +142,18 @@ async function postAuth(path: string, body: Record<string, unknown>) {
     body: JSON.stringify(body),
   })
 
-  const payload = (await response.json().catch(() => null)) as { message?: string } | null
+  const payload = (await response.json().catch(() => null)) as
+    | { message?: string; code?: string }
+    | null
 
   if (!response.ok) {
     return {
       success: false,
-      message: getFriendlyAuthError(payload?.message),
+      message: getFriendlyAuthError({
+        message: payload?.message,
+        code: payload?.code,
+        status: response.status,
+      }),
     }
   }
 
