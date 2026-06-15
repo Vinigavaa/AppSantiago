@@ -8,7 +8,10 @@
     "scheme": "santiago",
     "userInterfaceStyle": "automatic",
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "infoPlist": {
+        "LSApplicationQueriesSchemes": ["message", "googlegmail", "ms-outlook", "ymail"]
+      }
     },
     "android": {
       "adaptiveIcon": {

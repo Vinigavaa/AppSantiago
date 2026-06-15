@@ -6,4 +6,5 @@ export const routes = {
   login: "/login" as Href,
   register: "/register" as Href,
   resetPassword: "/reset-password" as Href,
+  verifyEmail: "/verify-email" as Href,
 }

@@ -10,6 +10,14 @@ import {
   requestPasswordReset as requestPasswordResetService,
   resetPassword as resetPasswordService,
 } from "../services/auth-service"
+import {
+  clearPendingCredentials,
+  setPendingCredentials,
+} from "../services/pending-credentials"
+import {
+  clearPendingVerificationEmail,
+  savePendingVerificationEmail,
+} from "../services/verification-storage"
 import type {
   ForgotPasswordInput,
   ResetPasswordInput,
@@ -36,6 +44,8 @@ export function useAuth() {
       return
     }
 
+    clearPendingCredentials()
+    await clearPendingVerificationEmail()
     router.replace(routes.home)
   }
 
@@ -53,7 +63,9 @@ export function useAuth() {
       return
     }
 
-    setSuccessMessage(result.message ?? "Conta criada. Verifique seu email antes de entrar.")
+    setPendingCredentials({ email: input.email, password: input.password })
+    await savePendingVerificationEmail(input.email)
+    router.replace({ pathname: "/verify-email", params: { email: input.email } })
   }
 
   async function signOut() {

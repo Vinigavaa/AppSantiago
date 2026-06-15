@@ -678,6 +678,48 @@ Verificar:
 
 ---
 
+# Deploy e Ambiente (Render)
+
+A API (`apps/api`) está hospedada no **Render**:
+
+```txt
+https://appsantiago.onrender.com
+```
+
+- Deploy é **automático a partir do branch `main`** (push no GitHub dispara build/deploy).
+- Em produção o Render roda com `NODE_ENV=production`.
+- O mobile aponta para a API via `EXPO_PUBLIC_AUTH_BASE_URL` (no `.env` da raiz).
+
+## Variáveis de ambiente na API (Render)
+
+Configuradas no painel do Render, não no repositório:
+
+```txt
+BETTER_AUTH_URL      = https://appsantiago.onrender.com
+BETTER_AUTH_SECRET   = (secret)
+DATABASE_URL         = (Neon PostgreSQL)
+CORS_ORIGIN          = https://appsantiago.onrender.com,http://localhost:8081
+EMAIL_PROVIDER       = resend (console é bloqueado em produção)
+RESEND_API_KEY       = (secret)
+APP_DEEP_LINK_SCHEME = santiago
+```
+
+`CORS_ORIGIN` é lido em `apps/api/src/config/env.ts` e **alimenta também o `trustedOrigins`** do Better Auth em `apps/api/src/modules/auth/auth.ts`.
+
+## Diagnóstico rápido de problemas comuns
+
+Sintoma no app: **"Não foi possível concluir a autenticação. Tente novamente."** (mensagem genérica). Sempre olhar o **status HTTP real** (console web / logs do Render) antes de assumir bug de código:
+
+- **Primeira requisição ~50s / timeout:** cold start do Render (plano free derruba o serviço após ~15 min ocioso). A API está OK, só precisa "acordar". Solução durável: keep-warm pingando `/health`, ou upgrade de plano.
+- **HTTP 429:** rate limit em `apps/api/src/http/rate-limit.ts`. Cadastro = 20/10min por IP; login e reset têm regras próprias. O bucket reseta sozinho dentro da janela.
+- **HTTP 403 no celular (Expo Go), mas web funciona:** a origem do Expo Go é `exp://<ip>:8081`, que **não está em `trustedOrigins`** porque `exp://**` só entra quando `NODE_ENV === "development"` (e no Render é `production`). Solução: adicionar `exp://**` ao `CORS_ORIGIN` no Render (dev), ou gerar build standalone EAS com scheme `santiago://` (já é confiável). Origens que dão **200**: `santiago://`, `http://localhost:8081`.
+- **HTTP 503 (`AUTH_PROTECTION_UNAVAILABLE`):** falha ao validar rate limit (ex.: banco indisponível).
+- Login só funciona após **verificar o email** (`requireEmailVerification: true`).
+
+O mapeamento de erros do mobile fica em `src/features/auth/services/auth-service.ts` (`getFriendlyAuthError`), e considera `status` HTTP + `code` retornado pela API.
+
+---
+
 # Regra Final
 
 Priorizar:
