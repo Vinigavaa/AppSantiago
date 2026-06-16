@@ -146,6 +146,44 @@ export async function resendVerificationEmail(email: string): Promise<AuthResult
   return { success: true }
 }
 
+export async function getEmailVerificationStatus(
+  email: string,
+): Promise<AuthResult & { verified: boolean }> {
+  try {
+    const response = await fetch(
+      `${authBaseUrl}/api/auth/email-verification-status?email=${encodeURIComponent(email)}`,
+      {
+        method: "GET",
+        headers: { "content-type": "application/json" },
+      },
+    )
+
+    const payload = (await response.json().catch(() => null)) as
+      | { verified?: boolean; message?: string; code?: string }
+      | null
+
+    if (!response.ok) {
+      return {
+        success: false,
+        verified: false,
+        message: getFriendlyAuthError({
+          message: payload?.message,
+          code: payload?.code,
+          status: response.status,
+        }),
+      }
+    }
+
+    return { success: true, verified: payload?.verified === true }
+  } catch (error) {
+    return {
+      success: false,
+      verified: false,
+      message: getFriendlyAuthError(toAuthErrorDetails(error)),
+    }
+  }
+}
+
 
 async function postAuth(path: string, body: Record<string, unknown>) {
   const response = await fetch(`${authBaseUrl}/api/auth${path}`, {

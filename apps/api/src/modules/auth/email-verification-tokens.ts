@@ -26,6 +26,17 @@ export async function storeEmailVerificationToken(input: {
   })
 }
 
+// Remove todos os tokens de verificação anteriores do mesmo email. Garante que
+// cada novo envio invalide os links antigos (um único token válido por vez).
+export async function invalidatePreviousEmailVerificationTokens(email: string) {
+  await prisma.verification.deleteMany({
+    where: {
+      identifier: { startsWith: emailVerificationPrefix },
+      value: email.toLowerCase(),
+    },
+  })
+}
+
 export async function findEmailVerificationToken(token: string) {
   const verification = await prisma.verification.findFirst({
     where: {

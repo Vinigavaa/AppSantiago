@@ -10,6 +10,7 @@ import {
   requestPasswordReset as requestPasswordResetService,
   resetPassword as resetPasswordService,
 } from "../services/auth-service"
+import { clearPendingVerificationEmail, savePendingVerificationEmail } from "../storage"
 import type {
   ForgotPasswordInput,
   ResetPasswordInput,
@@ -36,6 +37,7 @@ export function useAuth() {
       return
     }
 
+    await clearPendingVerificationEmail()
     router.replace(routes.home)
   }
 
@@ -53,6 +55,7 @@ export function useAuth() {
       return
     }
 
+    await savePendingVerificationEmail(input.email)
     router.replace({ pathname: "/verify-email", params: { email: input.email } })
   }
 

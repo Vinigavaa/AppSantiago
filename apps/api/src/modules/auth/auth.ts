@@ -16,6 +16,7 @@ import {
 import {
   consumeEmailVerificationToken,
   findEmailVerificationToken,
+  invalidatePreviousEmailVerificationTokens,
   storeEmailVerificationToken,
 } from "./email-verification-tokens"
 import type { PublicAuthRole } from "./schemas"
@@ -106,6 +107,7 @@ export const auth = betterAuth({
           to: user.email,
         }),
       )
+      await invalidatePreviousEmailVerificationTokens(user.email)
       await storeEmailVerificationToken({
         token,
         email: user.email,

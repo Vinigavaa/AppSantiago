@@ -248,4 +248,14 @@ export const authRateLimit = createRateLimitMiddleware([
       )
     },
   },
+  {
+    id: "auth:email-status:ip",
+    limit: 30,
+    windowMs: 15 * 60 * 1000,
+    key: getIpKey,
+    matcher: (context) => {
+      const path = new URL(context.req.url).pathname
+      return context.req.method === "GET" && path === "/api/auth/email-verification-status"
+    },
+  },
 ])
