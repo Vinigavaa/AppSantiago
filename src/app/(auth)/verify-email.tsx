@@ -1,112 +1,69 @@
-import { Link, Redirect, router, useLocalSearchParams } from "expo-router"
-import { useCallback, useEffect, useState } from "react"
-import {
-  ActivityIndicator,
-  Pressable,
-  ScrollView,
-  StyleSheet,
-  Text,
-  View,
-} from "react-native"
+import { Redirect, router, useLocalSearchParams } from "expo-router"
+import { useEffect, useState } from "react"
+import { ScrollView, StyleSheet, Text, View } from "react-native"
 
 import { Button } from "@/components/ui/Button"
 import { routes } from "@/constants/routes"
-import { useEmailVerification } from "@/features/auth/hooks/useEmailVerification"
-import { canOpenMailApp, openMailApp } from "@/features/auth/lib/open-mail-app"
-import { clearPendingCredentials } from "@/features/auth/services/pending-credentials"
-import {
-  clearPendingVerificationEmail,
-  getPendingVerificationEmail,
-} from "@/features/auth/services/verification-storage"
+import { resendVerificationEmail } from "@/features/auth/services/auth-service"
+
+const COOLDOWN_SECONDS = 60
 
 export default function VerifyEmail() {
   const params = useLocalSearchParams<{ email?: string }>()
-  const [email, setEmail] = useState<string | null | undefined>(() =>
-    typeof params.email === "string" && params.email ? params.email : undefined,
-  )
+  const email = typeof params.email === "string" && params.email ? params.email : null
 
-  // Sem param (ex.: app reaberto), tenta recuperar o email persistido.
-  useEffect(() => {
-    if (email !== undefined) {
-      return
-    }
-
-    let active = true
-
-    getPendingVerificationEmail().then((stored) => {
-      if (active) {
-        setEmail(stored ?? null)
-      }
-    })
-
-    return () => {
-      active = false
-    }
-  }, [email])
-
-  if (email === undefined) {
-    return (
-      <View style={styles.loading}>
-        <ActivityIndicator color="#0F766E" />
-      </View>
-    )
-  }
-
-  if (email === null) {
+  if (!email) {
     return <Redirect href={routes.login} />
   }
 
-  return <VerifyEmailContent email={email} />
+  return <VerifyEmailScreen email={email} />
 }
 
-function VerifyEmailContent({ email }: { email: string }) {
-  const [canOpenMail, setCanOpenMail] = useState(false)
-
-  const handleVerified = useCallback(async () => {
-    clearPendingCredentials()
-    await clearPendingVerificationEmail()
-    router.replace(routes.home)
-  }, [])
-
-  const {
-    resendStatus,
-    resendMessage,
-    cooldownRemaining,
-    isResendDisabled,
-    resend,
-    isChecking,
-    checkNow,
-    checkMessage,
-  } = useEmailVerification({ email, onVerified: handleVerified })
+function VerifyEmailScreen({ email }: { email: string }) {
+  const [isSending, setIsSending] = useState(false)
+  const [message, setMessage] = useState<string | null>(null)
+  const [isError, setIsError] = useState(false)
+  // Um email já foi enviado no cadastro, então o cooldown começa ativo.
+  const [cooldown, setCooldown] = useState(COOLDOWN_SECONDS)
 
   useEffect(() => {
-    let active = true
-
-    canOpenMailApp().then((value) => {
-      if (active) {
-        setCanOpenMail(value)
-      }
-    })
-
-    return () => {
-      active = false
+    if (cooldown <= 0) {
+      return
     }
-  }, [])
 
-  const handleOpenMail = useCallback(async () => {
-    const opened = await openMailApp()
+    const timeoutId = setTimeout(() => setCooldown((seconds) => seconds - 1), 1000)
 
-    if (!opened) {
-      setCanOpenMail(false)
+    return () => clearTimeout(timeoutId)
+  }, [cooldown])
+
+  async function handleResend() {
+    if (isSending || cooldown > 0) {
+      return
     }
-  }, [])
 
-  const resendLabel =
-    resendStatus === "loading"
-      ? "Enviando..."
-      : cooldownRemaining > 0
-        ? `Reenviar em ${cooldownRemaining}s`
-        : "Reenviar email"
+    setIsSending(true)
+    setMessage(null)
+    setIsError(false)
+
+    const result = await resendVerificationEmail(email)
+
+    setIsSending(false)
+
+    if (!result.success) {
+      setIsError(true)
+      setMessage(result.message ?? "Não foi possível reenviar o email. Tente novamente.")
+      return
+    }
+
+    setMessage("Email reenviado. Verifique sua caixa de entrada e o spam.")
+    setCooldown(COOLDOWN_SECONDS)
+  }
+
+  const resendLabel = isSending
+    ? "Enviando..."
+    : cooldown > 0
+      ? `Reenviar em ${cooldown}s`
+      : "Reenviar email"
 
   return (
     <ScrollView contentContainerStyle={styles.content} style={styles.container}>
@@ -115,7 +72,7 @@ function VerifyEmailContent({ email }: { email: string }) {
       </View>
 
       <View style={styles.header}>
-        <Text style={styles.title}>Conta criada com sucesso!</Text>
+        <Text style={styles.title}>Verifique seu email</Text>
         <Text style={styles.subtitle}>
           Enviamos um link de verificação para o email abaixo. Confirme para liberar o acesso.
         </Text>
@@ -125,46 +82,21 @@ function VerifyEmailContent({ email }: { email: string }) {
         <Text style={styles.emailText}>{email}</Text>
       </View>
 
-      <Text style={styles.hint}>
-        Verifique sua caixa de entrada e também a pasta de spam. O acesso ao app será liberado assim
-        que você confirmar o email.
-      </Text>
+      <Text style={styles.hint}>Não recebeu? Verifique a pasta de spam ou reenvie o email.</Text>
 
       <View style={styles.actions}>
-        {canOpenMail ? <Button label="Abrir email" onPress={handleOpenMail} /> : null}
+        <Button disabled={isSending || cooldown > 0} label={resendLabel} onPress={handleResend} />
 
-        <Button
-          disabled={isResendDisabled}
-          label={resendLabel}
-          onPress={resend}
-          variant="secondary"
-        />
-
-        {resendMessage ? (
-          <Text style={resendStatus === "error" ? styles.error : styles.success}>
-            {resendMessage}
-          </Text>
+        {message ? (
+          <Text style={isError ? styles.error : styles.success}>{message}</Text>
         ) : null}
 
-        <Pressable
-          accessibilityRole="button"
-          disabled={isChecking}
-          onPress={checkNow}
-          style={styles.checkButton}
-        >
-          {isChecking ? (
-            <ActivityIndicator color="#0F766E" />
-          ) : (
-            <Text style={styles.checkLabel}>Já verifiquei meu email</Text>
-          )}
-        </Pressable>
-
-        {checkMessage ? <Text style={styles.info}>{checkMessage}</Text> : null}
+        <Button
+          label="Fazer login"
+          onPress={() => router.replace(routes.login)}
+          variant="secondary"
+        />
       </View>
-
-      <Link href={routes.login} style={styles.link}>
-        Voltar para o login
-      </Link>
     </ScrollView>
   )
 }
@@ -173,16 +105,6 @@ const styles = StyleSheet.create({
   actions: {
     gap: 12,
     marginTop: 28,
-  },
-  checkButton: {
-    alignItems: "center",
-    justifyContent: "center",
-    minHeight: 44,
-  },
-  checkLabel: {
-    color: "#0F766E",
-    fontSize: 16,
-    fontWeight: "700",
   },
   container: {
     backgroundColor: "#F8FAFC",
@@ -238,25 +160,6 @@ const styles = StyleSheet.create({
     height: 96,
     justifyContent: "center",
     width: 96,
-  },
-  info: {
-    backgroundColor: "#E0F2F1",
-    borderRadius: 8,
-    color: "#0F766E",
-    padding: 12,
-    textAlign: "center",
-  },
-  link: {
-    alignSelf: "center",
-    color: "#0F766E",
-    fontWeight: "700",
-    marginTop: 28,
-  },
-  loading: {
-    alignItems: "center",
-    backgroundColor: "#F8FAFC",
-    flex: 1,
-    justifyContent: "center",
   },
   subtitle: {
     color: "#475569",

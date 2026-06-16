@@ -146,23 +146,6 @@ export async function resendVerificationEmail(email: string): Promise<AuthResult
   return { success: true }
 }
 
-export async function isEmailVerified(): Promise<boolean> {
-  const response = await authClient.getSession()
-
-  return Boolean(response.data?.user?.emailVerified)
-}
-
-// Tenta logar silenciosamente. Enquanto o email não está verificado o servidor
-// recusa (requireEmailVerification); assim que verificado, o login cria a sessão
-// no app. Retorna true apenas quando a sessão é estabelecida.
-export async function trySignInForVerification(
-  email: string,
-  password: string,
-): Promise<boolean> {
-  const response = await authClient.signIn.email({ email, password })
-
-  return !response.error
-}
 
 async function postAuth(path: string, body: Record<string, unknown>) {
   const response = await fetch(`${authBaseUrl}/api/auth${path}`, {
