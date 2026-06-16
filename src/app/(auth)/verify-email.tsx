@@ -126,6 +126,13 @@ function VerifyEmailScreen({ email }: { email: string }) {
     router.replace(routes.login)
   }
 
+  // Saída direta para o login, sem validar status nem respeitar cooldown.
+  // Limpa o email pendente para não voltar à tela ao reabrir o app.
+  async function handleExit() {
+    await clearPendingVerificationEmail()
+    router.replace(routes.login)
+  }
+
   const resendLabel = isSending
     ? "Enviando..."
     : cooldown > 0
@@ -168,6 +175,10 @@ function VerifyEmailScreen({ email }: { email: string }) {
           onPress={handleCheckVerified}
           variant="secondary"
         />
+
+        <Text accessibilityRole="button" onPress={handleExit} style={styles.exitLink}>
+          Sair
+        </Text>
       </View>
     </ScrollView>
   )
@@ -199,6 +210,14 @@ const styles = StyleSheet.create({
     color: "#0F766E",
     fontSize: 16,
     fontWeight: "700",
+  },
+  exitLink: {
+    color: "#475569",
+    fontSize: 15,
+    fontWeight: "700",
+    marginTop: 4,
+    paddingVertical: 8,
+    textAlign: "center",
   },
   error: {
     backgroundColor: "#FEE2E2",
