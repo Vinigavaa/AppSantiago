@@ -5,6 +5,7 @@ import { logger } from "hono/logger"
 import { corsOrigins } from "@/config/env"
 import { authRateLimit } from "@/http/rate-limit"
 import { landingPages } from "@/http/landing-pages"
+import { appRoutes } from "@/modules/app-routes"
 import { emailVerificationGuard } from "@/modules/auth/email-verification-guard"
 import { publicSignUpGuard } from "@/modules/auth/public-sign-up-guard"
 import { authRoutes } from "@/modules/auth/routes"
@@ -37,4 +38,5 @@ app.use("/api/auth/*", authRateLimit)
 app.use("/api/auth/*", publicSignUpGuard)
 app.use("/api/auth/*", emailVerificationGuard)
 app.route("/api/auth", authRoutes)
+app.route("/api/app", appRoutes)
 app.route("/", landingPages)

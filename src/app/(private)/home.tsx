@@ -1,50 +1,176 @@
-import { StyleSheet, Text, View } from "react-native"
+import { router } from "expo-router"
+import { useMemo, useState } from "react"
+import {
+  ActivityIndicator,
+  RefreshControl,
+  ScrollView,
+  StyleSheet,
+  Text,
+  View,
+} from "react-native"
+import { useSafeAreaInsets } from "react-native-safe-area-context"
 
-import { Button } from "@/components/ui/Button"
-import { useAuth } from "@/features/auth/hooks/useAuth"
+import { routes } from "@/constants/routes"
+import { CreateRequestButton } from "@/features/client-home/components/CreateRequestButton"
+import { EmptyState } from "@/features/client-home/components/EmptyState"
+import { FilterChips } from "@/features/client-home/components/FilterChips"
+import { HomeHeader } from "@/features/client-home/components/HomeHeader"
+import { RequestCard } from "@/features/client-home/components/RequestCard"
+import { SearchBar } from "@/features/client-home/components/SearchBar"
+import { SectionHeader } from "@/features/client-home/components/SectionHeader"
+import { SummaryCards } from "@/features/client-home/components/SummaryCards"
+import { getFirstName, getGreeting } from "@/features/client-home/greeting"
+import { colors, spacing } from "@/features/client-home/theme"
+import { useServiceRequests } from "@/features/service-requests/hooks"
 import { authClient } from "@/lib/auth-client"
 
+const FILTERS = ["Todas", "Perto de mim", "Recentes"]
+
 export default function Home() {
-  const { signOut, isSubmitting } = useAuth()
   const { data: session } = authClient.useSession()
-  const role = session?.user.role === "PROFESSIONAL" ? "Profissional" : "Cliente"
+  const insets = useSafeAreaInsets()
+  const { requests, summary, isLoading, isRefreshing, error, refetch } = useServiceRequests()
+
+  const [search, setSearch] = useState("")
+  const [activeFilter, setActiveFilter] = useState(FILTERS[0])
+
+  const filteredRequests = useMemo(() => {
+    const term = search.trim().toLowerCase()
+
+    if (!term) {
+      return requests
+    }
+
+    return requests.filter((request) =>
+      [request.title, request.category.name, request.city.name].some((field) =>
+        field.toLowerCase().includes(term),
+      ),
+    )
+  }, [requests, search])
+
+  function goToCreateRequest() {
+    router.push(routes.newRequest)
+  }
 
   return (
-    <View style={styles.container}>
-      <View style={styles.content}>
-        <Text style={styles.title}>Área logada</Text>
-        <Text style={styles.subtitle}>Olá, {session?.user.name}.</Text>
-        <Text style={styles.role}>Perfil: {role}</Text>
+    <ScrollView
+      contentContainerStyle={[styles.content, { paddingTop: insets.top + 12 }]}
+      refreshControl={
+        <RefreshControl onRefresh={refetch} refreshing={isRefreshing} tintColor={colors.accent} />
+      }
+      showsVerticalScrollIndicator={false}
+      style={styles.screen}
+    >
+      <HomeHeader
+        greeting={getGreeting()}
+        hasNotifications={false}
+        initials={getInitials(session?.user.name)}
+        name={getFirstName(session?.user.name)}
+        onPressAvatar={() => router.push(routes.profile)}
+        onPressNotifications={() => {}}
+      />
+
+      <View style={styles.searchBlock}>
+        <SearchBar onChangeText={setSearch} value={search} />
+        <FilterChips active={activeFilter} onSelect={setActiveFilter} options={FILTERS} />
       </View>
 
-      <Button disabled={isSubmitting} label="Sair" onPress={signOut} variant="secondary" />
-    </View>
+      <CreateRequestButton onPress={goToCreateRequest} />
+
+      <SummaryCards summary={summary} />
+
+      <View>
+        <SectionHeader title="Minhas solicitações" />
+        <View style={styles.listBlock}>{renderRequests()}</View>
+      </View>
+    </ScrollView>
   )
+
+  function renderRequests() {
+    if (isLoading) {
+      return (
+        <View style={styles.centered}>
+          <ActivityIndicator color={colors.accent} />
+        </View>
+      )
+    }
+
+    if (error && requests.length === 0) {
+      return (
+        <EmptyState
+          actionLabel="Tentar novamente"
+          description={error}
+          icon="cloud-offline-outline"
+          onPressAction={refetch}
+          title="Não foi possível carregar"
+        />
+      )
+    }
+
+    if (requests.length === 0) {
+      return (
+        <EmptyState
+          actionLabel="Criar minha primeira solicitação"
+          description="Você ainda não criou nenhuma solicitação. Comece agora e receba propostas de profissionais."
+          icon="document-text-outline"
+          onPressAction={goToCreateRequest}
+          title="Nenhuma solicitação ainda"
+        />
+      )
+    }
+
+    if (filteredRequests.length === 0) {
+      return (
+        <EmptyState
+          description="Nenhuma solicitação corresponde à sua busca."
+          icon="search-outline"
+          title="Sem resultados"
+        />
+      )
+    }
+
+    return (
+      <View style={styles.cardList}>
+        {filteredRequests.map((request) => (
+          <RequestCard key={request.id} onPress={() => {}} request={request} />
+        ))}
+      </View>
+    )
+  }
+}
+
+function getInitials(fullName: string | null | undefined): string {
+  if (!fullName) {
+    return "?"
+  }
+
+  const parts = fullName.trim().split(/\s+/)
+  const first = parts[0]?.[0] ?? ""
+  const last = parts.length > 1 ? (parts[parts.length - 1]?.[0] ?? "") : ""
+
+  return (first + last).toUpperCase() || "?"
 }
 
 const styles = StyleSheet.create({
-  container: {
-    backgroundColor: "#F8FAFC",
-    flex: 1,
-    justifyContent: "space-between",
-    padding: 24,
-    paddingTop: 72,
+  cardList: {
+    gap: spacing.cardGap,
+  },
+  centered: {
+    paddingVertical: 32,
   },
   content: {
-    gap: 10,
+    gap: 20,
+    paddingBottom: 28,
+    paddingHorizontal: spacing.screen,
   },
-  role: {
-    color: "#0F766E",
-    fontSize: 16,
-    fontWeight: "700",
+  listBlock: {
+    marginTop: 14,
   },
-  subtitle: {
-    color: "#475569",
-    fontSize: 18,
+  screen: {
+    backgroundColor: colors.screenBg,
+    flex: 1,
   },
-  title: {
-    color: "#0F172A",
-    fontSize: 32,
-    fontWeight: "800",
+  searchBlock: {
+    gap: 14,
   },
 })

@@ -1,32 +1,100 @@
-import { Redirect, Stack } from "expo-router"
-import { ActivityIndicator, StyleSheet, View } from "react-native"
+import { Ionicons } from "@expo/vector-icons"
+import { Redirect, Tabs } from "expo-router"
+import { useRef } from "react"
+import { ActivityIndicator, type ColorValue, StyleSheet, View } from "react-native"
 
 import { routes } from "@/constants/routes"
+import { colors } from "@/features/client-home/theme"
 import { authClient } from "@/lib/auth-client"
+
+type IoniconName = keyof typeof Ionicons.glyphMap
+
+function tabIcon(focused: IoniconName, unfocused: IoniconName) {
+  return ({ color, focused: isFocused, size }: { color: ColorValue; focused: boolean; size: number }) => (
+    <Ionicons color={color} name={isFocused ? focused : unfocused} size={size} />
+  )
+}
 
 export default function PrivateLayout() {
   const { data: session, isPending } = authClient.useSession()
 
-  if (isPending) {
+  // Mesmo cuidado documentado para o grupo (auth): um refetch de sessão volta
+  // isPending para true. Só bloqueamos no carregamento inicial, senão a barra
+  // de abas é desmontada e perde o estado de navegação.
+  const hasLoadedOnce = useRef(false)
+
+  if (isPending && !hasLoadedOnce.current) {
     return (
       <View style={styles.loading}>
-        <ActivityIndicator color="#0F766E" />
+        <ActivityIndicator color={colors.accent} />
       </View>
     )
   }
+
+  hasLoadedOnce.current = true
 
   if (!session) {
     return <Redirect href={routes.login} />
   }
 
-  return <Stack screenOptions={{ headerShown: false }} />
+  return (
+    <Tabs
+      screenOptions={{
+        headerShown: false,
+        tabBarActiveTintColor: colors.accent,
+        tabBarInactiveTintColor: colors.textTertiary,
+        tabBarLabelStyle: styles.tabLabel,
+        tabBarStyle: styles.tabBar,
+      }}
+    >
+      <Tabs.Screen
+        name="home"
+        options={{ tabBarIcon: tabIcon("home", "home-outline"), title: "Início" }}
+      />
+      <Tabs.Screen
+        name="search"
+        options={{ tabBarIcon: tabIcon("search", "search-outline"), title: "Buscar" }}
+      />
+      <Tabs.Screen
+        name="proposals"
+        options={{
+          tabBarIcon: tabIcon("document-text", "document-text-outline"),
+          title: "Propostas",
+        }}
+      />
+      <Tabs.Screen
+        name="messages"
+        options={{
+          tabBarIcon: tabIcon("chatbubble-ellipses", "chatbubble-ellipses-outline"),
+          title: "Mensagens",
+        }}
+      />
+      <Tabs.Screen
+        name="profile"
+        options={{ tabBarIcon: tabIcon("person", "person-outline"), title: "Perfil" }}
+      />
+
+      {/* Telas alcançáveis a partir da Home, sem aba própria. */}
+      <Tabs.Screen name="new-request" options={{ href: null }} />
+      <Tabs.Screen name="professionals" options={{ href: null }} />
+    </Tabs>
+  )
 }
 
 const styles = StyleSheet.create({
   loading: {
     alignItems: "center",
-    backgroundColor: "#F8FAFC",
+    backgroundColor: colors.screenBg,
     flex: 1,
     justifyContent: "center",
+  },
+  tabBar: {
+    backgroundColor: colors.surface,
+    borderTopColor: colors.cardBorder,
+    paddingTop: 6,
+  },
+  tabLabel: {
+    fontSize: 11,
+    fontWeight: "500",
   },
 })

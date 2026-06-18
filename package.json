@@ -9,6 +9,7 @@
   "dependencies": {
     "@better-auth/expo": "^1.6.16",
     "@better-auth/prisma-adapter": "^1.6.16",
+    "@expo/vector-icons": "^15.0.2",
     "@hookform/resolvers": "^5.4.0",
     "@opentelemetry/api": "^1.9.1",
     "better-auth": "^1.6.16",
@@ -53,7 +54,8 @@
     "db:studio": "npm --workspace @santiago/database run db:studio",
     "db:seed": "npm --workspace @santiago/database run db:seed",
     "db:validate": "npm --workspace @santiago/database run db:validate",
-    "auth:smoke": "tsx --tsconfig apps/api/tsconfig.json scripts/auth-security-smoke.ts"
+    "auth:smoke": "tsx --tsconfig apps/api/tsconfig.json scripts/auth-security-smoke.ts",
+    "requests:smoke": "tsx --tsconfig apps/api/tsconfig.json scripts/service-request-smoke.ts"
   },
   "private": true
 }

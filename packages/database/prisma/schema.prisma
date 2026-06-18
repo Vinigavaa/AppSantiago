@@ -21,6 +21,12 @@ enum ServiceRequestStatus {
   CANCELED
 }
 
+enum ServiceRequestUrgency {
+  URGENT
+  THIS_WEEK
+  FLEXIBLE
+}
+
 enum ProposalStatus {
   PENDING
   ACCEPTED
@@ -220,11 +226,16 @@ model ServiceRequest {
   title               String
   description         String                @db.Text
   status              ServiceRequestStatus  @default(OPEN)
-  addressStreet       String
-  addressNumber       String
-  addressNeighborhood String
+  urgency             ServiceRequestUrgency @default(FLEXIBLE)
+  budgetMin           Decimal?              @db.Decimal(10, 2)
+  budgetMax           Decimal?              @db.Decimal(10, 2)
+  // Endereço completo só é coletado/liberado após a contratação. Na criação da
+  // solicitação ficam nulos; o cliente informa apenas cidade e bairro (opcional).
+  addressStreet       String?
+  addressNumber       String?
+  addressNeighborhood String?
   addressComplement   String?
-  addressZipCode      String
+  addressZipCode      String?
   latitude            Float?
   longitude           Float?
   createdAt           DateTime              @default(now())

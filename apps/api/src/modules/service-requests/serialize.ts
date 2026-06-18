@@ -1,0 +1,35 @@
+import type { Prisma } from "@prisma/client"
+
+// Inclui as relações necessárias para montar o item retornado ao cliente.
+export const serviceRequestInclude = {
+  category: { select: { id: true, name: true } },
+  city: { select: { id: true, name: true, state: true } },
+  _count: { select: { proposals: true, photos: true } },
+} satisfies Prisma.ServiceRequestInclude
+
+type ServiceRequestWithRelations = Prisma.ServiceRequestGetPayload<{
+  include: typeof serviceRequestInclude
+}>
+
+function toNumber(value: Prisma.Decimal | null): number | null {
+  return value === null ? null : Number(value)
+}
+
+// Formato estável consumido pelo mobile. Não expõe endereço/localização precisa.
+export function serializeServiceRequest(request: ServiceRequestWithRelations) {
+  return {
+    id: request.id,
+    title: request.title,
+    description: request.description,
+    status: request.status,
+    urgency: request.urgency,
+    category: request.category,
+    city: request.city,
+    neighborhood: request.addressNeighborhood,
+    budgetMin: toNumber(request.budgetMin),
+    budgetMax: toNumber(request.budgetMax),
+    proposalsCount: request._count.proposals,
+    photosCount: request._count.photos,
+    createdAt: request.createdAt.toISOString(),
+  }
+}
