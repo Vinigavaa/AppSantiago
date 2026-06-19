@@ -37,16 +37,47 @@ export default function PrivateLayout() {
     return <Redirect href={routes.login} />
   }
 
+  // O profissional tem uma jornada própria, com navegação inferior distinta
+  // (Home permanece no centro). Demais telas ficam acessíveis sem aba própria.
+  if (session.user.role === "PROFESSIONAL") {
+    return (
+      <Tabs screenOptions={screenOptions}>
+        <Tabs.Screen
+          name="profile"
+          options={{ tabBarIcon: tabIcon("person", "person-outline"), title: "Perfil" }}
+        />
+        <Tabs.Screen
+          name="messages"
+          options={{
+            tabBarIcon: tabIcon("chatbubble-ellipses", "chatbubble-ellipses-outline"),
+            title: "Mensagens",
+          }}
+        />
+        <Tabs.Screen
+          name="home"
+          options={{ tabBarIcon: tabIcon("home", "home-outline"), title: "Home" }}
+        />
+        <Tabs.Screen
+          name="dashboard"
+          options={{ tabBarIcon: tabIcon("stats-chart", "stats-chart-outline"), title: "Dashboard" }}
+        />
+        <Tabs.Screen
+          name="services"
+          options={{ tabBarIcon: tabIcon("construct", "construct-outline"), title: "Serviços" }}
+        />
+
+        {/* Telas exclusivas do cliente / alcançáveis por push: sem aba. */}
+        <Tabs.Screen name="search" options={{ href: null }} />
+        <Tabs.Screen name="proposals" options={{ href: null }} />
+        <Tabs.Screen name="new-request" options={{ href: null }} />
+        <Tabs.Screen name="professionals" options={{ href: null }} />
+        <Tabs.Screen name="opportunity-details" options={{ href: null }} />
+      </Tabs>
+    )
+  }
+
   return (
-    <Tabs
-      screenOptions={{
-        headerShown: false,
-        tabBarActiveTintColor: colors.accent,
-        tabBarInactiveTintColor: colors.textTertiary,
-        tabBarLabelStyle: styles.tabLabel,
-        tabBarStyle: styles.tabBar,
-      }}
-    >
+    <Tabs screenOptions={screenOptions}>
       <Tabs.Screen
         name="home"
         options={{ tabBarIcon: tabIcon("home", "home-outline"), title: "Início" }}
@@ -74,9 +105,12 @@ export default function PrivateLayout() {
         options={{ tabBarIcon: tabIcon("person", "person-outline"), title: "Perfil" }}
       />
 
-      {/* Telas alcançáveis a partir da Home, sem aba própria. */}
+      {/* Telas exclusivas do profissional / alcançáveis por push: sem aba. */}
+      <Tabs.Screen name="dashboard" options={{ href: null }} />
+      <Tabs.Screen name="services" options={{ href: null }} />
       <Tabs.Screen name="new-request" options={{ href: null }} />
       <Tabs.Screen name="professionals" options={{ href: null }} />
+      <Tabs.Screen name="opportunity-details" options={{ href: null }} />
     </Tabs>
   )
 }
@@ -98,3 +132,11 @@ const styles = StyleSheet.create({
     fontWeight: "500",
   },
 })
+
+const screenOptions = {
+  headerShown: false,
+  tabBarActiveTintColor: colors.accent,
+  tabBarInactiveTintColor: colors.textTertiary,
+  tabBarLabelStyle: styles.tabLabel,
+  tabBarStyle: styles.tabBar,
+} as const

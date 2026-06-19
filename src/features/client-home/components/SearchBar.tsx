@@ -6,16 +6,17 @@ import { colors, radius } from "../theme"
 type Props = {
   value: string
   onChangeText: (value: string) => void
+  placeholder?: string
 }
 
-export function SearchBar({ value, onChangeText }: Props) {
+export function SearchBar({ value, onChangeText, placeholder = "Buscar serviços ou categorias" }: Props) {
   return (
     <View style={styles.container}>
       <Ionicons color={colors.textTertiary} name="search-outline" size={20} />
       <TextInput
-        accessibilityLabel="Buscar serviços ou categorias"
+        accessibilityLabel={placeholder}
         onChangeText={onChangeText}
-        placeholder="Buscar serviços ou categorias"
+        placeholder={placeholder}
         placeholderTextColor={colors.textTertiary}
         returnKeyType="search"
         style={styles.input}

@@ -55,7 +55,10 @@
     "db:seed": "npm --workspace @santiago/database run db:seed",
     "db:validate": "npm --workspace @santiago/database run db:validate",
     "auth:smoke": "tsx --tsconfig apps/api/tsconfig.json scripts/auth-security-smoke.ts",
-    "requests:smoke": "tsx --tsconfig apps/api/tsconfig.json scripts/service-request-smoke.ts"
+    "requests:smoke": "tsx --tsconfig apps/api/tsconfig.json scripts/service-request-smoke.ts",
+    "opportunities:smoke": "tsx --tsconfig apps/api/tsconfig.json scripts/opportunities-smoke.ts",
+    "profile:smoke": "tsx --tsconfig apps/api/tsconfig.json scripts/professional-profile-smoke.ts",
+    "pro:coverage": "tsx --tsconfig apps/api/tsconfig.json scripts/grant-professional-coverage.ts"
   },
   "private": true
 }
