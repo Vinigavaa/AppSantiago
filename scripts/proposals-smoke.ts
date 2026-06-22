@@ -133,6 +133,7 @@ async function main() {
     status: sent.status,
     body: sentBody,
   })
+  const proposalId = sentBody.proposal!.id
 
   // 2. Duplicidade bloqueada.
   const duplicate = await sendProposal({
@@ -205,6 +206,110 @@ async function main() {
     where: { user: { email: clientEmail }, type: "PROPOSAL_RECEIVED" },
   })
   check("notificação de proposta criada", notifications === 1, notifications)
+
+  // --- Gerenciamento: aceitar / recusar ---
+
+  function accept(id: string, authed = client) {
+    return authed(`/api/app/proposals/${id}/accept`, { method: "POST" })
+  }
+  function reject(id: string, authed = client) {
+    return authed(`/api/app/proposals/${id}/reject`, { method: "POST" })
+  }
+
+  // 10. Profissional não pode aceitar (somente o cliente dono).
+  const proCannotAccept = await accept(proposalId, pro)
+  check("profissional não aceita (403)", proCannotAccept.status === 403, proCannotAccept.status)
+
+  // 11. Cliente aceita a proposta -> ACCEPTED.
+  const accepted = await accept(proposalId)
+  const acceptedBody = (await accepted.json()) as { proposal?: { status: string } }
+  check(
+    "proposta aceita (ACCEPTED)",
+    accepted.status === 200 && acceptedBody.proposal?.status === "ACCEPTED",
+    { status: accepted.status, body: acceptedBody },
+  )
+
+  // 12. Reaceitar/recusar a mesma proposta -> 409.
+  const reAccept = await accept(proposalId)
+  check("reaceitar bloqueado (409)", reAccept.status === 409, reAccept.status)
+  const rejectAfterAccept = await reject(proposalId)
+  check("recusar após aceitar bloqueado (409)", rejectAfterAccept.status === 409, rejectAfterAccept.status)
+
+  // 13. Solicitação marcada como contratada (ACCEPTED) e fora das oportunidades.
+  const requestRow = await prisma.serviceRequest.findUnique({
+    where: { id: coveredId },
+    select: { status: true },
+  })
+  check("solicitação contratada (ACCEPTED)", requestRow?.status === "ACCEPTED", requestRow)
+
+  const feed = (await (await pro("/api/app/opportunities")).json()) as {
+    opportunities: { id: string }[]
+  }
+  check(
+    "solicitação contratada sai das oportunidades",
+    feed.opportunities.every((item) => item.id !== coveredId),
+    feed,
+  )
+
+  // 14. "Meus Serviços": contrato visível com endereço/contato liberados.
+  const services = (await (await pro("/api/app/professional/services")).json()) as {
+    services: {
+      status: string
+      price: number
+      serviceRequest: { id: string; address: unknown; city: { name: string } }
+      client: { name: string }
+    }[]
+  }
+  const service = services.services.find((item) => item.serviceRequest.id === coveredId)
+  check(
+    "serviço aparece em Meus Serviços com dados liberados",
+    Boolean(service) &&
+      service!.status === "ACCEPTED" &&
+      service!.price === 500 &&
+      Boolean(service!.client.name) &&
+      Boolean(service!.serviceRequest.city.name),
+    services,
+  )
+
+  // 15. Notificação de aceite para o profissional.
+  const acceptNotif = await prisma.notification.count({
+    where: { user: { email: proEmail }, type: "PROPOSAL_ACCEPTED" },
+  })
+  check("notificação de aceite criada", acceptNotif === 1, acceptNotif)
+
+  // 16. Fluxo de recusa em uma nova solicitação (continua aberta).
+  const second = await createRequest(coveredCityId, "Segundo serviço na cidade coberta")
+  const secondId = second.request!.id
+  const secondProposal = (await (
+    await sendProposal({
+      serviceRequestId: secondId,
+      price: 250,
+      message: "Proposta para a segunda solicitação, que será recusada pelo cliente.",
+    })
+  ).json()) as { proposal?: { id: string } }
+  const secondProposalId = secondProposal.proposal!.id
+
+  const rejected = await reject(secondProposalId)
+  const rejectedBody = (await rejected.json()) as { proposal?: { status: string } }
+  check(
+    "proposta recusada (REJECTED)",
+    rejected.status === 200 && rejectedBody.proposal?.status === "REJECTED",
+    { status: rejected.status, body: rejectedBody },
+  )
+
+  const secondRow = await prisma.serviceRequest.findUnique({
+    where: { id: secondId },
+    select: { status: true },
+  })
+  check("solicitação recusada continua aberta (OPEN)", secondRow?.status === "OPEN", secondRow)
+
+  const acceptAfterReject = await accept(secondProposalId)
+  check("aceitar após recusar bloqueado (409)", acceptAfterReject.status === 409, acceptAfterReject.status)
+
+  const rejectNotif = await prisma.notification.count({
+    where: { user: { email: proEmail }, type: "PROPOSAL_REJECTED" },
+  })
+  check("notificação de recusa criada", rejectNotif === 1, rejectNotif)
 
   // Limpeza.
   await prisma.user.delete({ where: { email: clientEmail } }).catch(() => {})

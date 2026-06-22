@@ -42,5 +42,12 @@ export function useReceivedProposals() {
 
   const refetch = useCallback(() => load("refresh"), [load])
 
-  return { proposals, isLoading, isRefreshing, error, refetch }
+  // Atualiza uma proposta na lista após aceitar/recusar, sem refazer a leitura.
+  const replaceProposal = useCallback((updated: ReceivedProposal) => {
+    setProposals((current) =>
+      current.map((proposal) => (proposal.id === updated.id ? updated : proposal)),
+    )
+  }, [])
+
+  return { proposals, isLoading, isRefreshing, error, refetch, replaceProposal }
 }

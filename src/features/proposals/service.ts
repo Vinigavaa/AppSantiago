@@ -18,3 +18,19 @@ export async function sendProposal(
   })
   return result.ok ? { ok: true, data: result.data.proposal } : result
 }
+
+// Cliente: aceita uma proposta recebida (gera o contrato no backend).
+export async function acceptProposal(id: string): Promise<ApiResult<ReceivedProposal>> {
+  const result = await appFetch<{ proposal: ReceivedProposal }>(`/proposals/${id}/accept`, {
+    method: "POST",
+  })
+  return result.ok ? { ok: true, data: result.data.proposal } : result
+}
+
+// Cliente: recusa uma proposta recebida.
+export async function rejectProposal(id: string): Promise<ApiResult<ReceivedProposal>> {
+  const result = await appFetch<{ proposal: ReceivedProposal }>(`/proposals/${id}/reject`, {
+    method: "POST",
+  })
+  return result.ok ? { ok: true, data: result.data.proposal } : result
+}

@@ -1,14 +1,6 @@
-import { PlaceholderScreen } from "@/features/client-home/components/PlaceholderScreen"
+import { ProfessionalServicesScreen } from "@/features/professional/ProfessionalServicesScreen"
 
-// Área de gerenciamento dos serviços do profissional (contratados, em andamento,
-// concluídos). Estrutura preparada; integração em etapa futura.
+// "Meus Serviços": serviços contratados, em andamento e concluídos do profissional.
 export default function Services() {
-  return (
-    <PlaceholderScreen
-      emptyDescription="Os serviços que você atender aparecerão aqui — contratados, em andamento e concluídos."
-      emptyTitle="Nenhum serviço ainda"
-      icon="construct-outline"
-      title="Serviços"
-    />
-  )
+  return <ProfessionalServicesScreen />
 }

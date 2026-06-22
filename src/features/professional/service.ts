@@ -6,6 +6,7 @@ import type {
   ProfessionalDashboard,
   ProfessionalProfileInfo,
   ProfessionalReview,
+  ProfessionalService,
   UpdateProfileInput,
 } from "./types"
 
@@ -69,4 +70,9 @@ export async function setProfessionalCities(
 export async function fetchProfessionalReviews(): Promise<ApiResult<ProfessionalReview[]>> {
   const result = await appFetch<{ reviews: ProfessionalReview[] }>("/professional/reviews")
   return result.ok ? { ok: true, data: result.data.reviews } : result
+}
+
+export async function fetchProfessionalServices(): Promise<ApiResult<ProfessionalService[]>> {
+  const result = await appFetch<{ services: ProfessionalService[] }>("/professional/services")
+  return result.ok ? { ok: true, data: result.data.services } : result
 }

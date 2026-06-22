@@ -8,11 +8,13 @@ import {
   fetchProfessionalDashboard,
   fetchProfessionalProfile,
   fetchProfessionalReviews,
+  fetchProfessionalServices,
 } from "./service"
 import type {
   ProfessionalDashboard,
   ProfessionalProfileInfo,
   ProfessionalReview,
+  ProfessionalService,
 } from "./types"
 
 // Oportunidades (solicitações abertas compatíveis). Recarrega ao focar a tela,
@@ -164,4 +166,45 @@ export function useProfessionalReviews() {
   )
 
   return { reviews, isLoading, error }
+}
+
+// "Meus Serviços": contratos do profissional. Recarrega ao focar a tela, então
+// um serviço recém-contratado aparece assim que o profissional acessa a aba.
+export function useProfessionalServices() {
+  const [services, setServices] = useState<ProfessionalService[]>([])
+  const [isLoading, setIsLoading] = useState(true)
+  const [isRefreshing, setIsRefreshing] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+  const loadedOnce = useRef(false)
+
+  const load = useCallback(async (mode: "initial" | "refresh") => {
+    if (mode === "refresh") {
+      setIsRefreshing(true)
+    } else {
+      setIsLoading(true)
+    }
+    setError(null)
+
+    const result = await fetchProfessionalServices()
+
+    if (result.ok) {
+      setServices(result.data)
+    } else {
+      setError(result.error)
+    }
+
+    loadedOnce.current = true
+    setIsLoading(false)
+    setIsRefreshing(false)
+  }, [])
+
+  useFocusEffect(
+    useCallback(() => {
+      void load(loadedOnce.current ? "refresh" : "initial")
+    }, [load]),
+  )
+
+  const refetch = useCallback(() => load("refresh"), [load])
+
+  return { services, isLoading, isRefreshing, error, refetch }
 }

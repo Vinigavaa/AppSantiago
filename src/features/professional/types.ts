@@ -48,3 +48,34 @@ export type UpdateProfileInput = {
   phone: string | null
   bio: string | null
 }
+
+export type ServiceContractStatus = "ACCEPTED" | "IN_PROGRESS" | "COMPLETED" | "CANCELED"
+
+// Endereço completo, liberado apenas para o profissional contratado.
+export type ServiceAddress = {
+  street: string | null
+  number: string | null
+  neighborhood: string | null
+  complement: string | null
+  zipCode: string | null
+}
+
+// Serviço contratado exibido em "Meus Serviços".
+export type ProfessionalService = {
+  id: string
+  status: ServiceContractStatus
+  acceptedAt: string
+  startedAt: string | null
+  completedAt: string | null
+  price: number
+  estimatedDays: number | null
+  serviceRequest: {
+    id: string
+    title: string
+    description: string
+    category: string
+    city: { name: string; state: string }
+    address: ServiceAddress
+  }
+  client: { name: string; phone: string | null }
+}

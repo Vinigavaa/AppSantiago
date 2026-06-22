@@ -14,9 +14,12 @@ import {
   setProfessionalCitiesHandler,
   updateProfessionalProfileHandler,
 } from "@/modules/professional/profile-handlers"
+import { professionalServicesHandler } from "@/modules/professional/services-handlers"
 import {
+  acceptProposalHandler,
   createProposalHandler,
   listReceivedProposalsHandler,
+  rejectProposalHandler,
 } from "@/modules/proposals/handlers"
 import {
   createServiceRequestHandler,
@@ -47,7 +50,7 @@ const appRateLimit = createRateLimitMiddleware([
   },
   {
     id: "app:proposal:create:minute",
-    limit: 5,
+    limit: 10,
     windowMs: 60 * 1000,
     key: ipKey,
     matcher: isPost("/api/app/proposals"),
@@ -80,15 +83,18 @@ appRoutes.post("/service-requests", createServiceRequestHandler)
 appRoutes.get("/service-requests", listServiceRequestsHandler)
 appRoutes.get("/service-requests/summary", serviceRequestsSummaryHandler)
 
-// Propostas: profissional envia; cliente lista as recebidas em suas solicitações.
+// Propostas: profissional envia; cliente lista as recebidas e aceita/recusa.
 appRoutes.post("/proposals", createProposalHandler)
 appRoutes.get("/proposals/received", listReceivedProposalsHandler)
+appRoutes.post("/proposals/:id/accept", acceptProposalHandler)
+appRoutes.post("/proposals/:id/reject", rejectProposalHandler)
 
 // Área do profissional: oportunidades (solicitações abertas filtradas pela sua
 // atuação/região), detalhe da oportunidade, indicadores e perfil.
 appRoutes.get("/opportunities", listOpportunitiesHandler)
 appRoutes.get("/opportunities/:id", opportunityDetailHandler)
 appRoutes.get("/professional/dashboard", professionalDashboardHandler)
+appRoutes.get("/professional/services", professionalServicesHandler)
 
 // Perfil do profissional: leitura, edição de dados, atuação (categorias/cidades)
 // e avaliações recebidas.

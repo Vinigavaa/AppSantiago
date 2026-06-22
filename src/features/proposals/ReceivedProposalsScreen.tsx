@@ -1,29 +1,108 @@
-import { ActivityIndicator, RefreshControl, ScrollView, StyleSheet, Text, View } from "react-native"
+import { Ionicons } from "@expo/vector-icons"
+import { useState } from "react"
+import {
+  ActivityIndicator,
+  Alert,
+  RefreshControl,
+  ScrollView,
+  StyleSheet,
+  Text,
+  View,
+} from "react-native"
 import { useSafeAreaInsets } from "react-native-safe-area-context"
 
 import { EmptyState } from "@/features/client-home/components/EmptyState"
-import { colors, radius, spacing } from "@/features/client-home/theme"
+import { colors, spacing } from "@/features/client-home/theme"
 
 import { ReceivedProposalCard } from "./components/ReceivedProposalCard"
 import { useReceivedProposals } from "./hooks"
+import { acceptProposal, rejectProposal } from "./service"
+import type { ReceivedProposal } from "./types"
 
 export function ReceivedProposalsScreen() {
   const insets = useSafeAreaInsets()
-  const { proposals, isLoading, isRefreshing, error, refetch } = useReceivedProposals()
+  const { proposals, isLoading, isRefreshing, error, refetch, replaceProposal } =
+    useReceivedProposals()
+
+  const [processingId, setProcessingId] = useState<string | null>(null)
+  const [notice, setNotice] = useState<string | null>(null)
+
+  function showNotice(message: string) {
+    setNotice(message)
+    setTimeout(() => setNotice(null), 2500)
+  }
+
+  async function runAction(
+    proposal: ReceivedProposal,
+    action: (id: string) => ReturnType<typeof acceptProposal>,
+    successMessage: string,
+  ) {
+    if (processingId) {
+      return
+    }
+
+    setProcessingId(proposal.id)
+    const result = await action(proposal.id)
+    setProcessingId(null)
+
+    if (result.ok) {
+      replaceProposal(result.data)
+      showNotice(successMessage)
+    } else {
+      Alert.alert("Não foi possível concluir", result.error)
+      // Recarrega para refletir o estado real caso a proposta já tenha mudado.
+      if (result.status === 409) {
+        void refetch()
+      }
+    }
+  }
+
+  function handleAccept(proposal: ReceivedProposal) {
+    Alert.alert(
+      "Aceitar proposta",
+      `Aceitar a proposta de ${proposal.professional.name}? A solicitação será contratada e não receberá novas propostas.`,
+      [
+        { text: "Cancelar", style: "cancel" },
+        {
+          text: "Aceitar",
+          onPress: () => runAction(proposal, acceptProposal, "Proposta aceita."),
+        },
+      ],
+    )
+  }
+
+  function handleReject(proposal: ReceivedProposal) {
+    Alert.alert("Recusar proposta", `Recusar a proposta de ${proposal.professional.name}?`, [
+      { text: "Cancelar", style: "cancel" },
+      {
+        text: "Recusar",
+        style: "destructive",
+        onPress: () => runAction(proposal, rejectProposal, "Proposta recusada."),
+      },
+    ])
+  }
 
   return (
-    <ScrollView
-      contentContainerStyle={[styles.content, { paddingTop: insets.top + 12 }]}
-      refreshControl={
-        <RefreshControl onRefresh={refetch} refreshing={isRefreshing} tintColor={colors.accent} />
-      }
-      showsVerticalScrollIndicator={false}
-      style={styles.screen}
-    >
-      <Text style={styles.title}>Propostas recebidas</Text>
+    <View style={styles.screen}>
+      <ScrollView
+        contentContainerStyle={[styles.content, { paddingTop: insets.top + 12 }]}
+        refreshControl={
+          <RefreshControl onRefresh={refetch} refreshing={isRefreshing} tintColor={colors.accent} />
+        }
+        showsVerticalScrollIndicator={false}
+      >
+        <Text style={styles.title}>Propostas recebidas</Text>
 
-      {renderBody()}
-    </ScrollView>
+        {renderBody()}
+      </ScrollView>
+
+      {notice ? (
+        <View style={[styles.notice, { top: insets.top + 8 }]}>
+          <Ionicons color="#FFFFFF" name="checkmark-circle" size={18} />
+          <Text style={styles.noticeText}>{notice}</Text>
+        </View>
+      ) : null}
+    </View>
   )
 
   function renderBody() {
@@ -60,11 +139,14 @@ export function ReceivedProposalsScreen() {
     return (
       <View style={styles.list}>
         {proposals.map((proposal) => (
-          <ReceivedProposalCard key={proposal.id} proposal={proposal} />
+          <ReceivedProposalCard
+            busy={processingId === proposal.id}
+            key={proposal.id}
+            onAccept={handleAccept}
+            onReject={handleReject}
+            proposal={proposal}
+          />
         ))}
-        <Text style={styles.footerNote}>
-          Em breve você poderá aceitar ou recusar as propostas diretamente por aqui.
-        </Text>
       </View>
     )
   }
@@ -79,17 +161,24 @@ const styles = StyleSheet.create({
     paddingBottom: 28,
     paddingHorizontal: spacing.screen,
   },
-  footerNote: {
-    backgroundColor: colors.accentSoftBg,
-    borderRadius: radius.tag,
-    color: colors.textSecondary,
-    fontSize: 13,
-    lineHeight: 18,
-    overflow: "hidden",
-    padding: 12,
-  },
   list: {
     gap: spacing.cardGap,
+  },
+  notice: {
+    alignItems: "center",
+    alignSelf: "center",
+    backgroundColor: colors.accent,
+    borderRadius: 999,
+    flexDirection: "row",
+    gap: 8,
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    position: "absolute",
+  },
+  noticeText: {
+    color: "#FFFFFF",
+    fontSize: 14,
+    fontWeight: "600",
   },
   screen: {
     backgroundColor: colors.screenBg,
