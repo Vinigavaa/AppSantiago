@@ -1,4 +1,5 @@
 import { appFetch, type ApiResult } from "@/lib/api-client"
+import type { OwnProposal } from "@/features/proposals/types"
 import type { ServiceRequest } from "@/features/service-requests/types"
 
 import type {
@@ -8,14 +9,22 @@ import type {
   UpdateProfileInput,
 } from "./types"
 
+// Detalhe da oportunidade + a proposta já enviada pelo profissional (se houver).
+export type OpportunityDetail = {
+  opportunity: ServiceRequest
+  myProposal: OwnProposal | null
+}
+
 export async function fetchOpportunities(): Promise<ApiResult<ServiceRequest[]>> {
   const result = await appFetch<{ opportunities: ServiceRequest[] }>("/opportunities")
   return result.ok ? { ok: true, data: result.data.opportunities } : result
 }
 
-export async function fetchOpportunity(id: string): Promise<ApiResult<ServiceRequest>> {
-  const result = await appFetch<{ opportunity: ServiceRequest }>(`/opportunities/${id}`)
-  return result.ok ? { ok: true, data: result.data.opportunity } : result
+export async function fetchOpportunity(id: string): Promise<ApiResult<OpportunityDetail>> {
+  const result = await appFetch<OpportunityDetail>(`/opportunities/${id}`)
+  return result.ok
+    ? { ok: true, data: { opportunity: result.data.opportunity, myProposal: result.data.myProposal } }
+    : result
 }
 
 export async function fetchProfessionalDashboard(): Promise<ApiResult<ProfessionalDashboard>> {

@@ -57,6 +57,7 @@
     "auth:smoke": "tsx --tsconfig apps/api/tsconfig.json scripts/auth-security-smoke.ts",
     "requests:smoke": "tsx --tsconfig apps/api/tsconfig.json scripts/service-request-smoke.ts",
     "opportunities:smoke": "tsx --tsconfig apps/api/tsconfig.json scripts/opportunities-smoke.ts",
+    "proposals:smoke": "tsx --tsconfig apps/api/tsconfig.json scripts/proposals-smoke.ts",
     "profile:smoke": "tsx --tsconfig apps/api/tsconfig.json scripts/professional-profile-smoke.ts",
     "pro:coverage": "tsx --tsconfig apps/api/tsconfig.json scripts/grant-professional-coverage.ts"
   },

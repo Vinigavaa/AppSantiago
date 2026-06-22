@@ -4,6 +4,7 @@ import { prisma } from "@santiago/database"
 // Usada para filtrar as oportunidades (solicitações abertas) exibidas a ele.
 export type ProfessionalCoverage = {
   profileId: string
+  isAvailable: boolean
   categoryIds: string[]
   cityIds: string[]
 }
@@ -15,6 +16,7 @@ export async function getProfessionalCoverage(
     where: { userId },
     select: {
       id: true,
+      isAvailable: true,
       categories: { select: { categoryId: true } },
       cities: { select: { cityId: true } },
     },
@@ -26,6 +28,7 @@ export async function getProfessionalCoverage(
 
   return {
     profileId: profile.id,
+    isAvailable: profile.isAvailable,
     categoryIds: profile.categories.map((item) => item.categoryId),
     cityIds: profile.cities.map((item) => item.cityId),
   }

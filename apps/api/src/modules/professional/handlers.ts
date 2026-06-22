@@ -1,6 +1,7 @@
 import { prisma } from "@santiago/database"
 import { z } from "zod"
 
+import { serializeOwnProposal } from "@/modules/proposals/serialize"
 import { serializeServiceRequest, serviceRequestInclude } from "@/modules/service-requests/serialize"
 import type { AuthedContext } from "@/modules/shared/require-auth"
 
@@ -77,7 +78,32 @@ export async function opportunityDetailHandler(context: AuthedContext) {
     )
   }
 
-  return context.json({ opportunity: serializeServiceRequest(request) })
+  // Proposta já enviada pelo profissional para esta solicitação (se houver):
+  // permite ao app bloquear envio duplicado e exibir o resumo do que foi enviado.
+  const coverage = await getProfessionalCoverage(user.id)
+  const ownProposal = coverage
+    ? await prisma.proposal.findUnique({
+        where: {
+          serviceRequestId_professionalId: {
+            serviceRequestId: request.id,
+            professionalId: coverage.profileId,
+          },
+        },
+        select: {
+          id: true,
+          price: true,
+          description: true,
+          estimatedDays: true,
+          status: true,
+          createdAt: true,
+        },
+      })
+    : null
+
+  return context.json({
+    opportunity: serializeServiceRequest(request),
+    myProposal: ownProposal ? serializeOwnProposal(ownProposal) : null,
+  })
 }
 
 // Indicadores de desempenho do mês. Retorna zeros quando ainda não há registros.

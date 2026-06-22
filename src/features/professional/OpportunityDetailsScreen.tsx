@@ -13,6 +13,12 @@ import { useSafeAreaInsets } from "react-native-safe-area-context"
 
 import { colors, radius, spacing } from "@/features/client-home/theme"
 import {
+  formatProposalPrice,
+  getEstimatedDaysLabel,
+  getProposalStatusStyle,
+} from "@/features/proposals/format"
+import type { OwnProposal } from "@/features/proposals/types"
+import {
   formatBudget,
   formatRelativeTime,
   getStatusStyle,
@@ -20,6 +26,7 @@ import {
 } from "@/features/service-requests/format"
 import type { ServiceRequest } from "@/features/service-requests/types"
 
+import { ProposalFormModal } from "./components/ProposalFormModal"
 import { fetchOpportunity } from "./service"
 
 export function OpportunityDetailsScreen() {
@@ -27,8 +34,10 @@ export function OpportunityDetailsScreen() {
   const { id } = useLocalSearchParams<{ id: string }>()
 
   const [opportunity, setOpportunity] = useState<ServiceRequest | null>(null)
+  const [myProposal, setMyProposal] = useState<OwnProposal | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [formOpen, setFormOpen] = useState(false)
 
   const load = useCallback(async () => {
     if (!id) {
@@ -43,7 +52,8 @@ export function OpportunityDetailsScreen() {
     const result = await fetchOpportunity(id)
 
     if (result.ok) {
-      setOpportunity(result.data)
+      setOpportunity(result.data.opportunity)
+      setMyProposal(result.data.myProposal)
     } else {
       setError(result.error)
     }
@@ -54,6 +64,14 @@ export function OpportunityDetailsScreen() {
   useEffect(() => {
     void load()
   }, [load])
+
+  // Reflete o envio na hora: registra a proposta e soma ao contador exibido.
+  function handleSent(proposal: OwnProposal) {
+    setMyProposal(proposal)
+    setOpportunity((current) =>
+      current ? { ...current, proposalsCount: current.proposalsCount + 1 } : current,
+    )
+  }
 
   return (
     <View style={styles.screen}>
@@ -86,23 +104,45 @@ export function OpportunityDetailsScreen() {
           </Pressable>
         </View>
       ) : (
-        <Details insetsBottom={insets.bottom} opportunity={opportunity} />
+        <Details
+          insetsBottom={insets.bottom}
+          myProposal={myProposal}
+          onPressSend={() => setFormOpen(true)}
+          opportunity={opportunity}
+        />
       )}
+
+      {opportunity ? (
+        <ProposalFormModal
+          onClose={() => setFormOpen(false)}
+          onSent={handleSent}
+          serviceRequestId={opportunity.id}
+          visible={formOpen}
+        />
+      ) : null}
     </View>
   )
 }
 
 function Details({
   opportunity,
+  myProposal,
   insetsBottom,
+  onPressSend,
 }: {
   opportunity: ServiceRequest
+  myProposal: OwnProposal | null
   insetsBottom: number
+  onPressSend: () => void
 }) {
   const status = getStatusStyle(opportunity.status)
   const location = opportunity.neighborhood
     ? `${opportunity.neighborhood} · ${opportunity.city.name}, ${opportunity.city.state}`
     : `${opportunity.city.name}, ${opportunity.city.state}`
+
+  // Só é possível enviar proposta enquanto a solicitação está aberta e não há
+  // proposta enviada pelo profissional. A edição fica para um fluxo futuro.
+  const canSend = opportunity.status === "OPEN" && !myProposal
 
   return (
     <ScrollView
@@ -153,11 +193,55 @@ function Details({
         O endereço completo é liberado apenas após a contratação.
       </Text>
 
-      {/* Envio de proposta ainda não disponível — fluxo apenas preparado. */}
-      <View style={styles.ctaDisabled}>
-        <Text style={styles.ctaText}>Enviar proposta (em breve)</Text>
-      </View>
+      {myProposal ? (
+        <SentProposalCard proposal={myProposal} />
+      ) : canSend ? (
+        <Pressable
+          accessibilityRole="button"
+          onPress={onPressSend}
+          style={({ pressed }) => [styles.cta, pressed && styles.pressed]}
+        >
+          <Ionicons color="#FFFFFF" name="paper-plane-outline" size={18} />
+          <Text style={styles.ctaText}>Enviar proposta</Text>
+        </Pressable>
+      ) : (
+        <View style={styles.ctaDisabled}>
+          <Text style={styles.ctaDisabledText}>
+            Esta solicitação não está mais aberta para propostas.
+          </Text>
+        </View>
+      )}
     </ScrollView>
+  )
+}
+
+// Resumo da proposta já enviada pelo profissional.
+function SentProposalCard({ proposal }: { proposal: OwnProposal }) {
+  const status = getProposalStatusStyle(proposal.status)
+
+  return (
+    <View style={styles.sentCard}>
+      <View style={styles.sentHeader}>
+        <Text style={styles.sentTitle}>Sua proposta</Text>
+        <View style={[styles.statusPill, { backgroundColor: status.background }]}>
+          <Text style={[styles.statusText, { color: status.color }]}>{status.label}</Text>
+        </View>
+      </View>
+
+      <View style={styles.sentMetrics}>
+        <View style={styles.sentMetric}>
+          <Text style={styles.sentLabel}>Valor</Text>
+          <Text style={styles.sentValue}>{formatProposalPrice(proposal.price)}</Text>
+        </View>
+        <View style={styles.sentMetric}>
+          <Text style={styles.sentLabel}>Prazo</Text>
+          <Text style={styles.sentValue}>{getEstimatedDaysLabel(proposal.estimatedDays)}</Text>
+        </View>
+      </View>
+
+      <Text style={styles.sentMessage}>{proposal.message}</Text>
+      <Text style={styles.sentDate}>Enviada {formatRelativeTime(proposal.createdAt)}</Text>
+    </View>
   )
 }
 
@@ -204,17 +288,33 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.screen,
     paddingTop: 8,
   },
+  cta: {
+    alignItems: "center",
+    backgroundColor: colors.accent,
+    borderRadius: radius.search,
+    flexDirection: "row",
+    gap: 8,
+    justifyContent: "center",
+    marginTop: 6,
+    paddingVertical: 16,
+  },
   ctaDisabled: {
     alignItems: "center",
     backgroundColor: colors.iconMutedBg,
     borderRadius: radius.search,
     marginTop: 6,
+    paddingHorizontal: 16,
     paddingVertical: 16,
   },
+  ctaDisabledText: {
+    color: colors.textSecondary,
+    fontSize: 14,
+    textAlign: "center",
+  },
   ctaText: {
-    color: colors.textTertiary,
+    color: "#FFFFFF",
     fontSize: 15,
-    fontWeight: "600",
+    fontWeight: "700",
   },
   description: {
     color: colors.textSecondary,
@@ -307,6 +407,51 @@ const styles = StyleSheet.create({
     marginTop: 4,
   },
   sectionTitle: {
+    color: colors.textPrimary,
+    fontSize: 16,
+    fontWeight: "700",
+  },
+  sentCard: {
+    backgroundColor: colors.surface,
+    borderColor: colors.accent,
+    borderRadius: radius.card,
+    borderWidth: 1,
+    gap: 12,
+    marginTop: 6,
+    padding: spacing.card,
+  },
+  sentDate: {
+    color: colors.textTertiary,
+    fontSize: 12,
+  },
+  sentHeader: {
+    alignItems: "center",
+    flexDirection: "row",
+    justifyContent: "space-between",
+  },
+  sentLabel: {
+    color: colors.textSecondary,
+    fontSize: 12,
+  },
+  sentMessage: {
+    color: colors.textSecondary,
+    fontSize: 14,
+    lineHeight: 20,
+  },
+  sentMetric: {
+    flex: 1,
+    gap: 2,
+  },
+  sentMetrics: {
+    flexDirection: "row",
+    gap: 12,
+  },
+  sentTitle: {
+    color: colors.textPrimary,
+    fontSize: 16,
+    fontWeight: "700",
+  },
+  sentValue: {
     color: colors.textPrimary,
     fontSize: 16,
     fontWeight: "700",
