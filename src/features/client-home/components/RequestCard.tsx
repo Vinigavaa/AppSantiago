@@ -9,13 +9,20 @@ import { colors, radius, spacing } from "../theme"
 type Props = {
   request: ServiceRequest
   onPress: () => void
+  onReview?: () => void
+  onCancelContract?: () => void
 }
 
-export function RequestCard({ request, onPress }: Props) {
+export function RequestCard({ request, onPress, onReview, onCancelContract }: Props) {
   const status = getStatusStyle(request.status)
   const location = request.neighborhood
     ? `${request.neighborhood} · ${request.city.name}, ${request.city.state}`
     : `${request.city.name}, ${request.city.state}`
+  const canReview =
+    request.contract?.status === "COMPLETED" && !request.contract.reviewed && Boolean(onReview)
+  const canCancel =
+    (request.contract?.status === "ACCEPTED" || request.contract?.status === "IN_PROGRESS") &&
+    Boolean(onCancelContract)
 
   return (
     <Pressable
@@ -55,6 +62,25 @@ export function RequestCard({ request, onPress }: Props) {
       <View style={[styles.statusPill, { backgroundColor: status.background }]}>
         <Text style={[styles.statusText, { color: status.color }]}>{status.label}</Text>
       </View>
+
+      {canReview ? (
+        <Pressable
+          onPress={onReview}
+          style={({ pressed }) => [styles.reviewButton, pressed && styles.pressed]}
+        >
+          <Ionicons color={colors.accent} name="star-outline" size={16} />
+          <Text style={styles.reviewText}>Avaliar profissional</Text>
+        </Pressable>
+      ) : null}
+
+      {canCancel ? (
+        <Pressable
+          onPress={onCancelContract}
+          style={({ pressed }) => [styles.cancelButton, pressed && styles.pressed]}
+        >
+          <Text style={styles.cancelText}>Cancelar serviço</Text>
+        </Pressable>
+      ) : null}
     </Pressable>
   )
 }
@@ -102,6 +128,31 @@ const styles = StyleSheet.create({
     alignItems: "center",
     flexDirection: "row",
     gap: 7,
+  },
+  cancelButton: {
+    alignItems: "center",
+    marginTop: 10,
+    paddingVertical: 8,
+  },
+  cancelText: {
+    color: colors.danger,
+    fontSize: 14,
+    fontWeight: "600",
+  },
+  reviewButton: {
+    alignItems: "center",
+    backgroundColor: colors.accentSoftBg,
+    borderRadius: radius.tag,
+    flexDirection: "row",
+    gap: 6,
+    justifyContent: "center",
+    marginTop: 12,
+    paddingVertical: 10,
+  },
+  reviewText: {
+    color: colors.accent,
+    fontSize: 14,
+    fontWeight: "600",
   },
   proposalsText: {
     color: colors.textSecondary,

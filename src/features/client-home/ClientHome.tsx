@@ -20,7 +20,11 @@ import { SectionHeader } from "@/features/client-home/components/SectionHeader"
 import { SummaryCards } from "@/features/client-home/components/SummaryCards"
 import { getFirstName, getGreeting, getInitials } from "@/features/client-home/greeting"
 import { colors, spacing } from "@/features/client-home/theme"
+import { CancelServiceModal } from "@/features/contracts/CancelServiceModal"
+import { useUnreadNotifications } from "@/features/notifications/hooks"
+import { ReviewModal } from "@/features/service-requests/components/ReviewModal"
 import { useServiceRequests } from "@/features/service-requests/hooks"
+import type { RequestContract } from "@/features/service-requests/types"
 import { authClient } from "@/lib/auth-client"
 
 const FILTERS = ["Todas", "Perto de mim", "Recentes"]
@@ -29,9 +33,12 @@ export function ClientHome() {
   const { data: session } = authClient.useSession()
   const insets = useSafeAreaInsets()
   const { requests, summary, isLoading, isRefreshing, error, refetch } = useServiceRequests()
+  const { unreadCount } = useUnreadNotifications()
 
   const [search, setSearch] = useState("")
   const [activeFilter, setActiveFilter] = useState(FILTERS[0])
+  const [reviewContract, setReviewContract] = useState<RequestContract | null>(null)
+  const [cancelContractId, setCancelContractId] = useState<string | null>(null)
 
   const filteredRequests = useMemo(() => {
     const term = search.trim().toLowerCase()
@@ -62,11 +69,11 @@ export function ClientHome() {
     >
       <HomeHeader
         greeting={getGreeting()}
-        hasNotifications={false}
         initials={getInitials(session?.user.name)}
         name={getFirstName(session?.user.name)}
         onPressAvatar={() => router.push(routes.profile)}
-        onPressNotifications={() => {}}
+        onPressNotifications={() => router.push(routes.notifications)}
+        unreadCount={unreadCount}
       />
 
       <View style={styles.searchBlock}>
@@ -82,6 +89,22 @@ export function ClientHome() {
         <SectionHeader title="Minhas solicitações" />
         <View style={styles.listBlock}>{renderRequests()}</View>
       </View>
+
+      {reviewContract ? (
+        <ReviewModal
+          contract={reviewContract}
+          onClose={() => setReviewContract(null)}
+          onReviewed={refetch}
+        />
+      ) : null}
+
+      {cancelContractId ? (
+        <CancelServiceModal
+          contractId={cancelContractId}
+          onCanceled={refetch}
+          onClose={() => setCancelContractId(null)}
+        />
+      ) : null}
     </ScrollView>
   )
 
@@ -131,7 +154,17 @@ export function ClientHome() {
     return (
       <View style={styles.cardList}>
         {filteredRequests.map((request) => (
-          <RequestCard key={request.id} onPress={() => {}} request={request} />
+          <RequestCard
+            key={request.id}
+            onCancelContract={
+              request.contract ? () => setCancelContractId(request.contract!.id) : undefined
+            }
+            onPress={() => {}}
+            onReview={
+              request.contract ? () => setReviewContract(request.contract!) : undefined
+            }
+            request={request}
+          />
         ))}
       </View>
     )

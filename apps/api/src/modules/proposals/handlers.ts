@@ -1,6 +1,7 @@
 import { prisma } from "@santiago/database"
 import { z } from "zod"
 
+import { sendPushToUser, sendPushToUsers } from "@/modules/notifications/push"
 import { getProfessionalCoverage } from "@/modules/professional/professional-context"
 import type { AuthedContext } from "@/modules/shared/require-auth"
 
@@ -127,6 +128,12 @@ export async function createProposalHandler(context: AuthedContext) {
       // A notificação é complementar; não deve derrubar o envio da proposta.
       console.error("[proposals] falha ao criar notificação", error)
     })
+
+  void sendPushToUser(
+    request.client.userId,
+    "Nova proposta recebida",
+    "Você recebeu uma nova proposta para seu serviço.",
+  )
 
   return context.json({ proposal: serializeOwnProposal(proposal) }, 201)
 }
@@ -276,6 +283,15 @@ export async function acceptProposalHandler(context: AuthedContext) {
       : []),
   ])
 
+  void sendPushToUser(proposal.professional.userId, "Proposta aceita", "Sua proposta foi aceita.")
+  if (siblings.length > 0) {
+    void sendPushToUsers(
+      siblings.map((sibling) => sibling.professional.userId),
+      "Proposta não selecionada",
+      "Sua proposta não foi selecionada.",
+    )
+  }
+
   return respondWithUpdatedProposal(context, proposal.id)
 }
 
@@ -301,5 +317,62 @@ export async function rejectProposalHandler(context: AuthedContext) {
     }),
   ])
 
+  void sendPushToUser(
+    proposal.professional.userId,
+    "Proposta não selecionada",
+    "Sua proposta não foi selecionada.",
+  )
+
   return respondWithUpdatedProposal(context, proposal.id)
+}
+
+// Profissional cancela a própria proposta enquanto ela estiver pendente. Após
+// ser aceita ou recusada não há mais o que cancelar.
+export async function cancelProposalHandler(context: AuthedContext) {
+  const user = context.get("user")
+
+  if (user.role !== "PROFESSIONAL") {
+    return forbidden(context, "Apenas profissionais podem cancelar propostas.")
+  }
+
+  const id = context.req.param("id")
+
+  if (!idSchema.safeParse(id).success) {
+    return context.json({ code: "INVALID_ID", message: "Proposta inválida." }, 400)
+  }
+
+  const proposal = await prisma.proposal.findUnique({
+    where: { id },
+    select: { id: true, status: true, professional: { select: { userId: true } } },
+  })
+
+  if (!proposal) {
+    return notFound(context)
+  }
+
+  if (proposal.professional.userId !== user.id) {
+    return forbidden(context, "Você não pode cancelar esta proposta.")
+  }
+
+  if (proposal.status !== "PENDING") {
+    return context.json(
+      { code: "NOT_PENDING", message: "Só é possível cancelar uma proposta pendente." },
+      409,
+    )
+  }
+
+  const updated = await prisma.proposal.update({
+    where: { id: proposal.id },
+    data: { status: "CANCELED" },
+    select: {
+      id: true,
+      price: true,
+      description: true,
+      estimatedDays: true,
+      status: true,
+      createdAt: true,
+    },
+  })
+
+  return context.json({ proposal: serializeOwnProposal(updated) })
 }

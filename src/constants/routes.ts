@@ -7,6 +7,7 @@ export const routes = {
   login: "/login" as Href,
   messages: "/messages" as Href,
   newRequest: "/new-request" as Href,
+  notifications: "/notifications" as Href,
   opportunityDetails: "/opportunity-details" as Href,
   professionals: "/professionals" as Href,
   profile: "/profile" as Href,

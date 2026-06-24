@@ -44,6 +44,16 @@ export async function listOpportunitiesHandler(context: AuthedContext) {
       status: "OPEN",
       categoryId: { in: coverage.categoryIds },
       cityId: { in: coverage.cityIds },
+      // Não exibir solicitações em que a proposta deste profissional já foi
+      // recusada/cancelada: ele não deve voltar a vê-las nas oportunidades.
+      NOT: {
+        proposals: {
+          some: {
+            professionalId: coverage.profileId,
+            status: { in: ["REJECTED", "CANCELED"] },
+          },
+        },
+      },
     },
     include: serviceRequestInclude,
     orderBy: { createdAt: "desc" },

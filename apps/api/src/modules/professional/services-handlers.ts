@@ -1,9 +1,13 @@
 import { prisma } from "@santiago/database"
 import type { Prisma } from "@prisma/client"
+import { z } from "zod"
 
+import { sendPushToUser } from "@/modules/notifications/push"
 import type { AuthedContext } from "@/modules/shared/require-auth"
 
 import { getOrCreateProfessionalProfileId } from "./professional-context"
+
+const idSchema = z.uuid()
 
 // Relações do contrato exibidas em "Meus Serviços". Inclui o endereço completo,
 // que só é liberado aqui — para o profissional efetivamente contratado.
@@ -79,4 +83,151 @@ export async function professionalServicesHandler(context: AuthedContext) {
   })
 
   return context.json({ services: contracts.map(serializeContractedService) })
+}
+
+// Carrega um contrato garantindo que pertence ao profissional autenticado.
+// Retorna { error } pronto para devolver, ou { contract } válido.
+async function loadContractForPro(context: AuthedContext) {
+  const user = context.get("user")
+
+  if (user.role !== "PROFESSIONAL") {
+    return {
+      error: context.json(
+        { code: "FORBIDDEN", message: "Disponível apenas para profissionais." },
+        403,
+      ),
+    }
+  }
+
+  const id = context.req.param("id")
+
+  if (!idSchema.safeParse(id).success) {
+    return { error: context.json({ code: "INVALID_ID", message: "Serviço inválido." }, 400) }
+  }
+
+  const professionalId = await getOrCreateProfessionalProfileId(user.id)
+
+  const contract = await prisma.serviceContract.findUnique({
+    where: { id },
+    select: {
+      id: true,
+      status: true,
+      professionalId: true,
+      serviceRequestId: true,
+      client: { select: { userId: true } },
+    },
+  })
+
+  if (!contract) {
+    return { error: context.json({ code: "NOT_FOUND", message: "Serviço não encontrado." }, 404) }
+  }
+
+  if (contract.professionalId !== professionalId) {
+    return {
+      error: context.json(
+        { code: "FORBIDDEN", message: "Este serviço não pertence a você." },
+        403,
+      ),
+    }
+  }
+
+  return { contract }
+}
+
+// Recarrega o contrato já com as relações e o devolve serializado.
+async function respondWithService(context: AuthedContext, id: string) {
+  const contract = await prisma.serviceContract.findUnique({
+    where: { id },
+    include: contractInclude,
+  })
+
+  return context.json({ service: serializeContractedService(contract!) })
+}
+
+// Iniciar atendimento: ACCEPTED -> IN_PROGRESS. Marca a solicitação também.
+export async function startServiceHandler(context: AuthedContext) {
+  const loaded = await loadContractForPro(context)
+  if ("error" in loaded) {
+    return loaded.error
+  }
+
+  const { contract } = loaded
+
+  if (contract.status !== "ACCEPTED") {
+    return context.json(
+      { code: "INVALID_TRANSITION", message: "Só é possível iniciar um serviço contratado." },
+      409,
+    )
+  }
+
+  await prisma.$transaction([
+    prisma.serviceContract.update({
+      where: { id: contract.id },
+      data: { status: "IN_PROGRESS", startedAt: new Date() },
+    }),
+    prisma.serviceRequest.update({
+      where: { id: contract.serviceRequestId },
+      data: { status: "IN_PROGRESS" },
+    }),
+    prisma.notification.create({
+      data: {
+        userId: contract.client.userId,
+        type: "SERVICE_UPDATED",
+        title: "Serviço iniciado",
+        message: "O profissional iniciou o atendimento do seu serviço.",
+      },
+    }),
+  ])
+
+  void sendPushToUser(
+    contract.client.userId,
+    "Serviço iniciado",
+    "O profissional iniciou o atendimento do seu serviço.",
+  )
+
+  return respondWithService(context, contract.id)
+}
+
+// Concluir atendimento: IN_PROGRESS -> COMPLETED. Habilita a avaliação do cliente.
+export async function completeServiceHandler(context: AuthedContext) {
+  const loaded = await loadContractForPro(context)
+  if ("error" in loaded) {
+    return loaded.error
+  }
+
+  const { contract } = loaded
+
+  if (contract.status !== "IN_PROGRESS") {
+    return context.json(
+      { code: "INVALID_TRANSITION", message: "Só é possível concluir um serviço em andamento." },
+      409,
+    )
+  }
+
+  await prisma.$transaction([
+    prisma.serviceContract.update({
+      where: { id: contract.id },
+      data: { status: "COMPLETED", completedAt: new Date() },
+    }),
+    prisma.serviceRequest.update({
+      where: { id: contract.serviceRequestId },
+      data: { status: "COMPLETED" },
+    }),
+    prisma.notification.create({
+      data: {
+        userId: contract.client.userId,
+        type: "SERVICE_UPDATED",
+        title: "Serviço concluído",
+        message: "O serviço foi concluído. Que tal avaliar o profissional?",
+      },
+    }),
+  ])
+
+  void sendPushToUser(
+    contract.client.userId,
+    "Serviço concluído",
+    "O serviço foi concluído. Que tal avaliar o profissional?",
+  )
+
+  return respondWithService(context, contract.id)
 }

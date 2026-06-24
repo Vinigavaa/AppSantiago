@@ -76,3 +76,19 @@ export async function fetchProfessionalServices(): Promise<ApiResult<Professiona
   const result = await appFetch<{ services: ProfessionalService[] }>("/professional/services")
   return result.ok ? { ok: true, data: result.data.services } : result
 }
+
+export async function startService(id: string): Promise<ApiResult<ProfessionalService>> {
+  const result = await appFetch<{ service: ProfessionalService }>(
+    `/professional/services/${id}/start`,
+    { method: "POST" },
+  )
+  return result.ok ? { ok: true, data: result.data.service } : result
+}
+
+export async function completeService(id: string): Promise<ApiResult<ProfessionalService>> {
+  const result = await appFetch<{ service: ProfessionalService }>(
+    `/professional/services/${id}/complete`,
+    { method: "POST" },
+  )
+  return result.ok ? { ok: true, data: result.data.service } : result
+}

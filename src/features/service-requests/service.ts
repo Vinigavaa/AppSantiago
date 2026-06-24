@@ -37,3 +37,12 @@ export async function createServiceRequest(
 
   return result.ok ? { ok: true, data: result.data.request } : result
 }
+
+// Avaliação do profissional após o serviço concluído.
+export async function submitReview(input: {
+  serviceContractId: string
+  rating: number
+  comment?: string
+}): Promise<ApiResult<{ ok: true }>> {
+  return appFetch<{ ok: true }>("/reviews", { method: "POST", body: input })
+}

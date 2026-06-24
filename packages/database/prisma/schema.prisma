@@ -70,6 +70,7 @@ model User {
   professionalProfile ProfessionalProfile?
   sentMessages        Message[]            @relation("MessageSender")
   notifications       Notification[]
+  pushTokens          DevicePushToken[]
   reviewsWritten      Review[]             @relation("ReviewReviewer")
   reviewsReceived     Review[]             @relation("ReviewReviewed")
 
@@ -295,6 +296,9 @@ model ServiceContract {
   startedAt        DateTime?
   completedAt      DateTime?
   canceledAt       DateTime?
+  // Auditoria do cancelamento: quem cancelou (userId) e o motivo informado.
+  canceledBy       String?               @db.Uuid
+  cancelReason     String?
   createdAt        DateTime              @default(now())
   updatedAt        DateTime              @updatedAt
   serviceRequest   ServiceRequest        @relation(fields: [serviceRequestId], references: [id], onDelete: Restrict)
@@ -372,6 +376,19 @@ model Notification {
 
   @@index([userId])
   @@index([type])
+}
+
+// Token de push (Expo) por dispositivo. Um usuário pode ter vários dispositivos.
+model DevicePushToken {
+  id        String   @id @default(uuid()) @db.Uuid
+  userId    String   @db.Uuid
+  token     String   @unique
+  platform  String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
 }
 
 model ProfessionalPortfolioItem {

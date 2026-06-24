@@ -23,6 +23,17 @@ export type City = {
   state: string
 }
 
+export type ContractStatus = "ACCEPTED" | "IN_PROGRESS" | "COMPLETED" | "CANCELED"
+
+// Presente apenas na listagem do próprio cliente (não nas oportunidades do
+// profissional). Habilita o fluxo de avaliação quando o serviço é concluído.
+export type RequestContract = {
+  id: string
+  status: ContractStatus
+  professionalName: string
+  reviewed: boolean
+}
+
 export type ServiceRequest = {
   id: string
   title: string
@@ -37,6 +48,7 @@ export type ServiceRequest = {
   proposalsCount: number
   photosCount: number
   createdAt: string
+  contract?: RequestContract | null
 }
 
 export type ClientSummary = {
@@ -50,7 +62,11 @@ export type CreateServiceRequestInput = {
   cityId: string
   title: string
   description: string
-  neighborhood?: string
+  zipCode: string
+  street: string
+  number: string
+  neighborhood: string
+  complement?: string
   urgency: Urgency
   budgetMin?: number
   budgetMax?: number

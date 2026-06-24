@@ -91,6 +91,11 @@ async function main() {
         cityId,
         title,
         description: "Descrição detalhada suficiente para passar na validação do servidor.",
+        zipCode: "88801-000",
+        street: "Rua das Flores",
+        number: "123",
+        neighborhood: "Centro",
+        complement: "Apto 4",
         urgency: "THIS_WEEK",
       }),
     })
@@ -177,14 +182,24 @@ async function main() {
   )
 
   // 7. Detalhe da oportunidade reflete a proposta enviada e o contador.
-  const detail = (await (await pro(`/api/app/opportunities/${coveredId}`)).json()) as {
-    opportunity: { proposalsCount: number }
+  const detailRaw = await (await pro(`/api/app/opportunities/${coveredId}`)).text()
+  const detail = JSON.parse(detailRaw) as {
+    opportunity: { proposalsCount: number; neighborhood: string | null }
     myProposal: { price: number } | null
   }
   check(
     "detalhe reflete proposta enviada e contador",
     detail.myProposal?.price === 500 && detail.opportunity.proposalsCount === 1,
     detail,
+  )
+
+  // 7b. Privacidade: antes da contratação o detalhe não vaza rua/número/CEP.
+  check(
+    "endereço completo protegido antes da contratação",
+    !detailRaw.includes("Rua das Flores") &&
+      !detailRaw.includes("88801-000") &&
+      detail.opportunity.neighborhood === "Centro",
+    detailRaw,
   )
 
   // 8. Permissões: cliente não envia; profissional não lê recebidas.
@@ -256,7 +271,11 @@ async function main() {
     services: {
       status: string
       price: number
-      serviceRequest: { id: string; address: unknown; city: { name: string } }
+      serviceRequest: {
+        id: string
+        address: { street: string | null; number: string | null; zipCode: string | null }
+        city: { name: string }
+      }
       client: { name: string }
     }[]
   }
@@ -270,12 +289,93 @@ async function main() {
       Boolean(service!.serviceRequest.city.name),
     services,
   )
+  check(
+    "endereço completo liberado ao profissional contratado",
+    service?.serviceRequest.address.street === "Rua das Flores" &&
+      service?.serviceRequest.address.number === "123" &&
+      service?.serviceRequest.address.zipCode === "88801-000",
+    service?.serviceRequest.address,
+  )
 
   // 15. Notificação de aceite para o profissional.
   const acceptNotif = await prisma.notification.count({
     where: { user: { email: proEmail }, type: "PROPOSAL_ACCEPTED" },
   })
   check("notificação de aceite criada", acceptNotif === 1, acceptNotif)
+
+  // --- Ciclo de vida do serviço: iniciar -> concluir ---
+  const contractId = service!.id
+
+  const started = await pro(`/api/app/professional/services/${contractId}/start`, {
+    method: "POST",
+  })
+  const startedBody = (await started.json()) as { service?: { status: string } }
+  check(
+    "serviço iniciado (IN_PROGRESS)",
+    started.status === 200 && startedBody.service?.status === "IN_PROGRESS",
+    { status: started.status, body: startedBody },
+  )
+
+  const reqAfterStart = await prisma.serviceRequest.findUnique({
+    where: { id: coveredId },
+    select: { status: true },
+  })
+  check("solicitação em andamento (IN_PROGRESS)", reqAfterStart?.status === "IN_PROGRESS", reqAfterStart)
+
+  const restart = await pro(`/api/app/professional/services/${contractId}/start`, { method: "POST" })
+  check("reiniciar serviço bloqueado (409)", restart.status === 409, restart.status)
+
+  function review(body: unknown, authed = client) {
+    return authed("/api/app/reviews", { method: "POST", headers: json({}), body: JSON.stringify(body) })
+  }
+
+  const earlyReview = await review({ serviceContractId: contractId, rating: 5 })
+  check("avaliar antes de concluir bloqueado (409)", earlyReview.status === 409, earlyReview.status)
+
+  const completed = await pro(`/api/app/professional/services/${contractId}/complete`, {
+    method: "POST",
+  })
+  const completedBody = (await completed.json()) as { service?: { status: string } }
+  check(
+    "serviço concluído (COMPLETED)",
+    completed.status === 200 && completedBody.service?.status === "COMPLETED",
+    { status: completed.status, body: completedBody },
+  )
+
+  const reqAfterComplete = await prisma.serviceRequest.findUnique({
+    where: { id: coveredId },
+    select: { status: true },
+  })
+  check("solicitação concluída (COMPLETED)", reqAfterComplete?.status === "COMPLETED", reqAfterComplete)
+
+  // --- Avaliação do cliente + atualização da reputação ---
+  const reviewRes = await review({
+    serviceContractId: contractId,
+    rating: 5,
+    comment: "Excelente atendimento. Chegou no horário e resolveu rapidamente.",
+  })
+  check("cliente avalia serviço concluído (201)", reviewRes.status === 201, reviewRes.status)
+
+  const proProfile = await prisma.professionalProfile.findUnique({
+    where: { id: profileId! },
+    select: { ratingAverage: true, ratingCount: true },
+  })
+  check(
+    "reputação do profissional atualizada",
+    Number(proProfile?.ratingAverage) === 5 && proProfile?.ratingCount === 1,
+    proProfile,
+  )
+
+  const dupReview = await review({ serviceContractId: contractId, rating: 4 })
+  check("avaliação duplicada bloqueada (409)", dupReview.status === 409, dupReview.status)
+
+  const proReview = await review({ serviceContractId: contractId, rating: 5 }, pro)
+  check("profissional não avalia (403)", proReview.status === 403, proReview.status)
+
+  const reviewNotif = await prisma.notification.count({
+    where: { user: { email: proEmail }, type: "REVIEW_RECEIVED" },
+  })
+  check("notificação de avaliação criada", reviewNotif === 1, reviewNotif)
 
   // 16. Fluxo de recusa em uma nova solicitação (continua aberta).
   const second = await createRequest(coveredCityId, "Segundo serviço na cidade coberta")
@@ -303,6 +403,16 @@ async function main() {
   })
   check("solicitação recusada continua aberta (OPEN)", secondRow?.status === "OPEN", secondRow)
 
+  // Mesmo aberta para outros, ela não deve voltar às oportunidades de quem foi recusado.
+  const feedAfterReject = (await (await pro("/api/app/opportunities")).json()) as {
+    opportunities: { id: string }[]
+  }
+  check(
+    "solicitação recusada some das oportunidades do profissional",
+    feedAfterReject.opportunities.every((item) => item.id !== secondId),
+    feedAfterReject.opportunities.map((item) => item.id),
+  )
+
   const acceptAfterReject = await accept(secondProposalId)
   check("aceitar após recusar bloqueado (409)", acceptAfterReject.status === 409, acceptAfterReject.status)
 
@@ -310,6 +420,128 @@ async function main() {
     where: { user: { email: proEmail }, type: "PROPOSAL_REJECTED" },
   })
   check("notificação de recusa criada", rejectNotif === 1, rejectNotif)
+
+  // --- Central de notificações ---
+  const proNotifs = (await (await pro("/api/app/notifications")).json()) as {
+    notifications: { read: boolean }[]
+    unreadCount: number
+  }
+  check(
+    "profissional lista notificações com não lidas",
+    proNotifs.notifications.length > 0 && proNotifs.unreadCount > 0,
+    { count: proNotifs.notifications.length, unread: proNotifs.unreadCount },
+  )
+
+  const markRead = await pro("/api/app/notifications/read", { method: "POST" })
+  check("marcar notificações como lidas (200)", markRead.status === 200, markRead.status)
+
+  const afterRead = (await (await pro("/api/app/notifications")).json()) as { unreadCount: number }
+  check("não lidas zeradas após abrir a central", afterRead.unreadCount === 0, afterRead.unreadCount)
+
+  // --- Registro de token de push ---
+  const pushToken = `ExponentPushToken[smoke-${suffix}]`
+  const registerToken = await pro("/api/app/push-tokens", {
+    method: "POST",
+    headers: json({}),
+    body: JSON.stringify({ token: pushToken, platform: "android" }),
+  })
+  check("registro de token de push (200)", registerToken.status === 200, registerToken.status)
+
+  const storedToken = await prisma.devicePushToken.findUnique({
+    where: { token: pushToken },
+    select: { user: { select: { email: true } } },
+  })
+  check(
+    "token de push vinculado ao usuário",
+    storedToken?.user.email === proEmail,
+    storedToken,
+  )
+
+  // --- Cancelamento de proposta (profissional, enquanto PENDING) ---
+  const third = await createRequest(coveredCityId, "Terceiro serviço na cidade coberta")
+  const thirdId = third.request!.id
+  const thirdProposal = (await (
+    await sendProposal({
+      serviceRequestId: thirdId,
+      price: 300,
+      message: "Proposta que o próprio profissional vai cancelar antes da resposta.",
+    })
+  ).json()) as { proposal?: { id: string } }
+  const thirdProposalId = thirdProposal.proposal!.id
+
+  const canceledProposal = await pro(`/api/app/proposals/${thirdProposalId}/cancel`, {
+    method: "POST",
+  })
+  const canceledProposalBody = (await canceledProposal.json()) as { proposal?: { status: string } }
+  check(
+    "profissional cancela proposta pendente (CANCELED)",
+    canceledProposal.status === 200 && canceledProposalBody.proposal?.status === "CANCELED",
+    { status: canceledProposal.status, body: canceledProposalBody },
+  )
+
+  const recancel = await pro(`/api/app/proposals/${thirdProposalId}/cancel`, { method: "POST" })
+  check("recancelar proposta bloqueado (409)", recancel.status === 409, recancel.status)
+
+  const feedAfterCancel = (await (await pro("/api/app/opportunities")).json()) as {
+    opportunities: { id: string }[]
+  }
+  check(
+    "solicitação com proposta cancelada some das oportunidades",
+    feedAfterCancel.opportunities.every((item) => item.id !== thirdId),
+    feedAfterCancel.opportunities.map((item) => item.id),
+  )
+
+  // --- Cancelamento de serviço (contrato) pelo cliente, com motivo ---
+  const fourth = await createRequest(coveredCityId, "Quarto serviço na cidade coberta")
+  const fourthId = fourth.request!.id
+  const fourthProposal = (await (
+    await sendProposal({
+      serviceRequestId: fourthId,
+      price: 400,
+      message: "Proposta que será aceita e depois o serviço será cancelado pelo cliente.",
+    })
+  ).json()) as { proposal?: { id: string } }
+  const fourthProposalId = fourthProposal.proposal!.id
+  await accept(fourthProposalId)
+
+  const fourthContract = await prisma.serviceContract.findUnique({
+    where: { serviceRequestId: fourthId },
+    select: { id: true },
+  })
+  const fourthContractId = fourthContract!.id
+
+  const proCannotCancelOther = await req(`/api/app/contracts/${fourthContractId}/cancel`, "outsider-ip", {
+    method: "POST",
+  })
+  check("estranho não cancela contrato (401/403)", [401, 403].includes(proCannotCancelOther.status), proCannotCancelOther.status)
+
+  const canceledContract = await client(`/api/app/contracts/${fourthContractId}/cancel`, {
+    method: "POST",
+    headers: json({}),
+    body: JSON.stringify({ reason: "Imprevisto, preciso remarcar." }),
+  })
+  check("cliente cancela serviço (200)", canceledContract.status === 200, canceledContract.status)
+
+  const fourthRow = await prisma.serviceContract.findUnique({
+    where: { id: fourthContractId },
+    select: { status: true, canceledBy: true, cancelReason: true, serviceRequest: { select: { status: true } } },
+  })
+  check(
+    "contrato cancelado com auditoria (quem/motivo)",
+    fourthRow?.status === "CANCELED" &&
+      Boolean(fourthRow?.canceledBy) &&
+      fourthRow?.cancelReason === "Imprevisto, preciso remarcar." &&
+      fourthRow?.serviceRequest.status === "CANCELED",
+    fourthRow,
+  )
+
+  const recancelContract = await client(`/api/app/contracts/${fourthContractId}/cancel`, { method: "POST" })
+  check("recancelar serviço bloqueado (409)", recancelContract.status === 409, recancelContract.status)
+
+  const cancelNotif = await prisma.notification.count({
+    where: { user: { email: proEmail }, title: "Serviço cancelado" },
+  })
+  check("notificação de cancelamento criada", cancelNotif === 1, cancelNotif)
 
   // Limpeza.
   await prisma.user.delete({ where: { email: clientEmail } }).catch(() => {})

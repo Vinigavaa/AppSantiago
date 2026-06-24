@@ -5,6 +5,7 @@ import { ActivityIndicator, type ColorValue, StyleSheet, View } from "react-nati
 
 import { routes } from "@/constants/routes"
 import { colors } from "@/features/client-home/theme"
+import { usePushRegistration } from "@/features/notifications/push"
 import { authClient } from "@/lib/auth-client"
 
 type IoniconName = keyof typeof Ionicons.glyphMap
@@ -17,6 +18,9 @@ function tabIcon(focused: IoniconName, unfocused: IoniconName) {
 
 export default function PrivateLayout() {
   const { data: session, isPending } = authClient.useSession()
+
+  // Registra o dispositivo para push assim que há um usuário autenticado.
+  usePushRegistration(session?.user.id)
 
   // Mesmo cuidado documentado para o grupo (auth): um refetch de sessão volta
   // isPending para true. Só bloqueamos no carregamento inicial, senão a barra
@@ -72,6 +76,7 @@ export default function PrivateLayout() {
         <Tabs.Screen name="new-request" options={{ href: null }} />
         <Tabs.Screen name="professionals" options={{ href: null }} />
         <Tabs.Screen name="opportunity-details" options={{ href: null }} />
+        <Tabs.Screen name="notifications" options={{ href: null }} />
       </Tabs>
     )
   }
@@ -111,6 +116,7 @@ export default function PrivateLayout() {
       <Tabs.Screen name="new-request" options={{ href: null }} />
       <Tabs.Screen name="professionals" options={{ href: null }} />
       <Tabs.Screen name="opportunity-details" options={{ href: null }} />
+      <Tabs.Screen name="notifications" options={{ href: null }} />
     </Tabs>
   )
 }

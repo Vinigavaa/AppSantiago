@@ -132,20 +132,66 @@ export default function NewRequest() {
             />
 
             <View style={styles.field}>
-              <Text style={styles.label}>
-                Bairro <Text style={styles.optional}>(opcional)</Text>
+              <Text style={styles.label}>Endereço do serviço</Text>
+              <Text style={styles.helper}>
+                Antes da contratação, os profissionais veem apenas bairro e cidade. O endereço
+                completo só é liberado ao profissional contratado.
               </Text>
+
+              <View style={styles.addressRow}>
+                <View style={styles.addressZip}>
+                  <TextInput
+                    keyboardType="numeric"
+                    maxLength={9}
+                    onChangeText={(value) => setField("zipCode", value)}
+                    placeholder="CEP"
+                    placeholderTextColor={colors.textTertiary}
+                    style={[styles.input, errors.zipCode && styles.inputError]}
+                    value={form.zipCode}
+                  />
+                </View>
+                <View style={styles.addressNumber}>
+                  <TextInput
+                    maxLength={20}
+                    onChangeText={(value) => setField("number", value)}
+                    placeholder="Número"
+                    placeholderTextColor={colors.textTertiary}
+                    style={[styles.input, errors.number && styles.inputError]}
+                    value={form.number}
+                  />
+                </View>
+              </View>
+              {errors.zipCode ? <Text style={styles.error}>{errors.zipCode}</Text> : null}
+              {errors.number ? <Text style={styles.error}>{errors.number}</Text> : null}
+
+              <TextInput
+                maxLength={160}
+                onChangeText={(value) => setField("street", value)}
+                placeholder="Rua / Avenida"
+                placeholderTextColor={colors.textTertiary}
+                style={[styles.input, errors.street && styles.inputError]}
+                value={form.street}
+              />
+              {errors.street ? <Text style={styles.error}>{errors.street}</Text> : null}
+
               <TextInput
                 maxLength={120}
                 onChangeText={(value) => setField("neighborhood", value)}
-                placeholder="Ex: Centro"
+                placeholder="Bairro"
                 placeholderTextColor={colors.textTertiary}
-                style={styles.input}
+                style={[styles.input, errors.neighborhood && styles.inputError]}
                 value={form.neighborhood}
               />
-              <Text style={styles.helper}>
-                O endereço completo só é compartilhado após a contratação.
-              </Text>
+              {errors.neighborhood ? <Text style={styles.error}>{errors.neighborhood}</Text> : null}
+
+              <TextInput
+                maxLength={120}
+                onChangeText={(value) => setField("complement", value)}
+                placeholder="Complemento (opcional)"
+                placeholderTextColor={colors.textTertiary}
+                style={styles.input}
+                value={form.complement}
+              />
             </View>
 
             <UrgencyPicker
@@ -216,6 +262,16 @@ function SuccessView({ insetsTop }: { insetsTop: number }) {
 }
 
 const styles = StyleSheet.create({
+  addressNumber: {
+    flex: 1,
+  },
+  addressRow: {
+    flexDirection: "row",
+    gap: 10,
+  },
+  addressZip: {
+    flex: 1.2,
+  },
   backButton: {
     alignItems: "center",
     backgroundColor: colors.iconMutedBg,

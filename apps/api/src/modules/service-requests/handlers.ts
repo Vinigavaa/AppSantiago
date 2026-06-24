@@ -4,10 +4,21 @@ import type { AuthedContext } from "@/modules/shared/require-auth"
 
 import { getOrCreateClientProfileId } from "./client-profile"
 import { createServiceRequestSchema } from "./schemas"
-import { serializeServiceRequest, serviceRequestInclude } from "./serialize"
+import {
+  clientServiceRequestInclude,
+  serializeClientServiceRequest,
+  serializeServiceRequest,
+  serviceRequestInclude,
+} from "./serialize"
 
 // Solicitações consideradas "em aberto" no resumo do cliente.
 const OPEN_STATUSES = ["OPEN", "IN_NEGOTIATION"] as const
+
+// Padroniza o CEP para "00000-000" antes de salvar.
+function normalizeZipCode(value: string): string {
+  const digits = value.replace(/\D/g, "")
+  return `${digits.slice(0, 5)}-${digits.slice(5, 8)}`
+}
 
 export async function createServiceRequestHandler(context: AuthedContext) {
   const user = context.get("user")
@@ -64,7 +75,11 @@ export async function createServiceRequestHandler(context: AuthedContext) {
       title: input.title,
       description: input.description,
       urgency: input.urgency,
-      addressNeighborhood: input.neighborhood ?? null,
+      addressZipCode: normalizeZipCode(input.zipCode),
+      addressStreet: input.street,
+      addressNumber: input.number,
+      addressNeighborhood: input.neighborhood,
+      addressComplement: input.complement ?? null,
       budgetMin: input.budgetMin ?? null,
       budgetMax: input.budgetMax ?? null,
     },
@@ -79,11 +94,31 @@ export async function listServiceRequestsHandler(context: AuthedContext) {
 
   const requests = await prisma.serviceRequest.findMany({
     where: { client: { userId: user.id } },
-    include: serviceRequestInclude,
+    include: clientServiceRequestInclude,
     orderBy: { createdAt: "desc" },
   })
 
-  return context.json({ requests: requests.map(serializeServiceRequest) })
+  // Marca quais contratos o cliente já avaliou, para o app esconder o CTA.
+  const contractIds = requests
+    .map((request) => request.serviceContract?.id)
+    .filter((id): id is string => Boolean(id))
+
+  const reviewedContractIds = new Set<string>()
+  if (contractIds.length > 0) {
+    const reviews = await prisma.review.findMany({
+      where: { reviewerId: user.id, serviceContractId: { in: contractIds } },
+      select: { serviceContractId: true },
+    })
+    for (const review of reviews) {
+      reviewedContractIds.add(review.serviceContractId)
+    }
+  }
+
+  return context.json({
+    requests: requests.map((request) =>
+      serializeClientServiceRequest(request, reviewedContractIds),
+    ),
+  })
 }
 
 export async function serviceRequestsSummaryHandler(context: AuthedContext) {

@@ -2,6 +2,12 @@ import { type Context, Hono } from "hono"
 
 import { createRateLimitMiddleware } from "@/http/rate-limit"
 import { listCategoriesHandler, listCitiesHandler } from "@/modules/catalog/handlers"
+import { cancelContractHandler } from "@/modules/contracts/handlers"
+import {
+  listNotificationsHandler,
+  markNotificationsReadHandler,
+  registerPushTokenHandler,
+} from "@/modules/notifications/handlers"
 import {
   listOpportunitiesHandler,
   opportunityDetailHandler,
@@ -14,13 +20,19 @@ import {
   setProfessionalCitiesHandler,
   updateProfessionalProfileHandler,
 } from "@/modules/professional/profile-handlers"
-import { professionalServicesHandler } from "@/modules/professional/services-handlers"
+import {
+  completeServiceHandler,
+  professionalServicesHandler,
+  startServiceHandler,
+} from "@/modules/professional/services-handlers"
 import {
   acceptProposalHandler,
+  cancelProposalHandler,
   createProposalHandler,
   listReceivedProposalsHandler,
   rejectProposalHandler,
 } from "@/modules/proposals/handlers"
+import { createReviewHandler } from "@/modules/reviews/handlers"
 import {
   createServiceRequestHandler,
   listServiceRequestsHandler,
@@ -88,6 +100,18 @@ appRoutes.post("/proposals", createProposalHandler)
 appRoutes.get("/proposals/received", listReceivedProposalsHandler)
 appRoutes.post("/proposals/:id/accept", acceptProposalHandler)
 appRoutes.post("/proposals/:id/reject", rejectProposalHandler)
+appRoutes.post("/proposals/:id/cancel", cancelProposalHandler)
+
+// Avaliações: o cliente avalia o profissional após o serviço ser concluído.
+appRoutes.post("/reviews", createReviewHandler)
+
+// Central de notificações: lista do usuário + marcar como lidas ao abrir.
+appRoutes.get("/notifications", listNotificationsHandler)
+appRoutes.post("/notifications/read", markNotificationsReadHandler)
+appRoutes.post("/push-tokens", registerPushTokenHandler)
+
+// Cancelamento de serviço: cliente ou profissional do contrato.
+appRoutes.post("/contracts/:id/cancel", cancelContractHandler)
 
 // Área do profissional: oportunidades (solicitações abertas filtradas pela sua
 // atuação/região), detalhe da oportunidade, indicadores e perfil.
@@ -95,6 +119,8 @@ appRoutes.get("/opportunities", listOpportunitiesHandler)
 appRoutes.get("/opportunities/:id", opportunityDetailHandler)
 appRoutes.get("/professional/dashboard", professionalDashboardHandler)
 appRoutes.get("/professional/services", professionalServicesHandler)
+appRoutes.post("/professional/services/:id/start", startServiceHandler)
+appRoutes.post("/professional/services/:id/complete", completeServiceHandler)
 
 // Perfil do profissional: leitura, edição de dados, atuação (categorias/cidades)
 // e avaliações recebidas.

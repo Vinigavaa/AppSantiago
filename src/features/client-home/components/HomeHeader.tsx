@@ -7,7 +7,7 @@ type Props = {
   greeting: string
   name: string
   initials: string
-  hasNotifications: boolean
+  unreadCount: number
   onPressNotifications: () => void
   onPressAvatar: () => void
 }
@@ -16,7 +16,7 @@ export function HomeHeader({
   greeting,
   name,
   initials,
-  hasNotifications,
+  unreadCount,
   onPressNotifications,
   onPressAvatar,
 }: Props) {
@@ -38,7 +38,11 @@ export function HomeHeader({
           style={({ pressed }) => [styles.iconButton, pressed && styles.pressed]}
         >
           <Ionicons color={colors.textPrimary} name="notifications-outline" size={22} />
-          {hasNotifications ? <View style={styles.badge} /> : null}
+          {unreadCount > 0 ? (
+            <View style={styles.badge}>
+              <Text style={styles.badgeText}>{unreadCount > 9 ? "9+" : unreadCount}</Text>
+            </View>
+          ) : null}
         </Pressable>
 
         <Pressable
@@ -74,15 +78,23 @@ const styles = StyleSheet.create({
     fontWeight: "700",
   },
   badge: {
+    alignItems: "center",
     backgroundColor: colors.accent,
     borderColor: colors.surface,
     borderRadius: 999,
     borderWidth: 2,
-    height: 12,
+    height: 18,
+    justifyContent: "center",
+    minWidth: 18,
+    paddingHorizontal: 3,
     position: "absolute",
-    right: 6,
-    top: 6,
-    width: 12,
+    right: 2,
+    top: 2,
+  },
+  badgeText: {
+    color: "#FFFFFF",
+    fontSize: 10,
+    fontWeight: "700",
   },
   container: {
     alignItems: "center",

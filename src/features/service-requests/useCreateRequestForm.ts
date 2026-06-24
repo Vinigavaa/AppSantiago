@@ -8,7 +8,11 @@ type FormState = {
   cityId: string | null
   title: string
   description: string
+  zipCode: string
+  street: string
+  number: string
   neighborhood: string
+  complement: string
   urgency: Urgency | null
   budgetMin: string
   budgetMax: string
@@ -21,11 +25,17 @@ const INITIAL_STATE: FormState = {
   cityId: null,
   title: "",
   description: "",
+  zipCode: "",
+  street: "",
+  number: "",
   neighborhood: "",
+  complement: "",
   urgency: null,
   budgetMin: "",
   budgetMax: "",
 }
+
+const ZIP_CODE_REGEX = /^\d{5}-?\d{3}$/
 
 // Converte "1.200,50" / "1200" em número; null quando vazio, NaN quando inválido.
 function parseCurrency(value: string): number | null | typeof NaN {
@@ -76,6 +86,22 @@ export function useCreateRequestForm() {
       nextErrors.description = "Descreva o serviço com ao menos 20 caracteres."
     }
 
+    if (!ZIP_CODE_REGEX.test(form.zipCode.trim())) {
+      nextErrors.zipCode = "Informe um CEP válido."
+    }
+
+    if (form.street.trim().length < 3) {
+      nextErrors.street = "Informe a rua."
+    }
+
+    if (!form.number.trim()) {
+      nextErrors.number = "Informe o número."
+    }
+
+    if (form.neighborhood.trim().length < 2) {
+      nextErrors.neighborhood = "Informe o bairro."
+    }
+
     if (!form.urgency) {
       nextErrors.urgency = "Informe quando precisa do serviço."
     }
@@ -112,7 +138,11 @@ export function useCreateRequestForm() {
         cityId: form.cityId as string,
         title,
         description,
-        neighborhood: form.neighborhood.trim() || undefined,
+        zipCode: form.zipCode.trim(),
+        street: form.street.trim(),
+        number: form.number.trim(),
+        neighborhood: form.neighborhood.trim(),
+        complement: form.complement.trim() || undefined,
         urgency: form.urgency as Urgency,
         budgetMin: typeof budgetMin === "number" ? budgetMin : undefined,
         budgetMax: typeof budgetMax === "number" ? budgetMax : undefined,

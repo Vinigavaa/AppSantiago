@@ -33,3 +33,39 @@ export function serializeServiceRequest(request: ServiceRequestWithRelations) {
     createdAt: request.createdAt.toISOString(),
   }
 }
+
+// Include extra usado apenas na listagem do próprio cliente: traz o contrato e
+// se ele já avaliou, para habilitar o fluxo de avaliação. Não é exposto a outros.
+export const clientServiceRequestInclude = {
+  ...serviceRequestInclude,
+  serviceContract: {
+    select: {
+      id: true,
+      status: true,
+      professional: { select: { user: { select: { name: true } } } },
+    },
+  },
+} satisfies Prisma.ServiceRequestInclude
+
+type ClientServiceRequestWithRelations = Prisma.ServiceRequestGetPayload<{
+  include: typeof clientServiceRequestInclude
+}>
+
+export function serializeClientServiceRequest(
+  request: ClientServiceRequestWithRelations,
+  reviewedContractIds: Set<string>,
+) {
+  const contract = request.serviceContract
+
+  return {
+    ...serializeServiceRequest(request),
+    contract: contract
+      ? {
+          id: contract.id,
+          status: contract.status,
+          professionalName: contract.professional.user.name,
+          reviewed: reviewedContractIds.has(contract.id),
+        }
+      : null,
+  }
+}

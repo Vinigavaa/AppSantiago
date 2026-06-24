@@ -18,6 +18,7 @@ import { SearchBar } from "@/features/client-home/components/SearchBar"
 import { SectionHeader } from "@/features/client-home/components/SectionHeader"
 import { getFirstName, getGreeting, getInitials } from "@/features/client-home/greeting"
 import { colors, spacing } from "@/features/client-home/theme"
+import { useUnreadNotifications } from "@/features/notifications/hooks"
 import type { ServiceRequest } from "@/features/service-requests/types"
 import { authClient } from "@/lib/auth-client"
 
@@ -34,6 +35,7 @@ export function ProfessionalHome() {
   const { data: session } = authClient.useSession()
   const insets = useSafeAreaInsets()
   const { opportunities, isLoading, isRefreshing, error, refetch } = useOpportunities()
+  const { unreadCount } = useUnreadNotifications()
 
   const [search, setSearch] = useState("")
   const [activeFilter, setActiveFilter] = useState(FILTERS[0])
@@ -73,11 +75,11 @@ export function ProfessionalHome() {
     >
       <HomeHeader
         greeting={getGreeting()}
-        hasNotifications={false}
         initials={getInitials(session?.user.name)}
         name={getFirstName(session?.user.name)}
         onPressAvatar={() => router.push(routes.profile)}
-        onPressNotifications={() => {}}
+        onPressNotifications={() => router.push(routes.notifications)}
+        unreadCount={unreadCount}
       />
 
       <View style={styles.searchBlock}>

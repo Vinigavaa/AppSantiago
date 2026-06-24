@@ -1,14 +1,24 @@
 import { useMemo, useState } from "react"
-import { ActivityIndicator, RefreshControl, ScrollView, StyleSheet, Text, View } from "react-native"
+import {
+  ActivityIndicator,
+  Alert,
+  RefreshControl,
+  ScrollView,
+  StyleSheet,
+  Text,
+  View,
+} from "react-native"
 import { useSafeAreaInsets } from "react-native-safe-area-context"
 
 import { EmptyState } from "@/features/client-home/components/EmptyState"
 import { FilterChips } from "@/features/client-home/components/FilterChips"
 import { colors, spacing } from "@/features/client-home/theme"
+import { CancelServiceModal } from "@/features/contracts/CancelServiceModal"
 
 import { ServiceCard } from "./components/ServiceCard"
 import { useProfessionalServices } from "./hooks"
-import type { ServiceContractStatus } from "./types"
+import { completeService, startService } from "./service"
+import type { ProfessionalService, ServiceContractStatus } from "./types"
 
 // Filtros mapeados para os status de contrato. "Todos" não filtra.
 const FILTERS: { label: string; status: ServiceContractStatus | null }[] = [
@@ -22,37 +32,87 @@ const FILTER_LABELS = FILTERS.map((filter) => filter.label)
 
 export function ProfessionalServicesScreen() {
   const insets = useSafeAreaInsets()
-  const { services, isLoading, isRefreshing, error, refetch } = useProfessionalServices()
+  const { services, isLoading, isRefreshing, error, refetch, replaceService } =
+    useProfessionalServices()
   const [activeFilter, setActiveFilter] = useState(FILTER_LABELS[0]!)
+  const [processingId, setProcessingId] = useState<string | null>(null)
+  const [cancelId, setCancelId] = useState<string | null>(null)
 
   const visibleServices = useMemo(() => {
     const status = FILTERS.find((filter) => filter.label === activeFilter)?.status ?? null
     return status ? services.filter((service) => service.status === status) : services
   }, [services, activeFilter])
 
-  return (
-    <ScrollView
-      contentContainerStyle={[styles.content, { paddingTop: insets.top + 12 }]}
-      refreshControl={
-        <RefreshControl onRefresh={refetch} refreshing={isRefreshing} tintColor={colors.accent} />
+  async function runAction(
+    service: ProfessionalService,
+    action: (id: string) => ReturnType<typeof startService>,
+  ) {
+    if (processingId) {
+      return
+    }
+
+    setProcessingId(service.id)
+    const result = await action(service.id)
+    setProcessingId(null)
+
+    if (result.ok) {
+      replaceService(result.data)
+    } else {
+      Alert.alert("Não foi possível atualizar", result.error)
+      // Estado pode ter mudado no servidor (ex.: já iniciado): recarrega.
+      if (result.status === 409) {
+        refetch()
       }
-      showsVerticalScrollIndicator={false}
-      style={styles.screen}
-    >
-      <Text style={styles.title}>Meus serviços</Text>
+    }
+  }
 
-      {services.length > 0 ? (
-        <ScrollView
-          contentContainerStyle={styles.chipsContent}
-          horizontal
-          showsHorizontalScrollIndicator={false}
-        >
-          <FilterChips active={activeFilter} onSelect={setActiveFilter} options={FILTER_LABELS} />
-        </ScrollView>
+  function handleStart(service: ProfessionalService) {
+    Alert.alert("Iniciar atendimento", "Confirmar o início deste serviço?", [
+      { text: "Cancelar", style: "cancel" },
+      { text: "Iniciar", onPress: () => runAction(service, startService) },
+    ])
+  }
+
+  function handleComplete(service: ProfessionalService) {
+    Alert.alert("Concluir serviço", "Confirmar a conclusão deste serviço?", [
+      { text: "Cancelar", style: "cancel" },
+      { text: "Concluir", onPress: () => runAction(service, completeService) },
+    ])
+  }
+
+  return (
+    <>
+      <ScrollView
+        contentContainerStyle={[styles.content, { paddingTop: insets.top + 12 }]}
+        refreshControl={
+          <RefreshControl onRefresh={refetch} refreshing={isRefreshing} tintColor={colors.accent} />
+        }
+        showsVerticalScrollIndicator={false}
+        style={styles.screen}
+      >
+        <Text style={styles.title}>Meus serviços</Text>
+
+        {services.length > 0 ? (
+          <ScrollView
+            contentContainerStyle={styles.chipsContent}
+            horizontal
+            showsHorizontalScrollIndicator={false}
+          >
+            <FilterChips active={activeFilter} onSelect={setActiveFilter} options={FILTER_LABELS} />
+          </ScrollView>
+        ) : null}
+
+        {renderBody()}
+      </ScrollView>
+
+      {cancelId ? (
+        <CancelServiceModal
+          contractId={cancelId}
+          onCanceled={refetch}
+          onClose={() => setCancelId(null)}
+        />
       ) : null}
-
-      {renderBody()}
-    </ScrollView>
+    </>
   )
 
   function renderBody() {
@@ -99,7 +159,14 @@ export function ProfessionalServicesScreen() {
     return (
       <View style={styles.list}>
         {visibleServices.map((service) => (
-          <ServiceCard key={service.id} service={service} />
+          <ServiceCard
+            busy={processingId === service.id}
+            key={service.id}
+            onCancel={(item) => setCancelId(item.id)}
+            onComplete={handleComplete}
+            onStart={handleStart}
+            service={service}
+          />
         ))}
       </View>
     )

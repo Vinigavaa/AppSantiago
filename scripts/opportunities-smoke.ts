@@ -92,6 +92,10 @@ async function main() {
         cityId,
         title,
         description: "Descrição detalhada suficiente para passar na validação do servidor.",
+        zipCode: "88801-000",
+        street: "Rua das Flores",
+        number: "123",
+        neighborhood: "Centro",
         urgency: "THIS_WEEK",
       }),
     })

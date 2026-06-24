@@ -206,5 +206,13 @@ export function useProfessionalServices() {
 
   const refetch = useCallback(() => load("refresh"), [load])
 
-  return { services, isLoading, isRefreshing, error, refetch }
+  // Substitui um serviço pelo retorno de uma ação (iniciar/concluir/cancelar),
+  // refletindo o novo status na hora sem refazer a leitura completa.
+  const replaceService = useCallback((updated: ProfessionalService) => {
+    setServices((current) =>
+      current.map((service) => (service.id === updated.id ? updated : service)),
+    )
+  }, [])
+
+  return { services, isLoading, isRefreshing, error, refetch, replaceService }
 }

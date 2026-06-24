@@ -1,5 +1,5 @@
 import { Ionicons } from "@expo/vector-icons"
-import { StyleSheet, Text, View } from "react-native"
+import { ActivityIndicator, Pressable, StyleSheet, Text, View } from "react-native"
 
 import { colors, radius, spacing } from "@/features/client-home/theme"
 import { formatProposalPrice, getEstimatedDaysLabel } from "@/features/proposals/format"
@@ -8,8 +8,19 @@ import { formatRelativeTime } from "@/features/service-requests/format"
 import { formatServiceAddress, getContractStatusStyle } from "../services-format"
 import type { ProfessionalService } from "../types"
 
-export function ServiceCard({ service }: { service: ProfessionalService }) {
+type Props = {
+  service: ProfessionalService
+  busy?: boolean
+  onStart: (service: ProfessionalService) => void
+  onComplete: (service: ProfessionalService) => void
+  onCancel: (service: ProfessionalService) => void
+}
+
+export function ServiceCard({ service, busy, onStart, onComplete, onCancel }: Props) {
   const status = getContractStatusStyle(service.status)
+  const canStart = service.status === "ACCEPTED"
+  const canComplete = service.status === "IN_PROGRESS"
+  const canCancel = service.status === "ACCEPTED" || service.status === "IN_PROGRESS"
 
   return (
     <View style={styles.card}>
@@ -52,11 +63,74 @@ export function ServiceCard({ service }: { service: ProfessionalService }) {
       </View>
 
       <Text style={styles.date}>Contratado {formatRelativeTime(service.acceptedAt)}</Text>
+
+      {canStart || canComplete ? (
+        <Pressable
+          disabled={busy}
+          onPress={() => (canStart ? onStart(service) : onComplete(service))}
+          style={({ pressed }) => [
+            styles.actionButton,
+            busy && styles.actionDisabled,
+            pressed && styles.pressed,
+          ]}
+        >
+          {busy ? (
+            <ActivityIndicator color="#FFFFFF" size="small" />
+          ) : (
+            <>
+              <Ionicons
+                color="#FFFFFF"
+                name={canStart ? "play" : "checkmark-done"}
+                size={16}
+              />
+              <Text style={styles.actionText}>
+                {canStart ? "Iniciar atendimento" : "Concluir serviço"}
+              </Text>
+            </>
+          )}
+        </Pressable>
+      ) : null}
+
+      {canCancel ? (
+        <Pressable
+          disabled={busy}
+          onPress={() => onCancel(service)}
+          style={({ pressed }) => [styles.cancelButton, pressed && styles.pressed]}
+        >
+          <Text style={styles.cancelText}>Cancelar serviço</Text>
+        </Pressable>
+      ) : null}
     </View>
   )
 }
 
 const styles = StyleSheet.create({
+  actionButton: {
+    alignItems: "center",
+    backgroundColor: colors.accent,
+    borderRadius: radius.tag,
+    flexDirection: "row",
+    gap: 8,
+    justifyContent: "center",
+    paddingVertical: 12,
+  },
+  actionDisabled: {
+    opacity: 0.6,
+  },
+  actionText: {
+    color: "#FFFFFF",
+    fontSize: 15,
+    fontWeight: "600",
+  },
+  cancelButton: {
+    alignItems: "center",
+    paddingVertical: 8,
+  },
+  cancelText: {
+    color: colors.danger,
+    fontSize: 14,
+    fontWeight: "600",
+  },
   card: {
     backgroundColor: colors.surface,
     borderColor: colors.cardBorder,
@@ -97,6 +171,9 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     gap: 12,
     padding: 12,
+  },
+  pressed: {
+    opacity: 0.85,
   },
   releasedBlock: {
     backgroundColor: colors.accentSoftBg,

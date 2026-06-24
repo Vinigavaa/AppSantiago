@@ -14,10 +14,31 @@ export const createServiceRequestSchema = z
       .trim()
       .min(20, "Descreva o serviço com ao menos 20 caracteres.")
       .max(2000, "A descrição pode ter no máximo 2000 caracteres."),
+    // Endereço completo: coletado na criação, mas só liberado ao profissional
+    // contratado. A cidade/estado vêm de cityId; aqui ficam os campos finos.
+    zipCode: z
+      .string()
+      .trim()
+      .regex(/^\d{5}-?\d{3}$/, "Informe um CEP válido."),
+    street: z
+      .string()
+      .trim()
+      .min(3, "Informe a rua.")
+      .max(160, "A rua pode ter no máximo 160 caracteres."),
+    number: z
+      .string()
+      .trim()
+      .min(1, "Informe o número.")
+      .max(20, "O número pode ter no máximo 20 caracteres."),
     neighborhood: z
       .string()
       .trim()
-      .max(120, "O bairro pode ter no máximo 120 caracteres.")
+      .min(2, "Informe o bairro.")
+      .max(120, "O bairro pode ter no máximo 120 caracteres."),
+    complement: z
+      .string()
+      .trim()
+      .max(120, "O complemento pode ter no máximo 120 caracteres.")
       .optional(),
     urgency: z.enum(["URGENT", "THIS_WEEK", "FLEXIBLE"], {
       message: "Informe a urgência do serviço.",

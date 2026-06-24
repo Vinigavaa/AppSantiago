@@ -34,3 +34,11 @@ export async function rejectProposal(id: string): Promise<ApiResult<ReceivedProp
   })
   return result.ok ? { ok: true, data: result.data.proposal } : result
 }
+
+// Profissional: cancela a própria proposta enquanto está pendente.
+export async function cancelProposal(id: string): Promise<ApiResult<OwnProposal>> {
+  const result = await appFetch<{ proposal: OwnProposal }>(`/proposals/${id}/cancel`, {
+    method: "POST",
+  })
+  return result.ok ? { ok: true, data: result.data.proposal } : result
+}

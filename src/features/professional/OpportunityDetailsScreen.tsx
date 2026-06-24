@@ -3,6 +3,7 @@ import { router, useLocalSearchParams } from "expo-router"
 import { useCallback, useEffect, useState } from "react"
 import {
   ActivityIndicator,
+  Alert,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -17,6 +18,7 @@ import {
   getEstimatedDaysLabel,
   getProposalStatusStyle,
 } from "@/features/proposals/format"
+import { cancelProposal } from "@/features/proposals/service"
 import type { OwnProposal } from "@/features/proposals/types"
 import {
   formatBudget,
@@ -65,12 +67,39 @@ export function OpportunityDetailsScreen() {
     void load()
   }, [load])
 
+  const [isCanceling, setIsCanceling] = useState(false)
+
   // Reflete o envio na hora: registra a proposta e soma ao contador exibido.
   function handleSent(proposal: OwnProposal) {
     setMyProposal(proposal)
     setOpportunity((current) =>
       current ? { ...current, proposalsCount: current.proposalsCount + 1 } : current,
     )
+  }
+
+  function handleCancel() {
+    if (!myProposal) {
+      return
+    }
+
+    Alert.alert("Cancelar proposta", "Tem certeza que deseja cancelar esta proposta?", [
+      { text: "Voltar", style: "cancel" },
+      {
+        text: "Cancelar proposta",
+        style: "destructive",
+        onPress: async () => {
+          setIsCanceling(true)
+          const result = await cancelProposal(myProposal.id)
+          setIsCanceling(false)
+
+          if (result.ok) {
+            setMyProposal(result.data)
+          } else {
+            Alert.alert("Não foi possível cancelar", result.error)
+          }
+        },
+      },
+    ])
   }
 
   return (
@@ -106,7 +135,9 @@ export function OpportunityDetailsScreen() {
       ) : (
         <Details
           insetsBottom={insets.bottom}
+          isCanceling={isCanceling}
           myProposal={myProposal}
+          onPressCancel={handleCancel}
           onPressSend={() => setFormOpen(true)}
           opportunity={opportunity}
         />
@@ -128,12 +159,16 @@ function Details({
   opportunity,
   myProposal,
   insetsBottom,
+  isCanceling,
   onPressSend,
+  onPressCancel,
 }: {
   opportunity: ServiceRequest
   myProposal: OwnProposal | null
   insetsBottom: number
+  isCanceling: boolean
   onPressSend: () => void
+  onPressCancel: () => void
 }) {
   const status = getStatusStyle(opportunity.status)
   const location = opportunity.neighborhood
@@ -194,7 +229,11 @@ function Details({
       </Text>
 
       {myProposal ? (
-        <SentProposalCard proposal={myProposal} />
+        <SentProposalCard
+          isCanceling={isCanceling}
+          onPressCancel={onPressCancel}
+          proposal={myProposal}
+        />
       ) : canSend ? (
         <Pressable
           accessibilityRole="button"
@@ -216,7 +255,15 @@ function Details({
 }
 
 // Resumo da proposta já enviada pelo profissional.
-function SentProposalCard({ proposal }: { proposal: OwnProposal }) {
+function SentProposalCard({
+  proposal,
+  isCanceling,
+  onPressCancel,
+}: {
+  proposal: OwnProposal
+  isCanceling: boolean
+  onPressCancel: () => void
+}) {
   const status = getProposalStatusStyle(proposal.status)
 
   return (
@@ -241,6 +288,21 @@ function SentProposalCard({ proposal }: { proposal: OwnProposal }) {
 
       <Text style={styles.sentMessage}>{proposal.message}</Text>
       <Text style={styles.sentDate}>Enviada {formatRelativeTime(proposal.createdAt)}</Text>
+
+      {proposal.status === "PENDING" ? (
+        <Pressable
+          accessibilityRole="button"
+          disabled={isCanceling}
+          onPress={onPressCancel}
+          style={({ pressed }) => [styles.cancelButton, pressed && styles.pressed]}
+        >
+          {isCanceling ? (
+            <ActivityIndicator color={colors.danger} size="small" />
+          ) : (
+            <Text style={styles.cancelText}>Cancelar proposta</Text>
+          )}
+        </Pressable>
+      ) : null}
     </View>
   )
 }
@@ -275,6 +337,18 @@ const styles = StyleSheet.create({
     height: 40,
     justifyContent: "center",
     width: 40,
+  },
+  cancelButton: {
+    alignItems: "center",
+    borderColor: colors.danger,
+    borderRadius: radius.tag,
+    borderWidth: 1,
+    paddingVertical: 11,
+  },
+  cancelText: {
+    color: colors.danger,
+    fontSize: 14,
+    fontWeight: "600",
   },
   centered: {
     alignItems: "center",
