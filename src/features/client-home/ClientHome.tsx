@@ -1,4 +1,4 @@
-import { router } from "expo-router"
+import { type Href, router } from "expo-router"
 import { useMemo, useState } from "react"
 import {
   ActivityIndicator,
@@ -159,7 +159,9 @@ export function ClientHome() {
             onCancelContract={
               request.contract ? () => setCancelContractId(request.contract!.id) : undefined
             }
-            onPress={() => {}}
+            onPress={() =>
+              router.push(`${routes.requestDetails}?id=${request.id}` as Href)
+            }
             onReview={
               request.contract ? () => setReviewContract(request.contract!) : undefined
             }

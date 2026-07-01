@@ -74,6 +74,9 @@ export default function PrivateLayout() {
         <Tabs.Screen name="search" options={{ href: null }} />
         <Tabs.Screen name="proposals" options={{ href: null }} />
         <Tabs.Screen name="new-request" options={{ href: null }} />
+        <Tabs.Screen name="request-details" options={{ href: null }} />
+        <Tabs.Screen name="edit-request" options={{ href: null }} />
+        <Tabs.Screen name="professional-profile" options={{ href: null }} />
         <Tabs.Screen name="professionals" options={{ href: null }} />
         <Tabs.Screen name="opportunity-details" options={{ href: null }} />
         <Tabs.Screen name="notifications" options={{ href: null }} />
@@ -114,6 +117,9 @@ export default function PrivateLayout() {
       <Tabs.Screen name="dashboard" options={{ href: null }} />
       <Tabs.Screen name="services" options={{ href: null }} />
       <Tabs.Screen name="new-request" options={{ href: null }} />
+      <Tabs.Screen name="request-details" options={{ href: null }} />
+      <Tabs.Screen name="edit-request" options={{ href: null }} />
+      <Tabs.Screen name="professional-profile" options={{ href: null }} />
       <Tabs.Screen name="professionals" options={{ href: null }} />
       <Tabs.Screen name="opportunity-details" options={{ href: null }} />
       <Tabs.Screen name="notifications" options={{ href: null }} />

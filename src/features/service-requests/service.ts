@@ -6,6 +6,7 @@ import type {
   ClientSummary,
   CreateServiceRequestInput,
   ServiceRequest,
+  ServiceRequestDetail,
 } from "./types"
 
 export async function fetchCategories(): Promise<ApiResult<Category[]>> {
@@ -36,6 +37,31 @@ export async function createServiceRequest(
   })
 
   return result.ok ? { ok: true, data: result.data.request } : result
+}
+
+// Detalhe completo de uma solicitação do próprio cliente (inclui endereço).
+export async function fetchServiceRequestDetail(
+  id: string,
+): Promise<ApiResult<ServiceRequestDetail>> {
+  const result = await appFetch<{ request: ServiceRequestDetail }>(`/service-requests/${id}`)
+  return result.ok ? { ok: true, data: result.data.request } : result
+}
+
+// Edição da solicitação. Reaproveita o mesmo payload da criação.
+export async function updateServiceRequest(
+  id: string,
+  input: CreateServiceRequestInput,
+): Promise<ApiResult<ServiceRequestDetail>> {
+  const result = await appFetch<{ request: ServiceRequestDetail }>(`/service-requests/${id}`, {
+    method: "PATCH",
+    body: input,
+  })
+  return result.ok ? { ok: true, data: result.data.request } : result
+}
+
+// Exclusão da solicitação. Bloqueada pelo backend quando já há contrato.
+export async function deleteServiceRequest(id: string): Promise<ApiResult<{ ok: true }>> {
+  return appFetch<{ ok: true }>(`/service-requests/${id}`, { method: "DELETE" })
 }
 
 // Avaliação do profissional após o serviço concluído.

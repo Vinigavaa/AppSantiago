@@ -42,6 +42,32 @@ export type ProfessionalReview = {
   serviceCategory: string
 }
 
+// Avaliação exibida no perfil público (mostra só o primeiro nome do avaliador).
+export type PublicReview = {
+  id: string
+  rating: number
+  comment: string | null
+  createdAt: string
+  reviewerName: string
+  serviceCategory: string
+}
+
+// Perfil público do profissional, consultado pelo cliente antes de contratar.
+// Não traz dados de contato — apenas identidade, reputação e atuação.
+export type PublicProfessional = {
+  id: string
+  name: string
+  avatarUrl: string | null
+  bio: string | null
+  mainCategory: string | null
+  categories: { id: string; name: string }[]
+  cities: { id: string; name: string; state: string }[]
+  ratingAverage: number
+  ratingCount: number
+  stats: { servicesCompleted: number }
+  reviews: PublicReview[]
+}
+
 export type UpdateProfileInput = {
   name: string
   displayName: string | null

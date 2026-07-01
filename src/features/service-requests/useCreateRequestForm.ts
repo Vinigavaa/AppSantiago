@@ -1,7 +1,8 @@
 import { useState } from "react"
 
-import { createServiceRequest } from "./service"
-import type { CreateServiceRequestInput, Urgency } from "./types"
+import type { ApiResult } from "@/lib/api-client"
+
+import type { CreateServiceRequestInput, ServiceRequestDetail, Urgency } from "./types"
 
 type FormState = {
   categoryId: string | null
@@ -35,6 +36,24 @@ const INITIAL_STATE: FormState = {
   budgetMax: "",
 }
 
+// Converte um detalhe existente no estado inicial do formulário (para edição).
+export function detailToFormState(detail: ServiceRequestDetail): FormState {
+  return {
+    categoryId: detail.category.id,
+    cityId: detail.city.id,
+    title: detail.title,
+    description: detail.description,
+    zipCode: detail.address.zipCode ?? "",
+    street: detail.address.street ?? "",
+    number: detail.address.number ?? "",
+    neighborhood: detail.address.neighborhood ?? "",
+    complement: detail.address.complement ?? "",
+    urgency: detail.urgency,
+    budgetMin: detail.budgetMin !== null ? String(detail.budgetMin) : "",
+    budgetMax: detail.budgetMax !== null ? String(detail.budgetMax) : "",
+  }
+}
+
 const ZIP_CODE_REGEX = /^\d{5}-?\d{3}$/
 
 // Converte "1.200,50" / "1200" em número; null quando vazio, NaN quando inválido.
@@ -51,8 +70,14 @@ function parseCurrency(value: string): number | null | typeof NaN {
   return Number.isFinite(parsed) ? parsed : NaN
 }
 
-export function useCreateRequestForm() {
-  const [form, setForm] = useState<FormState>(INITIAL_STATE)
+type UseRequestFormOptions = {
+  // Ação de persistência (criar ou editar). Só precisamos do ok/erro.
+  onSubmit: (input: CreateServiceRequestInput) => Promise<ApiResult<unknown>>
+  initial?: FormState
+}
+
+export function useRequestForm({ onSubmit, initial }: UseRequestFormOptions) {
+  const [form, setForm] = useState<FormState>(initial ?? INITIAL_STATE)
   const [errors, setErrors] = useState<FormErrors>({})
   const [submitError, setSubmitError] = useState<string | null>(null)
   const [isSubmitting, setIsSubmitting] = useState(false)
@@ -165,7 +190,7 @@ export function useCreateRequestForm() {
     setIsSubmitting(true)
     setSubmitError(null)
 
-    const result = await createServiceRequest(validation.input)
+    const result = await onSubmit(validation.input)
 
     if (!result.ok) {
       setIsSubmitting(false)
@@ -173,8 +198,8 @@ export function useCreateRequestForm() {
       return
     }
 
-    // Mantém isSubmitting travado e sinaliza sucesso. A navegação para a área de
-    // solicitações (onde a nova aparece ao focar) fica a cargo da tela.
+    // Mantém isSubmitting travado e sinaliza sucesso. A navegação (para a Home,
+    // no caso de criação, ou de volta ao detalhe, na edição) fica a cargo da tela.
     setIsSuccess(true)
   }
 

@@ -2,6 +2,7 @@ import type { Href } from "expo-router"
 
 export const routes = {
   dashboard: "/dashboard" as Href,
+  editRequest: "/edit-request" as Href,
   forgotPassword: "/forgot-password" as Href,
   home: "/home" as Href,
   login: "/login" as Href,
@@ -9,9 +10,11 @@ export const routes = {
   newRequest: "/new-request" as Href,
   notifications: "/notifications" as Href,
   opportunityDetails: "/opportunity-details" as Href,
+  professionalProfile: "/professional-profile" as Href,
   professionals: "/professionals" as Href,
   profile: "/profile" as Href,
   proposals: "/proposals" as Href,
+  requestDetails: "/request-details" as Href,
   register: "/register" as Href,
   resetPassword: "/reset-password" as Href,
   search: "/search" as Href,

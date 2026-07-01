@@ -29,6 +29,7 @@ export function serializeClientProposal(proposal: ClientProposalWithRelations) {
     status: proposal.status,
     createdAt: proposal.createdAt.toISOString(),
     professional: {
+      id: proposal.professionalId,
       name: proposal.professional.user.displayUsername ?? proposal.professional.user.name,
       avatarUrl: proposal.professional.user.avatarUrl,
       ratingAverage: Number(proposal.professional.ratingAverage),

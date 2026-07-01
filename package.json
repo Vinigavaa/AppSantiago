@@ -58,6 +58,7 @@
     "db:validate": "npm --workspace @santiago/database run db:validate",
     "auth:smoke": "tsx --tsconfig apps/api/tsconfig.json scripts/auth-security-smoke.ts",
     "requests:smoke": "tsx --tsconfig apps/api/tsconfig.json scripts/service-request-smoke.ts",
+    "requests-mgmt:smoke": "tsx --tsconfig apps/api/tsconfig.json scripts/request-management-smoke.ts",
     "opportunities:smoke": "tsx --tsconfig apps/api/tsconfig.json scripts/opportunities-smoke.ts",
     "proposals:smoke": "tsx --tsconfig apps/api/tsconfig.json scripts/proposals-smoke.ts",
     "profile:smoke": "tsx --tsconfig apps/api/tsconfig.json scripts/professional-profile-smoke.ts",

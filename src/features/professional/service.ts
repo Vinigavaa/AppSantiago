@@ -7,8 +7,17 @@ import type {
   ProfessionalProfileInfo,
   ProfessionalReview,
   ProfessionalService,
+  PublicProfessional,
   UpdateProfileInput,
 } from "./types"
+
+// Perfil público de um profissional (visto pelo cliente ao avaliar uma proposta).
+export async function fetchPublicProfessional(
+  id: string,
+): Promise<ApiResult<PublicProfessional>> {
+  const result = await appFetch<{ professional: PublicProfessional }>(`/professionals/${id}`)
+  return result.ok ? { ok: true, data: result.data.professional } : result
+}
 
 // Detalhe da oportunidade + a proposta já enviada pelo profissional (se houver).
 export type OpportunityDetail = {

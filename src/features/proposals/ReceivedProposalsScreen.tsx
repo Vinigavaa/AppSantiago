@@ -1,4 +1,5 @@
 import { Ionicons } from "@expo/vector-icons"
+import { type Href, router } from "expo-router"
 import { useState } from "react"
 import {
   ActivityIndicator,
@@ -11,6 +12,7 @@ import {
 } from "react-native"
 import { useSafeAreaInsets } from "react-native-safe-area-context"
 
+import { routes } from "@/constants/routes"
 import { EmptyState } from "@/features/client-home/components/EmptyState"
 import { colors, spacing } from "@/features/client-home/theme"
 
@@ -69,6 +71,12 @@ export function ReceivedProposalsScreen() {
         },
       ],
     )
+  }
+
+  // Abre o perfil completo do profissional. Usa push para preservar a lista de
+  // propostas na pilha — ao voltar, o cliente retorna exatamente onde estava.
+  function handleOpenProfile(proposal: ReceivedProposal) {
+    router.push(`${routes.professionalProfile}?id=${proposal.professional.id}` as Href)
   }
 
   function handleReject(proposal: ReceivedProposal) {
@@ -143,6 +151,7 @@ export function ReceivedProposalsScreen() {
             busy={processingId === proposal.id}
             key={proposal.id}
             onAccept={handleAccept}
+            onOpenProfile={handleOpenProfile}
             onReject={handleReject}
             proposal={proposal}
           />

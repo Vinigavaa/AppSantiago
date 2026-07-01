@@ -1,3 +1,4 @@
+import { Ionicons } from "@expo/vector-icons"
 import { ActivityIndicator, Image, Pressable, StyleSheet, Text, View } from "react-native"
 
 import { getInitials } from "@/features/client-home/greeting"
@@ -13,9 +14,10 @@ type Props = {
   busy?: boolean
   onAccept: (proposal: ReceivedProposal) => void
   onReject: (proposal: ReceivedProposal) => void
+  onOpenProfile: (proposal: ReceivedProposal) => void
 }
 
-export function ReceivedProposalCard({ proposal, busy, onAccept, onReject }: Props) {
+export function ReceivedProposalCard({ proposal, busy, onAccept, onReject, onOpenProfile }: Props) {
   const { professional } = proposal
   const status = getProposalStatusStyle(proposal.status)
   const isPending = proposal.status === "PENDING"
@@ -27,21 +29,31 @@ export function ReceivedProposalCard({ proposal, busy, onAccept, onReject }: Pro
   return (
     <View style={styles.card}>
       <View style={styles.header}>
-        {professional.avatarUrl ? (
-          <Image source={{ uri: professional.avatarUrl }} style={styles.avatar} />
-        ) : (
-          <View style={styles.avatar}>
-            <Text style={styles.avatarText}>{getInitials(professional.name)}</Text>
-          </View>
-        )}
+        <Pressable
+          accessibilityHint="Abre o perfil completo do profissional"
+          accessibilityRole="button"
+          onPress={() => onOpenProfile(proposal)}
+          style={({ pressed }) => [styles.identity, pressed && styles.pressed]}
+        >
+          {professional.avatarUrl ? (
+            <Image source={{ uri: professional.avatarUrl }} style={styles.avatar} />
+          ) : (
+            <View style={styles.avatar}>
+              <Text style={styles.avatarText}>{getInitials(professional.name)}</Text>
+            </View>
+          )}
 
-        <View style={styles.headerText}>
-          <Text style={styles.name}>{professional.name}</Text>
-          <View style={styles.ratingRow}>
-            <Stars rating={professional.ratingCount > 0 ? professional.ratingAverage : 0} size={13} />
-            <Text style={styles.ratingLabel}>{ratingLabel}</Text>
+          <View style={styles.headerText}>
+            <View style={styles.nameRow}>
+              <Text style={styles.name}>{professional.name}</Text>
+              <Ionicons color={colors.textTertiary} name="chevron-forward" size={15} />
+            </View>
+            <View style={styles.ratingRow}>
+              <Stars rating={professional.ratingCount > 0 ? professional.ratingAverage : 0} size={13} />
+              <Text style={styles.ratingLabel}>{ratingLabel}</Text>
+            </View>
           </View>
-        </View>
+        </Pressable>
 
         <View style={[styles.statusPill, { backgroundColor: status.background }]}>
           <Text style={[styles.statusText, { color: status.color }]}>{status.label}</Text>
@@ -164,6 +176,17 @@ const styles = StyleSheet.create({
   headerText: {
     flex: 1,
     gap: 3,
+  },
+  identity: {
+    alignItems: "center",
+    flex: 1,
+    flexDirection: "row",
+    gap: 12,
+  },
+  nameRow: {
+    alignItems: "center",
+    flexDirection: "row",
+    gap: 4,
   },
   message: {
     color: colors.textSecondary,

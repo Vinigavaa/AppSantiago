@@ -5,9 +5,16 @@ import {
   fetchCategories,
   fetchCities,
   fetchClientSummary,
+  fetchServiceRequestDetail,
   fetchServiceRequests,
 } from "./service"
-import type { Category, City, ClientSummary, ServiceRequest } from "./types"
+import type {
+  Category,
+  City,
+  ClientSummary,
+  ServiceRequest,
+  ServiceRequestDetail,
+} from "./types"
 
 // Lista de solicitações do cliente + resumo. Recarrega ao focar a tela, então a
 // solicitação recém-criada aparece imediatamente ao voltar para a Home.
@@ -58,6 +65,50 @@ export function useServiceRequests() {
   const refetch = useCallback(() => load("refresh"), [load])
 
   return { requests, summary, isLoading, isRefreshing, error, refetch }
+}
+
+// Detalhe completo de uma solicitação. Recarrega ao focar a tela, então a
+// edição feita em outra tela reflete imediatamente ao voltar.
+export function useServiceRequestDetail(id: string) {
+  const [request, setRequest] = useState<ServiceRequestDetail | null>(null)
+  const [isLoading, setIsLoading] = useState(true)
+  const [isRefreshing, setIsRefreshing] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+  const loadedOnce = useRef(false)
+
+  const load = useCallback(
+    async (mode: "initial" | "refresh") => {
+      if (mode === "refresh") {
+        setIsRefreshing(true)
+      } else {
+        setIsLoading(true)
+      }
+      setError(null)
+
+      const result = await fetchServiceRequestDetail(id)
+
+      if (result.ok) {
+        setRequest(result.data)
+      } else {
+        setError(result.error)
+      }
+
+      loadedOnce.current = true
+      setIsLoading(false)
+      setIsRefreshing(false)
+    },
+    [id],
+  )
+
+  useFocusEffect(
+    useCallback(() => {
+      void load(loadedOnce.current ? "refresh" : "initial")
+    }, [load]),
+  )
+
+  const refetch = useCallback(() => load("refresh"), [load])
+
+  return { request, isLoading, isRefreshing, error, refetch }
 }
 
 // Categorias e cidades para os seletores do formulário.

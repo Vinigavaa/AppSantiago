@@ -12,6 +12,7 @@ export type ReceivedProposal = {
   status: ProposalStatus
   createdAt: string
   professional: {
+    id: string
     name: string
     avatarUrl: string | null
     ratingAverage: number

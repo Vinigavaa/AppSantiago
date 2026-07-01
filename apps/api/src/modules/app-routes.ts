@@ -20,6 +20,7 @@ import {
   setProfessionalCitiesHandler,
   updateProfessionalProfileHandler,
 } from "@/modules/professional/profile-handlers"
+import { publicProfessionalProfileHandler } from "@/modules/professional/public-profile-handlers"
 import {
   completeServiceHandler,
   professionalServicesHandler,
@@ -35,8 +36,11 @@ import {
 import { createReviewHandler } from "@/modules/reviews/handlers"
 import {
   createServiceRequestHandler,
+  deleteServiceRequestHandler,
   listServiceRequestsHandler,
+  serviceRequestDetailHandler,
   serviceRequestsSummaryHandler,
+  updateServiceRequestHandler,
 } from "@/modules/service-requests/handlers"
 import { requireAuth, type AuthenticatedUser } from "@/modules/shared/require-auth"
 
@@ -94,6 +98,14 @@ appRoutes.get("/cities", listCitiesHandler)
 appRoutes.post("/service-requests", createServiceRequestHandler)
 appRoutes.get("/service-requests", listServiceRequestsHandler)
 appRoutes.get("/service-requests/summary", serviceRequestsSummaryHandler)
+// Rotas por id ficam após /summary para não capturarem a rota estática.
+appRoutes.get("/service-requests/:id", serviceRequestDetailHandler)
+appRoutes.patch("/service-requests/:id", updateServiceRequestHandler)
+appRoutes.delete("/service-requests/:id", deleteServiceRequestHandler)
+
+// Perfil público do profissional: qualquer usuário autenticado pode consultar
+// para decidir uma contratação. Não expõe dados de contato.
+appRoutes.get("/professionals/:id", publicProfessionalProfileHandler)
 
 // Propostas: profissional envia; cliente lista as recebidas e aceita/recusa.
 appRoutes.post("/proposals", createProposalHandler)

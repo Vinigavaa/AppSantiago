@@ -51,6 +51,43 @@ export type ServiceRequest = {
   contract?: RequestContract | null
 }
 
+export type RequestAddress = {
+  zipCode: string | null
+  street: string | null
+  number: string | null
+  neighborhood: string | null
+  complement: string | null
+}
+
+// Contrato exibido no detalhe completo da solicitação (para o próprio cliente).
+export type RequestDetailContract = {
+  id: string
+  status: ContractStatus
+  professionalId: string
+  professionalName: string
+  reviewed: boolean
+}
+
+// Detalhe completo da solicitação, retornado por GET /service-requests/:id.
+// Só o dono recebe o endereço completo.
+export type ServiceRequestDetail = {
+  id: string
+  title: string
+  description: string
+  status: RequestStatus
+  urgency: Urgency
+  category: { id: string; name: string }
+  city: { id: string; name: string; state: string }
+  address: RequestAddress
+  budgetMin: number | null
+  budgetMax: number | null
+  proposalsCount: number
+  photos: { id: string; url: string }[]
+  createdAt: string
+  updatedAt: string
+  contract: RequestDetailContract | null
+}
+
 export type ClientSummary = {
   openRequests: number
   pendingProposals: number
