@@ -152,6 +152,16 @@ async function main() {
   // ===== Cenário A: não comparecimento -> reabre -> recontrata =====
   const r1 = await createRequest("Trocar resistência do chuveiro")
   check("proposta pro1 enviada", (await sendProposal(pro1, r1)) === 201)
+
+  // Ao enviar a proposta, a solicitação sai da home (oportunidades) do pro1.
+  const pro1HomeAfterPropose = (await (await pro1("/api/app/opportunities")).json()) as {
+    opportunities: { id: string }[]
+  }
+  check(
+    "solicitação sai da home após enviar proposta",
+    pro1HomeAfterPropose.opportunities.every((o) => o.id !== r1),
+  )
+
   check("cliente aceita pro1", (await acceptLatestProposal(r1)) === 200)
 
   const c1 = await contractOf(r1)
