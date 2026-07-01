@@ -225,10 +225,91 @@ async function main() {
   const blockedDelete = await client(`/api/app/service-requests/${requestId}`, { method: "DELETE" })
   check("exclusão bloqueada com contrato (409)", blockedDelete.status === 409, blockedDelete.status)
 
-  // Limpeza: remove o contrato (FK Restrict) e a solicitação antes dos usuários.
-  // A remoção da solicitação leva propostas/fotos em cascata.
-  await prisma.serviceContract.deleteMany({ where: { serviceRequestId: requestId } }).catch(() => {})
-  await prisma.serviceRequest.deleteMany({ where: { id: requestId } }).catch(() => {})
+  // --- Profissional cancela o serviço já contratado -> solicitação reabre ---
+  const contractRow = await prisma.serviceContract.findFirst({
+    where: { serviceRequestId: requestId },
+    select: { id: true },
+  })
+  const proCancel = await pro(`/api/app/contracts/${contractRow!.id}/cancel`, {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({ reason: "Imprevisto de agenda" }),
+  })
+  check("profissional cancela o contrato 200", proCancel.status === 200, proCancel.status)
+
+  const reopened = (await (await client(`/api/app/service-requests/${requestId}`)).json()) as {
+    request?: { status?: string; contract?: unknown }
+  }
+  check("solicitação volta para OPEN", reopened.request?.status === "OPEN", reopened.request?.status)
+  check("contrato removido da solicitação", reopened.request?.contract === null)
+
+  const canceledProposal = await prisma.proposal.findFirst({
+    where: { serviceRequestId: requestId, professionalId: proProfileId },
+    select: { status: true },
+  })
+  check("proposta do profissional cancelada", canceledProposal?.status === "CANCELED", canceledProposal)
+
+  const oppAfter = (await (await pro("/api/app/opportunities")).json()) as {
+    opportunities: { id: string }[]
+  }
+  check(
+    "oportunidade some das telas do profissional",
+    oppAfter.opportunities.every((item) => item.id !== requestId),
+  )
+
+  // Reaberta e sem contrato -> pode ser excluída.
+  const delReopened = await client(`/api/app/service-requests/${requestId}`, { method: "DELETE" })
+  check("exclusão da solicitação reaberta 200", delReopened.status === 200, delReopened.status)
+
+  // --- Cliente cancela -> solicitação CANCELADA pode ser excluída ---
+  const toCancel = await createRequest("Serviço cancelado pelo cliente")
+  const toCancelId = toCancel.request!.id
+  await pro("/api/app/proposals", {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({
+      serviceRequestId: toCancelId,
+      price: 200,
+      message: "Proposta para o serviço que será cancelado pelo cliente mais adiante.",
+      estimatedDays: 1,
+    }),
+  })
+  const toCancelReceived = (await (await client("/api/app/proposals/received")).json()) as {
+    proposals: { id: string; serviceRequest: { id: string } }[]
+  }
+  const toCancelProposal = toCancelReceived.proposals.find(
+    (proposal) => proposal.serviceRequest.id === toCancelId,
+  )!
+  await client(`/api/app/proposals/${toCancelProposal.id}/accept`, { method: "POST" })
+
+  const toCancelContract = await prisma.serviceContract.findFirst({
+    where: { serviceRequestId: toCancelId },
+    select: { id: true },
+  })
+  const clientCancel = await client(`/api/app/contracts/${toCancelContract!.id}/cancel`, {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({ reason: "Não preciso mais" }),
+  })
+  check("cliente cancela o contrato 200", clientCancel.status === 200, clientCancel.status)
+
+  const canceledDetail = (await (
+    await client(`/api/app/service-requests/${toCancelId}`)
+  ).json()) as { request?: { status?: string } }
+  check("solicitação fica CANCELADA", canceledDetail.request?.status === "CANCELED")
+
+  const delCanceled = await client(`/api/app/service-requests/${toCancelId}`, { method: "DELETE" })
+  check("exclusão de solicitação cancelada 200", delCanceled.status === 200, delCanceled.status)
+  const afterCanceledDelete = await client(`/api/app/service-requests/${toCancelId}`)
+  check("solicitação cancelada some após exclusão (404)", afterCanceledDelete.status === 404)
+
+  // Limpeza: remove contratos/solicitações remanescentes antes dos usuários.
+  await prisma.serviceContract
+    .deleteMany({ where: { serviceRequestId: { in: [requestId, toCancelId] } } })
+    .catch(() => {})
+  await prisma.serviceRequest
+    .deleteMany({ where: { id: { in: [requestId, toCancelId] } } })
+    .catch(() => {})
   await prisma.user.delete({ where: { email: clientEmail } }).catch(() => {})
   await prisma.user.delete({ where: { email: otherEmail } }).catch(() => {})
   await prisma.user.delete({ where: { email: proEmail } }).catch(() => {})

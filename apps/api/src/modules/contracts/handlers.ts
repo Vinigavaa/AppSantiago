@@ -44,6 +44,7 @@ export async function cancelContractHandler(context: AuthedContext) {
       id: true,
       status: true,
       serviceRequestId: true,
+      proposalId: true,
       client: { select: { userId: true } },
       professional: { select: { userId: true } },
     },
@@ -70,11 +71,44 @@ export async function cancelContractHandler(context: AuthedContext) {
     )
   }
 
-  // Notifica a contraparte; a mensagem indica quem cancelou.
-  const otherUserId = isClient ? contract.professional.userId : contract.client.userId
-  const byLabel = isClient ? "O cliente" : "O profissional"
   const reason = parsed.data.reason
 
+  // Cancelamento pelo profissional: ele desiste do serviço já contratado. A
+  // solicitação volta a ficar ABERTA para receber novas propostas, e some das
+  // telas dele. Para isso o contrato é removido (a solicitação só admite um
+  // contrato por vez) e a proposta dele é marcada como cancelada — o que a
+  // exclui das oportunidades e impede novo envio.
+  if (isProfessional) {
+    await prisma.$transaction([
+      prisma.proposal.update({ where: { id: contract.proposalId }, data: { status: "CANCELED" } }),
+      prisma.serviceContract.delete({ where: { id: contract.id } }),
+      prisma.serviceRequest.update({
+        where: { id: contract.serviceRequestId },
+        data: { status: "OPEN" },
+      }),
+      prisma.notification.create({
+        data: {
+          userId: contract.client.userId,
+          type: "SERVICE_UPDATED",
+          title: "Profissional cancelou o serviço",
+          message: reason
+            ? `O profissional cancelou o serviço. Sua solicitação voltou a ficar aberta para novas propostas. Motivo: ${reason}`
+            : "O profissional cancelou o serviço. Sua solicitação voltou a ficar aberta para novas propostas.",
+        },
+      }),
+    ])
+
+    void sendPushToUser(
+      contract.client.userId,
+      "Profissional cancelou o serviço",
+      "Sua solicitação voltou a ficar aberta para novas propostas.",
+    )
+
+    return context.json({ ok: true })
+  }
+
+  // Cancelamento pelo cliente: encerra o serviço. O contrato e a solicitação
+  // ficam como CANCELADOS (mantidos para histórico) e o profissional é avisado.
   await prisma.$transaction([
     prisma.serviceContract.update({
       where: { id: contract.id },
@@ -91,20 +125,20 @@ export async function cancelContractHandler(context: AuthedContext) {
     }),
     prisma.notification.create({
       data: {
-        userId: otherUserId,
+        userId: contract.professional.userId,
         type: "SERVICE_UPDATED",
         title: "Serviço cancelado",
         message: reason
-          ? `${byLabel} cancelou o serviço. Motivo: ${reason}`
-          : `${byLabel} cancelou o serviço.`,
+          ? `O cliente cancelou o serviço. Motivo: ${reason}`
+          : "O cliente cancelou o serviço.",
       },
     }),
   ])
 
   void sendPushToUser(
-    otherUserId,
+    contract.professional.userId,
     "Serviço cancelado",
-    reason ? `${byLabel} cancelou o serviço. Motivo: ${reason}` : `${byLabel} cancelou o serviço.`,
+    reason ? `O cliente cancelou o serviço. Motivo: ${reason}` : "O cliente cancelou o serviço.",
   )
 
   return context.json({ ok: true })

@@ -123,7 +123,9 @@ export function RequestDetailsScreen({ id }: { id: string }) {
     const status = getStatusStyle(request.status)
     const edited = wasEdited(request.createdAt, request.updatedAt)
     const canEdit = !(LOCKED_STATUSES as readonly string[]).includes(request.status)
-    const canDelete = request.contract === null
+    // Excluível quando não há contrato ativo. Solicitações canceladas mantêm um
+    // contrato CANCELADO, mas ainda podem ser excluídas.
+    const canDelete = request.contract === null || request.contract.status === "CANCELED"
     const contract = request.contract
     const canReview = contract?.status === "COMPLETED" && !contract.reviewed
     const canCancelService =
