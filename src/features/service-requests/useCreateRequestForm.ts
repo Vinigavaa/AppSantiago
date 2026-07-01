@@ -1,4 +1,4 @@
-import { useState } from "react"
+import { useCallback, useState } from "react"
 
 import type { ApiResult } from "@/lib/api-client"
 
@@ -203,5 +203,16 @@ export function useRequestForm({ onSubmit, initial }: UseRequestFormOptions) {
     setIsSuccess(true)
   }
 
-  return { form, errors, submitError, isSubmitting, isSuccess, setField, submit }
+  // Volta o formulário ao estado inicial. As telas são mantidas montadas pelo
+  // navegador de abas, então o estado (inclusive isSuccess) persiste entre
+  // visitas — a tela chama reset ao sair para reabrir sempre limpa.
+  const reset = useCallback(() => {
+    setForm(initial ?? INITIAL_STATE)
+    setErrors({})
+    setSubmitError(null)
+    setIsSubmitting(false)
+    setIsSuccess(false)
+  }, [initial])
+
+  return { form, errors, submitError, isSubmitting, isSuccess, setField, submit, reset }
 }

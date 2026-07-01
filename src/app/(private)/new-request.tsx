@@ -1,6 +1,6 @@
 import { Ionicons } from "@expo/vector-icons"
-import { router } from "expo-router"
-import { useEffect } from "react"
+import { router, useFocusEffect } from "expo-router"
+import { useCallback, useEffect } from "react"
 import {
   ActivityIndicator,
   KeyboardAvoidingView,
@@ -24,9 +24,13 @@ import { useRequestForm } from "@/features/service-requests/useCreateRequestForm
 export default function NewRequest() {
   const insets = useSafeAreaInsets()
   const { categories, cities, isLoading, error: catalogError, reload } = useCatalog()
-  const { form, errors, submitError, isSubmitting, isSuccess, setField, submit } = useRequestForm({
-    onSubmit: createServiceRequest,
-  })
+  const { form, errors, submitError, isSubmitting, isSuccess, setField, submit, reset } =
+    useRequestForm({ onSubmit: createServiceRequest })
+
+  // A tela é mantida montada pelo navegador de abas. Ao sair (inclusive após o
+  // sucesso), limpamos o formulário para que a próxima abertura mostre um form
+  // vazio — e não a tela de "Solicitação publicada".
+  useFocusEffect(useCallback(() => () => reset(), [reset]))
 
   // Após o sucesso, mostra a confirmação e segue para a área de solicitações.
   useEffect(() => {

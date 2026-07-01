@@ -1,6 +1,6 @@
 import { Ionicons } from "@expo/vector-icons"
-import { router } from "expo-router"
-import { useEffect, useMemo } from "react"
+import { router, useFocusEffect } from "expo-router"
+import { useCallback, useEffect, useMemo, useRef } from "react"
 import {
   ActivityIndicator,
   KeyboardAvoidingView,
@@ -63,7 +63,7 @@ export function EditRequestScreen({ id }: { id: string }) {
             <Button label="Tentar novamente" onPress={reload} style={styles.retry} variant="secondary" />
           </View>
         ) : (
-          <EditForm categories={categories} cities={cities} detail={request} id={id} />
+          <EditForm categories={categories} cities={cities} detail={request} id={id} key={id} />
         )}
       </ScrollView>
     </KeyboardAvoidingView>
@@ -90,10 +90,8 @@ function EditForm({
     [id],
   )
 
-  const { form, errors, submitError, isSubmitting, isSuccess, setField, submit } = useRequestForm({
-    onSubmit: submitEdit,
-    initial,
-  })
+  const { form, errors, submitError, isSubmitting, isSuccess, setField, submit, reset } =
+    useRequestForm({ onSubmit: submitEdit, initial })
 
   // Ao salvar com sucesso, volta ao detalhe (que recarrega ao focar e mostra os
   // dados atualizados imediatamente).
@@ -102,6 +100,14 @@ function EditForm({
       router.back()
     }
   }, [isSuccess])
+
+  // A tela fica montada pelo navegador de abas. Ao sair, restauramos o form aos
+  // valores atuais da solicitação — assim uma reedição não abre travada no estado
+  // de "Salvando...". O ref garante que só limpamos ao sair (nunca durante o
+  // refetch de foco, que não deve descartar o que o usuário está editando).
+  const resetRef = useRef(reset)
+  resetRef.current = reset
+  useFocusEffect(useCallback(() => () => resetRef.current(), []))
 
   return (
     <RequestForm
