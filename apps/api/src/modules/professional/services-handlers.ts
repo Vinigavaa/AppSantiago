@@ -32,7 +32,7 @@ const contractInclude = {
 
 type ContractWithRelations = Prisma.ServiceContractGetPayload<{ include: typeof contractInclude }>
 
-function serializeContractedService(contract: ContractWithRelations) {
+function serializeContractedService(contract: ContractWithRelations, clientReviewed: boolean) {
   const request = contract.serviceRequest
 
   return {
@@ -41,6 +41,8 @@ function serializeContractedService(contract: ContractWithRelations) {
     acceptedAt: contract.acceptedAt.toISOString(),
     startedAt: contract.startedAt?.toISOString() ?? null,
     completedAt: contract.completedAt?.toISOString() ?? null,
+    // Se o profissional já avaliou o cliente deste serviço (esconde o CTA).
+    clientReviewed,
     price: Number(contract.proposal.price),
     estimatedDays: contract.proposal.estimatedDays,
     serviceRequest: {
@@ -82,7 +84,18 @@ export async function professionalServicesHandler(context: AuthedContext) {
     orderBy: { acceptedAt: "desc" },
   })
 
-  return context.json({ services: contracts.map(serializeContractedService) })
+  // Contratos que este profissional já avaliou (avaliação do cliente).
+  const reviewed = await prisma.review.findMany({
+    where: { reviewerId: user.id, serviceContractId: { in: contracts.map((c) => c.id) } },
+    select: { serviceContractId: true },
+  })
+  const reviewedIds = new Set(reviewed.map((review) => review.serviceContractId))
+
+  return context.json({
+    services: contracts.map((contract) =>
+      serializeContractedService(contract, reviewedIds.has(contract.id)),
+    ),
+  })
 }
 
 // Carrega um contrato garantindo que pertence ao profissional autenticado.
@@ -136,12 +149,17 @@ async function loadContractForPro(context: AuthedContext) {
 
 // Recarrega o contrato já com as relações e o devolve serializado.
 async function respondWithService(context: AuthedContext, id: string) {
-  const contract = await prisma.serviceContract.findUnique({
-    where: { id },
-    include: contractInclude,
-  })
+  const user = context.get("user")
 
-  return context.json({ service: serializeContractedService(contract!) })
+  const [contract, review] = await Promise.all([
+    prisma.serviceContract.findUnique({ where: { id }, include: contractInclude }),
+    prisma.review.findFirst({
+      where: { reviewerId: user.id, serviceContractId: id },
+      select: { id: true },
+    }),
+  ])
+
+  return context.json({ service: serializeContractedService(contract!, Boolean(review)) })
 }
 
 // Iniciar atendimento: ACCEPTED -> IN_PROGRESS. Marca a solicitação também.

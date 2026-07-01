@@ -34,11 +34,21 @@ export function serializeServiceRequest(request: ServiceRequestWithRelations) {
   }
 }
 
-// Include extra usado apenas na listagem do próprio cliente: traz o contrato e
-// se ele já avaliou, para habilitar o fluxo de avaliação. Não é exposto a outros.
+// Contrato "ativo" de uma solicitação: o único não cancelado. Uma solicitação
+// pode ter contratos cancelados no histórico (recontratação após não
+// comparecimento), por isso filtramos e pegamos o vigente.
+const activeContractRelation = {
+  where: { status: { not: "CANCELED" } },
+  orderBy: { createdAt: "desc" },
+  take: 1,
+} as const
+
+// Include extra usado apenas na listagem do próprio cliente: traz o contrato
+// vigente e se ele já avaliou, para habilitar o fluxo de avaliação.
 export const clientServiceRequestInclude = {
   ...serviceRequestInclude,
-  serviceContract: {
+  serviceContracts: {
+    ...activeContractRelation,
     select: {
       id: true,
       status: true,
@@ -55,7 +65,7 @@ export function serializeClientServiceRequest(
   request: ClientServiceRequestWithRelations,
   reviewedContractIds: Set<string>,
 ) {
-  const contract = request.serviceContract
+  const contract = request.serviceContracts[0] ?? null
 
   return {
     ...serializeServiceRequest(request),
@@ -78,7 +88,8 @@ export const serviceRequestDetailInclude = {
   city: { select: { id: true, name: true, state: true } },
   photos: { select: { id: true, url: true }, orderBy: { createdAt: "asc" } },
   _count: { select: { proposals: true } },
-  serviceContract: {
+  serviceContracts: {
+    ...activeContractRelation,
     select: {
       id: true,
       status: true,
@@ -97,7 +108,7 @@ export function serializeServiceRequestDetail(
   request: ServiceRequestDetailWithRelations,
   reviewed: boolean,
 ) {
-  const contract = request.serviceContract
+  const contract = request.serviceContracts[0] ?? null
 
   return {
     id: request.id,

@@ -3,6 +3,7 @@ import type { OwnProposal } from "@/features/proposals/types"
 import type { ServiceRequest } from "@/features/service-requests/types"
 
 import type {
+  OpportunityClient,
   ProfessionalDashboard,
   ProfessionalProfileInfo,
   ProfessionalReview,
@@ -19,10 +20,12 @@ export async function fetchPublicProfessional(
   return result.ok ? { ok: true, data: result.data.professional } : result
 }
 
-// Detalhe da oportunidade + a proposta já enviada pelo profissional (se houver).
+// Detalhe da oportunidade + a proposta já enviada pelo profissional (se houver)
+// + a reputação do cliente que abriu a solicitação.
 export type OpportunityDetail = {
   opportunity: ServiceRequest
   myProposal: OwnProposal | null
+  client: OpportunityClient | null
 }
 
 export async function fetchOpportunities(): Promise<ApiResult<ServiceRequest[]>> {
@@ -33,7 +36,14 @@ export async function fetchOpportunities(): Promise<ApiResult<ServiceRequest[]>>
 export async function fetchOpportunity(id: string): Promise<ApiResult<OpportunityDetail>> {
   const result = await appFetch<OpportunityDetail>(`/opportunities/${id}`)
   return result.ok
-    ? { ok: true, data: { opportunity: result.data.opportunity, myProposal: result.data.myProposal } }
+    ? {
+        ok: true,
+        data: {
+          opportunity: result.data.opportunity,
+          myProposal: result.data.myProposal,
+          client: result.data.client,
+        },
+      }
     : result
 }
 

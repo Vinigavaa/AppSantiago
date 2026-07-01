@@ -18,6 +18,7 @@ import { Button } from "@/components/ui/Button"
 import { routes } from "@/constants/routes"
 import { colors, radius, spacing } from "@/features/client-home/theme"
 import { CancelServiceModal } from "@/features/contracts/CancelServiceModal"
+import { reportNoShow } from "@/features/contracts/service"
 import { ReviewModal } from "@/features/service-requests/components/ReviewModal"
 import {
   formatBudget,
@@ -39,6 +40,7 @@ export function RequestDetailsScreen({ id }: { id: string }) {
   const { request, isLoading, isRefreshing, error, refetch } = useServiceRequestDetail(id)
 
   const [isDeleting, setIsDeleting] = useState(false)
+  const [isReportingNoShow, setIsReportingNoShow] = useState(false)
   const [reviewContract, setReviewContract] = useState<RequestContract | null>(null)
   const [cancelContractId, setCancelContractId] = useState<string | null>(null)
 
@@ -73,6 +75,42 @@ export function RequestDetailsScreen({ id }: { id: string }) {
     }
 
     Alert.alert("Não foi possível excluir", result.error)
+  }
+
+  function confirmNoShow(contractId: string) {
+    Alert.alert(
+      "O profissional não compareceu no horário combinado?",
+      "Ao confirmar, esta contratação será cancelada e sua solicitação voltará a receber propostas de outros profissionais.",
+      [
+        { text: "Voltar", style: "cancel" },
+        {
+          text: "Confirmar",
+          style: "destructive",
+          onPress: () => void runNoShow(contractId),
+        },
+      ],
+    )
+  }
+
+  async function runNoShow(contractId: string) {
+    if (isReportingNoShow) {
+      return
+    }
+
+    setIsReportingNoShow(true)
+    const result = await reportNoShow(contractId)
+    setIsReportingNoShow(false)
+
+    if (result.ok) {
+      Alert.alert(
+        "Solicitação reaberta",
+        "A contratação foi cancelada e sua solicitação voltou a receber propostas.",
+      )
+      refetch()
+      return
+    }
+
+    Alert.alert("Não foi possível concluir", result.error)
   }
 
   return (
@@ -123,9 +161,10 @@ export function RequestDetailsScreen({ id }: { id: string }) {
     const status = getStatusStyle(request.status)
     const edited = wasEdited(request.createdAt, request.updatedAt)
     const canEdit = !(LOCKED_STATUSES as readonly string[]).includes(request.status)
-    // Excluível quando não há contrato ativo. Solicitações canceladas mantêm um
-    // contrato CANCELADO, mas ainda podem ser excluídas.
-    const canDelete = request.contract === null || request.contract.status === "CANCELED"
+    // Excluível quando não há contrato ativo. O detalhe só traz o contrato
+    // vigente (não cancelado), então uma solicitação cancelada chega sem contrato
+    // e pode ser excluída normalmente.
+    const canDelete = request.contract === null
     const contract = request.contract
     const canReview = contract?.status === "COMPLETED" && !contract.reviewed
     const canCancelService =
@@ -216,12 +255,29 @@ export function RequestDetailsScreen({ id }: { id: string }) {
             ) : null}
 
             {canCancelService ? (
-              <Pressable
-                onPress={() => setCancelContractId(contract.id)}
-                style={({ pressed }) => [styles.dangerButton, pressed && styles.pressed]}
-              >
-                <Text style={styles.dangerText}>Cancelar serviço</Text>
-              </Pressable>
+              <>
+                <Pressable
+                  disabled={isReportingNoShow}
+                  onPress={() => confirmNoShow(contract.id)}
+                  style={({ pressed }) => [
+                    styles.noShowButton,
+                    pressed && styles.pressed,
+                    isReportingNoShow && styles.pressed,
+                  ]}
+                >
+                  <Ionicons color="#FFFFFF" name="alert-circle-outline" size={18} />
+                  <Text style={styles.noShowText}>
+                    {isReportingNoShow ? "Processando..." : "Profissional não compareceu"}
+                  </Text>
+                </Pressable>
+
+                <Pressable
+                  onPress={() => setCancelContractId(contract.id)}
+                  style={({ pressed }) => [styles.dangerButton, pressed && styles.pressed]}
+                >
+                  <Text style={styles.dangerText}>Cancelar serviço</Text>
+                </Pressable>
+              </>
             ) : null}
           </Section>
         ) : null}
@@ -257,9 +313,11 @@ export function RequestDetailsScreen({ id }: { id: string }) {
 
         {reviewContract ? (
           <ReviewModal
-            contract={reviewContract}
+            contractId={reviewContract.id}
             onClose={() => setReviewContract(null)}
             onReviewed={refetch}
+            subtitle={`Como foi o serviço de ${reviewContract.professionalName}?`}
+            title="Avaliar profissional"
           />
         ) : null}
 
@@ -357,6 +415,21 @@ const styles = StyleSheet.create({
     color: colors.danger,
     fontSize: 14,
     fontWeight: "600",
+  },
+  noShowButton: {
+    alignItems: "center",
+    backgroundColor: colors.danger,
+    borderRadius: radius.search,
+    flexDirection: "row",
+    gap: 8,
+    justifyContent: "center",
+    marginTop: 12,
+    paddingVertical: 13,
+  },
+  noShowText: {
+    color: "#FFFFFF",
+    fontSize: 15,
+    fontWeight: "700",
   },
   deleteButton: {
     alignItems: "center",

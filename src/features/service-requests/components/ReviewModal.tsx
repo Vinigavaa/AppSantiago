@@ -16,15 +16,18 @@ import { colors, radius } from "@/features/client-home/theme"
 import { STAR_COLOR } from "@/features/professional/components/Stars"
 
 import { submitReview } from "../service"
-import type { RequestContract } from "../types"
 
+// Avaliação genérica: serve tanto para o cliente avaliar o profissional quanto
+// para o profissional avaliar o cliente. A tela define título e subtítulo.
 type Props = {
-  contract: RequestContract
+  contractId: string
+  title: string
+  subtitle: string
   onClose: () => void
   onReviewed: () => void
 }
 
-export function ReviewModal({ contract, onClose, onReviewed }: Props) {
+export function ReviewModal({ contractId, title, subtitle, onClose, onReviewed }: Props) {
   const [rating, setRating] = useState(0)
   const [comment, setComment] = useState("")
   const [error, setError] = useState<string | null>(null)
@@ -44,7 +47,7 @@ export function ReviewModal({ contract, onClose, onReviewed }: Props) {
     setError(null)
 
     const result = await submitReview({
-      serviceContractId: contract.id,
+      serviceContractId: contractId,
       rating,
       comment: comment.trim() || undefined,
     })
@@ -67,13 +70,13 @@ export function ReviewModal({ contract, onClose, onReviewed }: Props) {
       >
         <View style={styles.sheet}>
           <View style={styles.header}>
-            <Text style={styles.title}>Avaliar profissional</Text>
+            <Text style={styles.title}>{title}</Text>
             <Pressable hitSlop={8} onPress={onClose}>
               <Ionicons color={colors.textSecondary} name="close" size={24} />
             </Pressable>
           </View>
 
-          <Text style={styles.subtitle}>Como foi o serviço de {contract.professionalName}?</Text>
+          <Text style={styles.subtitle}>{subtitle}</Text>
 
           <View style={styles.stars}>
             {[1, 2, 3, 4, 5].map((position) => (

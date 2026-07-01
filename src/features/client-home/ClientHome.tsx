@@ -92,9 +92,11 @@ export function ClientHome() {
 
       {reviewContract ? (
         <ReviewModal
-          contract={reviewContract}
+          contractId={reviewContract.id}
           onClose={() => setReviewContract(null)}
           onReviewed={refetch}
+          subtitle={`Como foi o serviço de ${reviewContract.professionalName}?`}
+          title="Avaliar profissional"
         />
       ) : null}
 

@@ -2,7 +2,7 @@ import { type Context, Hono } from "hono"
 
 import { createRateLimitMiddleware } from "@/http/rate-limit"
 import { listCategoriesHandler, listCitiesHandler } from "@/modules/catalog/handlers"
-import { cancelContractHandler } from "@/modules/contracts/handlers"
+import { cancelContractHandler, reportNoShowHandler } from "@/modules/contracts/handlers"
 import {
   listNotificationsHandler,
   markNotificationsReadHandler,
@@ -124,6 +124,8 @@ appRoutes.post("/push-tokens", registerPushTokenHandler)
 
 // Cancelamento de serviço: cliente ou profissional do contrato.
 appRoutes.post("/contracts/:id/cancel", cancelContractHandler)
+// Não comparecimento do profissional: cliente reabre a solicitação.
+appRoutes.post("/contracts/:id/no-show", reportNoShowHandler)
 
 // Área do profissional: oportunidades (solicitações abertas filtradas pela sua
 // atuação/região), detalhe da oportunidade, indicadores e perfil.

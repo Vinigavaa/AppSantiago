@@ -138,6 +138,8 @@ model ClientProfile {
   id               String            @id @default(uuid()) @db.Uuid
   userId           String            @unique @db.Uuid
   document         String?           @unique
+  ratingAverage    Decimal           @default(0) @db.Decimal(3, 2)
+  ratingCount      Int               @default(0)
   createdAt        DateTime          @default(now())
   updatedAt        DateTime          @updatedAt
   user             User              @relation(fields: [userId], references: [id], onDelete: Cascade)
@@ -246,7 +248,9 @@ model ServiceRequest {
   city                City                  @relation(fields: [cityId], references: [id], onDelete: Restrict)
   photos              ServiceRequestPhoto[]
   proposals           Proposal[]
-  serviceContract     ServiceContract?
+  // Um contrato ativo por vez, mas o histórico guarda os cancelados: uma
+  // solicitação pode ser recontratada após um cancelamento por não comparecimento.
+  serviceContracts    ServiceContract[]
   chats               Chat[]
 
   @@index([clientId])
@@ -287,7 +291,7 @@ model Proposal {
 
 model ServiceContract {
   id               String                @id @default(uuid()) @db.Uuid
-  serviceRequestId String                @unique @db.Uuid
+  serviceRequestId String                @db.Uuid
   proposalId       String                @unique @db.Uuid
   clientId         String                @db.Uuid
   professionalId   String                @db.Uuid
@@ -308,6 +312,7 @@ model ServiceContract {
   reviews          Review[]
   chats            Chat[]
 
+  @@index([serviceRequestId])
   @@index([clientId])
   @@index([professionalId])
   @@index([status])

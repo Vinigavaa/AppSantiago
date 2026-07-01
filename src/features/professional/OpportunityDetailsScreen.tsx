@@ -29,7 +29,9 @@ import {
 import type { ServiceRequest } from "@/features/service-requests/types"
 
 import { ProposalFormModal } from "./components/ProposalFormModal"
+import { Stars } from "./components/Stars"
 import { fetchOpportunity } from "./service"
+import type { OpportunityClient } from "./types"
 
 export function OpportunityDetailsScreen() {
   const insets = useSafeAreaInsets()
@@ -37,6 +39,7 @@ export function OpportunityDetailsScreen() {
 
   const [opportunity, setOpportunity] = useState<ServiceRequest | null>(null)
   const [myProposal, setMyProposal] = useState<OwnProposal | null>(null)
+  const [client, setClient] = useState<OpportunityClient | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [formOpen, setFormOpen] = useState(false)
@@ -56,6 +59,7 @@ export function OpportunityDetailsScreen() {
     if (result.ok) {
       setOpportunity(result.data.opportunity)
       setMyProposal(result.data.myProposal)
+      setClient(result.data.client)
     } else {
       setError(result.error)
     }
@@ -134,6 +138,7 @@ export function OpportunityDetailsScreen() {
         </View>
       ) : (
         <Details
+          client={client}
           insetsBottom={insets.bottom}
           isCanceling={isCanceling}
           myProposal={myProposal}
@@ -158,6 +163,7 @@ export function OpportunityDetailsScreen() {
 function Details({
   opportunity,
   myProposal,
+  client,
   insetsBottom,
   isCanceling,
   onPressSend,
@@ -165,6 +171,7 @@ function Details({
 }: {
   opportunity: ServiceRequest
   myProposal: OwnProposal | null
+  client: OpportunityClient | null
   insetsBottom: number
   isCanceling: boolean
   onPressSend: () => void
@@ -227,6 +234,8 @@ function Details({
       <Text style={styles.privacyNote}>
         O endereço completo é liberado apenas após a contratação.
       </Text>
+
+      {client ? <ClientReputation client={client} /> : null}
 
       {myProposal ? (
         <SentProposalCard
@@ -307,6 +316,45 @@ function SentProposalCard({
   )
 }
 
+// Reputação do cliente que abriu a solicitação — dá confiança antes de propor.
+function ClientReputation({ client }: { client: OpportunityClient }) {
+  const ratingLabel =
+    client.ratingCount > 0
+      ? `${client.ratingAverage.toFixed(1)} (${client.ratingCount} ${
+          client.ratingCount === 1 ? "avaliação" : "avaliações"
+        })`
+      : "Cliente sem avaliações ainda"
+
+  return (
+    <View style={styles.clientCard}>
+      <Text style={styles.sectionTitle}>Reputação do cliente</Text>
+      <View style={styles.clientHeader}>
+        <Text style={styles.clientName}>{client.name}</Text>
+        <View style={styles.clientRatingRow}>
+          <Stars rating={client.ratingCount > 0 ? client.ratingAverage : 0} size={14} />
+          <Text style={styles.clientRatingLabel}>{ratingLabel}</Text>
+        </View>
+      </View>
+
+      {client.reviews.length > 0 ? (
+        <View style={styles.clientReviews}>
+          {client.reviews.map((review) => (
+            <View key={review.id} style={styles.clientReview}>
+              <View style={styles.clientReviewHeader}>
+                <Text style={styles.clientReviewName}>{review.reviewerName}</Text>
+                <Stars rating={review.rating} size={12} />
+              </View>
+              {review.comment ? (
+                <Text style={styles.clientReviewComment}>{review.comment}</Text>
+              ) : null}
+            </View>
+          ))}
+        </View>
+      ) : null}
+    </View>
+  )
+}
+
 function InfoRow({
   icon,
   label,
@@ -356,6 +404,56 @@ const styles = StyleSheet.create({
     gap: 14,
     justifyContent: "center",
     paddingHorizontal: spacing.screen,
+  },
+  clientCard: {
+    backgroundColor: colors.surface,
+    borderColor: colors.cardBorder,
+    borderRadius: radius.card,
+    borderWidth: 1,
+    gap: 10,
+    marginTop: 4,
+    padding: spacing.card,
+  },
+  clientHeader: {
+    gap: 4,
+  },
+  clientName: {
+    color: colors.textPrimary,
+    fontSize: 15,
+    fontWeight: "700",
+  },
+  clientRatingLabel: {
+    color: colors.textSecondary,
+    fontSize: 13,
+  },
+  clientRatingRow: {
+    alignItems: "center",
+    flexDirection: "row",
+    gap: 8,
+  },
+  clientReview: {
+    borderTopColor: colors.cardBorder,
+    borderTopWidth: StyleSheet.hairlineWidth,
+    gap: 4,
+    paddingTop: 10,
+  },
+  clientReviewComment: {
+    color: colors.textSecondary,
+    fontSize: 13,
+    lineHeight: 19,
+  },
+  clientReviewHeader: {
+    alignItems: "center",
+    flexDirection: "row",
+    justifyContent: "space-between",
+  },
+  clientReviewName: {
+    color: colors.textPrimary,
+    fontSize: 13,
+    fontWeight: "600",
+  },
+  clientReviews: {
+    gap: 6,
   },
   content: {
     gap: 14,

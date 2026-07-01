@@ -14,13 +14,22 @@ type Props = {
   onStart: (service: ProfessionalService) => void
   onComplete: (service: ProfessionalService) => void
   onCancel: (service: ProfessionalService) => void
+  onReviewClient: (service: ProfessionalService) => void
 }
 
-export function ServiceCard({ service, busy, onStart, onComplete, onCancel }: Props) {
+export function ServiceCard({
+  service,
+  busy,
+  onStart,
+  onComplete,
+  onCancel,
+  onReviewClient,
+}: Props) {
   const status = getContractStatusStyle(service.status)
   const canStart = service.status === "ACCEPTED"
   const canComplete = service.status === "IN_PROGRESS"
   const canCancel = service.status === "ACCEPTED" || service.status === "IN_PROGRESS"
+  const canReviewClient = service.status === "COMPLETED" && !service.clientReviewed
 
   return (
     <View style={styles.card}>
@@ -88,6 +97,16 @@ export function ServiceCard({ service, busy, onStart, onComplete, onCancel }: Pr
               </Text>
             </>
           )}
+        </Pressable>
+      ) : null}
+
+      {canReviewClient ? (
+        <Pressable
+          onPress={() => onReviewClient(service)}
+          style={({ pressed }) => [styles.reviewButton, pressed && styles.pressed]}
+        >
+          <Ionicons color={colors.accent} name="star-outline" size={16} />
+          <Text style={styles.reviewText}>Avaliar cliente</Text>
         </Pressable>
       ) : null}
 
@@ -191,6 +210,20 @@ const styles = StyleSheet.create({
     flexShrink: 1,
     fontSize: 13,
     lineHeight: 18,
+  },
+  reviewButton: {
+    alignItems: "center",
+    backgroundColor: colors.accentSoftBg,
+    borderRadius: radius.tag,
+    flexDirection: "row",
+    gap: 6,
+    justifyContent: "center",
+    paddingVertical: 10,
+  },
+  reviewText: {
+    color: colors.accent,
+    fontSize: 14,
+    fontWeight: "600",
   },
   statusPill: {
     borderRadius: radius.tag,

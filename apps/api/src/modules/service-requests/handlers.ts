@@ -108,7 +108,7 @@ export async function listServiceRequestsHandler(context: AuthedContext) {
 
   // Marca quais contratos o cliente já avaliou, para o app esconder o CTA.
   const contractIds = requests
-    .map((request) => request.serviceContract?.id)
+    .map((request) => request.serviceContracts[0]?.id)
     .filter((id): id is string => Boolean(id))
 
   const reviewedContractIds = new Set<string>()
@@ -162,7 +162,7 @@ export async function serviceRequestDetailHandler(context: AuthedContext) {
     return context.json({ code: "NOT_FOUND", message: "Solicitação não encontrada." }, 404)
   }
 
-  const reviewed = await hasReviewed(user.id, request.serviceContract?.id)
+  const reviewed = await hasReviewed(user.id, request.serviceContracts[0]?.id)
 
   return context.json({ request: serializeServiceRequestDetail(request, reviewed) })
 }
@@ -248,7 +248,7 @@ export async function updateServiceRequestHandler(context: AuthedContext) {
     include: serviceRequestDetailInclude,
   })
 
-  const reviewed = await hasReviewed(user.id, updated.serviceContract?.id)
+  const reviewed = await hasReviewed(user.id, updated.serviceContracts[0]?.id)
 
   return context.json({ request: serializeServiceRequestDetail(updated, reviewed) })
 }
@@ -274,19 +274,19 @@ export async function deleteServiceRequestHandler(context: AuthedContext) {
 
   const existing = await prisma.serviceRequest.findFirst({
     where: { id, client: { userId: user.id } },
-    select: { id: true, serviceContract: { select: { id: true, status: true } } },
+    select: { id: true, serviceContracts: { select: { id: true, status: true } } },
   })
 
   if (!existing) {
     return context.json({ code: "NOT_FOUND", message: "Solicitação não encontrada." }, 404)
   }
 
-  const contract = existing.serviceContract
-
   // Bloqueia apenas solicitações efetivamente contratadas (contrato ativo ou
-  // concluído). Solicitações canceladas — que mantêm um contrato CANCELADO por
-  // histórico — podem ser excluídas normalmente.
-  if (contract && contract.status !== "CANCELED") {
+  // concluído). Contratos apenas cancelados ficam no histórico e não impedem a
+  // exclusão.
+  const hasActiveContract = existing.serviceContracts.some((c) => c.status !== "CANCELED")
+
+  if (hasActiveContract) {
     return context.json(
       {
         code: "REQUEST_CONTRACTED",
@@ -296,12 +296,11 @@ export async function deleteServiceRequestHandler(context: AuthedContext) {
     )
   }
 
-  // Um contrato CANCELADO precisa ser removido antes (FK Restrict). As propostas,
-  // fotos e o contrato caem em cascata a partir da própria solicitação, exceto o
-  // contrato (Restrict) — por isso ele é removido explicitamente na transação.
-  if (contract) {
+  // Contratos cancelados precisam ser removidos antes (FK Restrict). Propostas e
+  // fotos caem em cascata a partir da própria solicitação.
+  if (existing.serviceContracts.length > 0) {
     await prisma.$transaction([
-      prisma.serviceContract.delete({ where: { id: contract.id } }),
+      prisma.serviceContract.deleteMany({ where: { serviceRequestId: existing.id } }),
       prisma.serviceRequest.delete({ where: { id: existing.id } }),
     ])
   } else {

@@ -14,6 +14,7 @@ import { EmptyState } from "@/features/client-home/components/EmptyState"
 import { FilterChips } from "@/features/client-home/components/FilterChips"
 import { colors, spacing } from "@/features/client-home/theme"
 import { CancelServiceModal } from "@/features/contracts/CancelServiceModal"
+import { ReviewModal } from "@/features/service-requests/components/ReviewModal"
 
 import { ServiceCard } from "./components/ServiceCard"
 import { useProfessionalServices } from "./hooks"
@@ -37,6 +38,7 @@ export function ProfessionalServicesScreen() {
   const [activeFilter, setActiveFilter] = useState(FILTER_LABELS[0]!)
   const [processingId, setProcessingId] = useState<string | null>(null)
   const [cancelId, setCancelId] = useState<string | null>(null)
+  const [reviewClient, setReviewClient] = useState<ProfessionalService | null>(null)
 
   const visibleServices = useMemo(() => {
     const status = FILTERS.find((filter) => filter.label === activeFilter)?.status ?? null
@@ -112,6 +114,16 @@ export function ProfessionalServicesScreen() {
           onClose={() => setCancelId(null)}
         />
       ) : null}
+
+      {reviewClient ? (
+        <ReviewModal
+          contractId={reviewClient.id}
+          onClose={() => setReviewClient(null)}
+          onReviewed={refetch}
+          subtitle={`Como foi atender ${reviewClient.client.name}?`}
+          title="Avaliar cliente"
+        />
+      ) : null}
     </>
   )
 
@@ -164,6 +176,7 @@ export function ProfessionalServicesScreen() {
             key={service.id}
             onCancel={(item) => setCancelId(item.id)}
             onComplete={handleComplete}
+            onReviewClient={setReviewClient}
             onStart={handleStart}
             service={service}
           />

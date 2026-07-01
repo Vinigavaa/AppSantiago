@@ -52,6 +52,14 @@ export type PublicReview = {
   serviceCategory: string
 }
 
+// Reputação do cliente exibida ao profissional na oportunidade (antes de propor).
+export type OpportunityClient = {
+  name: string
+  ratingAverage: number
+  ratingCount: number
+  reviews: PublicReview[]
+}
+
 // Perfil público do profissional, consultado pelo cliente antes de contratar.
 // Não traz dados de contato — apenas identidade, reputação e atuação.
 export type PublicProfessional = {
@@ -93,6 +101,8 @@ export type ProfessionalService = {
   acceptedAt: string
   startedAt: string | null
   completedAt: string | null
+  // Se o profissional já avaliou o cliente deste serviço concluído.
+  clientReviewed: boolean
   price: number
   estimatedDays: number | null
   serviceRequest: {

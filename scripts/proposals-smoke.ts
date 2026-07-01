@@ -369,8 +369,9 @@ async function main() {
   const dupReview = await review({ serviceContractId: contractId, rating: 4 })
   check("avaliação duplicada bloqueada (409)", dupReview.status === 409, dupReview.status)
 
+  // O profissional agora pode avaliar o cliente de um serviço concluído.
   const proReview = await review({ serviceContractId: contractId, rating: 5 }, pro)
-  check("profissional não avalia (403)", proReview.status === 403, proReview.status)
+  check("profissional avalia o cliente (201)", proReview.status === 201, proReview.status)
 
   const reviewNotif = await prisma.notification.count({
     where: { user: { email: proEmail }, type: "REVIEW_RECEIVED" },
@@ -504,7 +505,7 @@ async function main() {
   const fourthProposalId = fourthProposal.proposal!.id
   await accept(fourthProposalId)
 
-  const fourthContract = await prisma.serviceContract.findUnique({
+  const fourthContract = await prisma.serviceContract.findFirst({
     where: { serviceRequestId: fourthId },
     select: { id: true },
   })
