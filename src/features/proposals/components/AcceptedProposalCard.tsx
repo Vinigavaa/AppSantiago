@@ -12,25 +12,32 @@ type Props = {
   proposal: ReceivedProposal
   onOpenProfile: (proposal: ReceivedProposal) => void
   onOpenService: (proposal: ReceivedProposal) => void
-  onOpenChat: (proposal: ReceivedProposal) => void
 }
 
-// Card da aba "Aceitas": mostra o profissional contratado, valor e data da
-// contratação, o status atual do serviço e atalhos (serviço, perfil, chat).
-export function AcceptedProposalCard({ proposal, onOpenProfile, onOpenService, onOpenChat }: Props) {
+// Card da aba "Aceitas": profissional contratado, valor e data da contratação,
+// status atual do serviço e o atalho "Ver serviço". O perfil do profissional é
+// aberto ao tocar na foto.
+export function AcceptedProposalCard({ proposal, onOpenProfile, onOpenService }: Props) {
   const { professional, contract } = proposal
   const serviceStatus = getServiceStatusStyle(contract?.status ?? "ACCEPTED")
 
   return (
     <View style={styles.card}>
       <View style={styles.header}>
-        {professional.avatarUrl ? (
-          <Image source={{ uri: professional.avatarUrl }} style={styles.avatar} />
-        ) : (
-          <View style={styles.avatar}>
-            <Text style={styles.avatarText}>{getInitials(professional.name)}</Text>
-          </View>
-        )}
+        <Pressable
+          accessibilityHint="Abre o perfil completo do profissional"
+          accessibilityRole="button"
+          onPress={() => onOpenProfile(proposal)}
+          style={({ pressed }) => pressed && styles.pressed}
+        >
+          {professional.avatarUrl ? (
+            <Image source={{ uri: professional.avatarUrl }} style={styles.avatar} />
+          ) : (
+            <View style={styles.avatar}>
+              <Text style={styles.avatarText}>{getInitials(professional.name)}</Text>
+            </View>
+          )}
+        </Pressable>
 
         <View style={styles.headerText}>
           <View style={styles.contractedRow}>
@@ -65,41 +72,18 @@ export function AcceptedProposalCard({ proposal, onOpenProfile, onOpenService, o
         </View>
       </View>
 
-      <View style={styles.actions}>
-        <Pressable
-          onPress={() => onOpenService(proposal)}
-          style={({ pressed }) => [styles.primaryAction, pressed && styles.pressed]}
-        >
-          <Ionicons color="#FFFFFF" name="construct-outline" size={16} />
-          <Text style={styles.primaryText}>Ver serviço</Text>
-        </Pressable>
-
-        <View style={styles.secondaryRow}>
-          <Pressable
-            onPress={() => onOpenProfile(proposal)}
-            style={({ pressed }) => [styles.secondaryAction, pressed && styles.pressed]}
-          >
-            <Ionicons color={colors.accent} name="person-outline" size={16} />
-            <Text style={styles.secondaryText}>Perfil</Text>
-          </Pressable>
-
-          <Pressable
-            onPress={() => onOpenChat(proposal)}
-            style={({ pressed }) => [styles.secondaryAction, pressed && styles.pressed]}
-          >
-            <Ionicons color={colors.accent} name="chatbubble-ellipses-outline" size={16} />
-            <Text style={styles.secondaryText}>Chat</Text>
-          </Pressable>
-        </View>
-      </View>
+      <Pressable
+        onPress={() => onOpenService(proposal)}
+        style={({ pressed }) => [styles.primaryAction, pressed && styles.pressed]}
+      >
+        <Ionicons color="#FFFFFF" name="construct-outline" size={16} />
+        <Text style={styles.primaryText}>Ver serviço</Text>
+      </Pressable>
     </View>
   )
 }
 
 const styles = StyleSheet.create({
-  actions: {
-    gap: 10,
-  },
   avatar: {
     alignItems: "center",
     backgroundColor: colors.avatarBg,
@@ -185,25 +169,6 @@ const styles = StyleSheet.create({
     color: "#FFFFFF",
     fontSize: 15,
     fontWeight: "700",
-  },
-  secondaryAction: {
-    alignItems: "center",
-    backgroundColor: colors.accentSoftBg,
-    borderRadius: radius.search,
-    flex: 1,
-    flexDirection: "row",
-    gap: 6,
-    justifyContent: "center",
-    paddingVertical: 11,
-  },
-  secondaryRow: {
-    flexDirection: "row",
-    gap: 10,
-  },
-  secondaryText: {
-    color: colors.accent,
-    fontSize: 14,
-    fontWeight: "600",
   },
   serviceTitle: {
     color: colors.textSecondary,

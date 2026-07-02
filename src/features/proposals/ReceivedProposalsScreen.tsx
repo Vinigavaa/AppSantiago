@@ -133,10 +133,6 @@ export function ReceivedProposalsScreen() {
     router.push(`${routes.requestDetails}?id=${proposal.serviceRequest.id}` as Href)
   }
 
-  function handleOpenChat() {
-    router.push(routes.messages)
-  }
-
   return (
     <View style={styles.screen}>
       <ScrollView
@@ -213,7 +209,6 @@ export function ReceivedProposalsScreen() {
       return (
         <AcceptedProposalCard
           key={proposal.id}
-          onOpenChat={handleOpenChat}
           onOpenProfile={handleOpenProfile}
           onOpenService={handleOpenService}
           proposal={proposal}
