@@ -293,6 +293,16 @@ async function main() {
   })
   check("cliente cancela o contrato 200", clientCancel.status === 200, clientCancel.status)
 
+  const clientCanceledProposal = await prisma.proposal.findUnique({
+    where: { id: toCancelProposal.id },
+    select: { status: true },
+  })
+  check(
+    "proposta vira CANCELED ao cancelar serviço",
+    clientCanceledProposal?.status === "CANCELED",
+    clientCanceledProposal,
+  )
+
   const canceledDetail = (await (
     await client(`/api/app/service-requests/${toCancelId}`)
   ).json()) as { request?: { status?: string } }

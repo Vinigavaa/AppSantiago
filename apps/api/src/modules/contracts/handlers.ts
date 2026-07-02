@@ -116,7 +116,8 @@ export async function cancelContractHandler(context: AuthedContext) {
   }
 
   // Cancelamento pelo cliente: encerra o serviço. O contrato e a solicitação
-  // ficam como CANCELADOS (mantidos para histórico) e o profissional é avisado.
+  // ficam como CANCELADOS (mantidos para histórico), a proposta também é marcada
+  // como cancelada (sai da aba "Aceitas" e vira histórico) e o profissional é avisado.
   await prisma.$transaction([
     prisma.serviceContract.update({
       where: { id: contract.id },
@@ -127,6 +128,7 @@ export async function cancelContractHandler(context: AuthedContext) {
         cancelReason: reason ?? null,
       },
     }),
+    prisma.proposal.update({ where: { id: contract.proposalId }, data: { status: "CANCELED" } }),
     prisma.serviceRequest.update({
       where: { id: contract.serviceRequestId },
       data: { status: "CANCELED" },

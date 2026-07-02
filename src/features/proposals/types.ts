@@ -3,6 +3,8 @@
 
 export type ProposalStatus = "PENDING" | "ACCEPTED" | "REJECTED" | "CANCELED"
 
+export type ServiceStatus = "ACCEPTED" | "IN_PROGRESS" | "COMPLETED" | "CANCELED"
+
 // Proposta exibida ao cliente em "Propostas Recebidas".
 export type ReceivedProposal = {
   id: string
@@ -19,6 +21,8 @@ export type ReceivedProposal = {
     ratingCount: number
   }
   serviceRequest: { id: string; title: string; category: string }
+  // Presente quando a proposta foi aceita (contrato criado).
+  contract: { status: ServiceStatus; acceptedAt: string } | null
 }
 
 // Resumo da proposta do próprio profissional (no detalhe da oportunidade).

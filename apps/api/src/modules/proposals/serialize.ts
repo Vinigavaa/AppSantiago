@@ -13,6 +13,9 @@ export const clientProposalInclude = {
   serviceRequest: {
     select: { id: true, title: true, category: { select: { name: true } } },
   },
+  // Contrato da proposta aceita: status atual do serviço e data da aceitação,
+  // exibidos na aba "Aceitas".
+  serviceContract: { select: { status: true, acceptedAt: true } },
 } satisfies Prisma.ProposalInclude
 
 type ClientProposalWithRelations = Prisma.ProposalGetPayload<{
@@ -40,6 +43,12 @@ export function serializeClientProposal(proposal: ClientProposalWithRelations) {
       title: proposal.serviceRequest.title,
       category: proposal.serviceRequest.category.name,
     },
+    contract: proposal.serviceContract
+      ? {
+          status: proposal.serviceContract.status,
+          acceptedAt: proposal.serviceContract.acceptedAt.toISOString(),
+        }
+      : null,
   }
 }
 

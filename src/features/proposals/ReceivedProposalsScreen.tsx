@@ -1,6 +1,6 @@
 import { Ionicons } from "@expo/vector-icons"
 import { type Href, router } from "expo-router"
-import { useState } from "react"
+import { useMemo, useState } from "react"
 import {
   ActivityIndicator,
   Alert,
@@ -16,18 +16,51 @@ import { routes } from "@/constants/routes"
 import { EmptyState } from "@/features/client-home/components/EmptyState"
 import { colors, spacing } from "@/features/client-home/theme"
 
+import { AcceptedProposalCard } from "./components/AcceptedProposalCard"
+import { ClosedProposalCard } from "./components/ClosedProposalCard"
+import { ProposalTabs, type ProposalTabKey } from "./components/ProposalTabs"
 import { ReceivedProposalCard } from "./components/ReceivedProposalCard"
 import { useReceivedProposals } from "./hooks"
 import { acceptProposal, rejectProposal } from "./service"
 import type { ReceivedProposal } from "./types"
+
+// Mensagem amigável para cada aba sem propostas.
+const EMPTY_BY_TAB: Record<ProposalTabKey, { title: string; description: string }> = {
+  pending: {
+    title: "Nenhuma proposta pendente",
+    description: "Você ainda não possui propostas aguardando decisão.",
+  },
+  accepted: {
+    title: "Nenhuma proposta aceita",
+    description: "Nenhuma proposta foi aceita até o momento.",
+  },
+  closed: {
+    title: "Nenhuma proposta encerrada",
+    description: "Nenhuma proposta recusada ou cancelada.",
+  },
+}
 
 export function ReceivedProposalsScreen() {
   const insets = useSafeAreaInsets()
   const { proposals, isLoading, isRefreshing, error, refetch, replaceProposal } =
     useReceivedProposals()
 
+  const [activeTab, setActiveTab] = useState<ProposalTabKey>("pending")
   const [processingId, setProcessingId] = useState<string | null>(null)
   const [notice, setNotice] = useState<string | null>(null)
+
+  // Separa por status. Os contadores vêm da lista completa, então acompanham
+  // qualquer mudança de status sem recarregar manualmente.
+  const { pending, accepted, closed } = useMemo(() => {
+    return {
+      pending: proposals.filter((p) => p.status === "PENDING"),
+      accepted: proposals.filter((p) => p.status === "ACCEPTED"),
+      closed: proposals.filter((p) => p.status === "REJECTED" || p.status === "CANCELED"),
+    }
+  }, [proposals])
+
+  const counts = { pending: pending.length, accepted: accepted.length, closed: closed.length }
+  const visible = activeTab === "pending" ? pending : activeTab === "accepted" ? accepted : closed
 
   function showNotice(message: string) {
     setNotice(message)
@@ -38,6 +71,9 @@ export function ReceivedProposalsScreen() {
     proposal: ReceivedProposal,
     action: (id: string) => ReturnType<typeof acceptProposal>,
     successMessage: string,
+    // Aceitar recusa as demais pendentes no servidor, então recarrega para
+    // manter as abas/contadores sincronizados; recusar altera só a própria.
+    resync: "refetch" | "replace",
   ) {
     if (processingId) {
       return
@@ -48,11 +84,14 @@ export function ReceivedProposalsScreen() {
     setProcessingId(null)
 
     if (result.ok) {
-      replaceProposal(result.data)
+      if (resync === "refetch") {
+        void refetch()
+      } else {
+        replaceProposal(result.data)
+      }
       showNotice(successMessage)
     } else {
       Alert.alert("Não foi possível concluir", result.error)
-      // Recarrega para refletir o estado real caso a proposta já tenha mudado.
       if (result.status === 409) {
         void refetch()
       }
@@ -67,16 +106,10 @@ export function ReceivedProposalsScreen() {
         { text: "Cancelar", style: "cancel" },
         {
           text: "Aceitar",
-          onPress: () => runAction(proposal, acceptProposal, "Proposta aceita."),
+          onPress: () => runAction(proposal, acceptProposal, "Proposta aceita.", "refetch"),
         },
       ],
     )
-  }
-
-  // Abre o perfil completo do profissional. Usa push para preservar a lista de
-  // propostas na pilha — ao voltar, o cliente retorna exatamente onde estava.
-  function handleOpenProfile(proposal: ReceivedProposal) {
-    router.push(`${routes.professionalProfile}?id=${proposal.professional.id}` as Href)
   }
 
   function handleReject(proposal: ReceivedProposal) {
@@ -85,9 +118,23 @@ export function ReceivedProposalsScreen() {
       {
         text: "Recusar",
         style: "destructive",
-        onPress: () => runAction(proposal, rejectProposal, "Proposta recusada."),
+        onPress: () => runAction(proposal, rejectProposal, "Proposta recusada.", "replace"),
       },
     ])
+  }
+
+  // Navegações preservam a aba atual: a tela permanece montada, então ao voltar
+  // o usuário retorna exatamente onde estava.
+  function handleOpenProfile(proposal: ReceivedProposal) {
+    router.push(`${routes.professionalProfile}?id=${proposal.professional.id}` as Href)
+  }
+
+  function handleOpenService(proposal: ReceivedProposal) {
+    router.push(`${routes.requestDetails}?id=${proposal.serviceRequest.id}` as Href)
+  }
+
+  function handleOpenChat() {
+    router.push(routes.messages)
   }
 
   return (
@@ -100,6 +147,10 @@ export function ReceivedProposalsScreen() {
         showsVerticalScrollIndicator={false}
       >
         <Text style={styles.title}>Propostas recebidas</Text>
+
+        {isLoading || (error && proposals.length === 0) ? null : (
+          <ProposalTabs active={activeTab} counts={counts} onSelect={setActiveTab} />
+        )}
 
         {renderBody()}
       </ScrollView>
@@ -134,30 +185,43 @@ export function ReceivedProposalsScreen() {
       )
     }
 
-    if (proposals.length === 0) {
+    if (visible.length === 0) {
+      const empty = EMPTY_BY_TAB[activeTab]
       return (
-        <EmptyState
-          description="Quando profissionais enviarem propostas para suas solicitações, elas aparecerão aqui."
-          icon="document-text-outline"
-          title="Nenhuma proposta ainda"
+        <EmptyState description={empty.description} icon="document-text-outline" title={empty.title} />
+      )
+    }
+
+    return <View style={styles.list}>{visible.map(renderCard)}</View>
+  }
+
+  function renderCard(proposal: ReceivedProposal) {
+    if (activeTab === "pending") {
+      return (
+        <ReceivedProposalCard
+          busy={processingId === proposal.id}
+          key={proposal.id}
+          onAccept={handleAccept}
+          onOpenProfile={handleOpenProfile}
+          onReject={handleReject}
+          proposal={proposal}
         />
       )
     }
 
-    return (
-      <View style={styles.list}>
-        {proposals.map((proposal) => (
-          <ReceivedProposalCard
-            busy={processingId === proposal.id}
-            key={proposal.id}
-            onAccept={handleAccept}
-            onOpenProfile={handleOpenProfile}
-            onReject={handleReject}
-            proposal={proposal}
-          />
-        ))}
-      </View>
-    )
+    if (activeTab === "accepted") {
+      return (
+        <AcceptedProposalCard
+          key={proposal.id}
+          onOpenChat={handleOpenChat}
+          onOpenProfile={handleOpenProfile}
+          onOpenService={handleOpenService}
+          proposal={proposal}
+        />
+      )
+    }
+
+    return <ClosedProposalCard key={proposal.id} proposal={proposal} />
   }
 }
 

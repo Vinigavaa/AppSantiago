@@ -1,6 +1,6 @@
 import { colors } from "@/features/client-home/theme"
 
-import type { ProposalStatus } from "./types"
+import type { ProposalStatus, ServiceStatus } from "./types"
 
 type StatusStyle = {
   label: string
@@ -17,6 +17,18 @@ const STATUS_STYLES: Record<ProposalStatus, StatusStyle> = {
 
 export function getProposalStatusStyle(status: ProposalStatus): StatusStyle {
   return STATUS_STYLES[status]
+}
+
+// Status atual do serviço contratado (aba "Aceitas").
+const SERVICE_STATUS_STYLES: Record<ServiceStatus, StatusStyle> = {
+  ACCEPTED: { label: "Contratado", color: "#1D4ED8", background: "#E5EDFD" },
+  IN_PROGRESS: { label: "Em andamento", color: "#92600A", background: "#FBF1DD" },
+  COMPLETED: { label: "Concluído", color: "#1F7A45", background: colors.accentSoftBg },
+  CANCELED: { label: "Cancelado", color: "#B91C1C", background: "#FCE8E8" },
+}
+
+export function getServiceStatusStyle(status: ServiceStatus): StatusStyle {
+  return SERVICE_STATUS_STYLES[status]
 }
 
 // Opções de prazo do formulário (valor em dias) e o rótulo correspondente.
