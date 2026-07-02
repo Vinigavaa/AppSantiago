@@ -335,22 +335,6 @@ function ClientReputation({ client }: { client: OpportunityClient }) {
           <Text style={styles.clientRatingLabel}>{ratingLabel}</Text>
         </View>
       </View>
-
-      {client.reviews.length > 0 ? (
-        <View style={styles.clientReviews}>
-          {client.reviews.map((review) => (
-            <View key={review.id} style={styles.clientReview}>
-              <View style={styles.clientReviewHeader}>
-                <Text style={styles.clientReviewName}>{review.reviewerName}</Text>
-                <Stars rating={review.rating} size={12} />
-              </View>
-              {review.comment ? (
-                <Text style={styles.clientReviewComment}>{review.comment}</Text>
-              ) : null}
-            </View>
-          ))}
-        </View>
-      ) : null}
     </View>
   )
 }
@@ -430,30 +414,6 @@ const styles = StyleSheet.create({
     alignItems: "center",
     flexDirection: "row",
     gap: 8,
-  },
-  clientReview: {
-    borderTopColor: colors.cardBorder,
-    borderTopWidth: StyleSheet.hairlineWidth,
-    gap: 4,
-    paddingTop: 10,
-  },
-  clientReviewComment: {
-    color: colors.textSecondary,
-    fontSize: 13,
-    lineHeight: 19,
-  },
-  clientReviewHeader: {
-    alignItems: "center",
-    flexDirection: "row",
-    justifyContent: "space-between",
-  },
-  clientReviewName: {
-    color: colors.textPrimary,
-    fontSize: 13,
-    fontWeight: "600",
-  },
-  clientReviews: {
-    gap: 6,
   },
   content: {
     gap: 14,

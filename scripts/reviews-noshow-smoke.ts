@@ -265,13 +265,11 @@ async function main() {
   // ===== Cenário C: reputação do cliente visível na oportunidade =====
   const r2 = await createRequest("Instalar ventilador de teto")
   const oppDetail = (await (await pro1(`/api/app/opportunities/${r2}`)).json()) as {
-    client: { ratingAverage: number; ratingCount: number; reviews: unknown[] } | null
+    client: { ratingAverage: number; ratingCount: number } | null
   }
   check(
-    "reputação do cliente exposta na oportunidade",
-    oppDetail.client?.ratingAverage === 5 &&
-      oppDetail.client.ratingCount === 1 &&
-      oppDetail.client.reviews.length === 1,
+    "reputação do cliente exposta na oportunidade (só nota e total)",
+    oppDetail.client?.ratingAverage === 5 && oppDetail.client.ratingCount === 1,
     oppDetail.client,
   )
 

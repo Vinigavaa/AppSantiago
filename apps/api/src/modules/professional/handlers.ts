@@ -112,33 +112,16 @@ export async function opportunityDetailHandler(context: AuthedContext) {
       })
     : null
 
-  // Reputação do cliente: ajuda o profissional a decidir antes de propor.
+  // Reputação do cliente: apenas nota média e total de avaliações — sem expor
+  // quem avaliou nem os comentários. Ajuda o profissional a decidir antes de propor.
   const client = await prisma.clientProfile.findUnique({
     where: { id: request.clientId },
     select: {
       ratingAverage: true,
       ratingCount: true,
-      user: { select: { id: true, name: true } },
+      user: { select: { name: true } },
     },
   })
-
-  const clientReviews = client
-    ? await prisma.review.findMany({
-        where: { reviewedId: client.user.id },
-        select: {
-          id: true,
-          rating: true,
-          comment: true,
-          createdAt: true,
-          reviewer: { select: { name: true, displayUsername: true } },
-          serviceContract: {
-            select: { serviceRequest: { select: { category: { select: { name: true } } } } },
-          },
-        },
-        orderBy: { createdAt: "desc" },
-        take: 5,
-      })
-    : []
 
   return context.json({
     opportunity: serializeServiceRequest(request),
@@ -148,14 +131,6 @@ export async function opportunityDetailHandler(context: AuthedContext) {
           name: firstName(client.user.name),
           ratingAverage: Number(client.ratingAverage),
           ratingCount: client.ratingCount,
-          reviews: clientReviews.map((review) => ({
-            id: review.id,
-            rating: review.rating,
-            comment: review.comment,
-            createdAt: review.createdAt.toISOString(),
-            reviewerName: firstName(review.reviewer.displayUsername ?? review.reviewer.name),
-            serviceCategory: review.serviceContract.serviceRequest.category.name,
-          })),
         }
       : null,
   })

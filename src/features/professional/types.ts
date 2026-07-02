@@ -53,11 +53,11 @@ export type PublicReview = {
 }
 
 // Reputação do cliente exibida ao profissional na oportunidade (antes de propor).
+// Apenas nota e total — não expõe quem avaliou.
 export type OpportunityClient = {
   name: string
   ratingAverage: number
   ratingCount: number
-  reviews: PublicReview[]
 }
 
 // Perfil público do profissional, consultado pelo cliente antes de contratar.
