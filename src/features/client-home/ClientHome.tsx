@@ -12,11 +12,11 @@ import { useSafeAreaInsets } from "react-native-safe-area-context"
 import { routes } from "@/constants/routes"
 import { CreateRequestButton } from "@/features/client-home/components/CreateRequestButton"
 import { EmptyState } from "@/features/client-home/components/EmptyState"
-import { FilterChips } from "@/features/client-home/components/FilterChips"
 import { HomeHeader } from "@/features/client-home/components/HomeHeader"
 import { RequestCard } from "@/features/client-home/components/RequestCard"
 import { SearchBar } from "@/features/client-home/components/SearchBar"
 import { SectionHeader } from "@/features/client-home/components/SectionHeader"
+import { SegmentedTabs } from "@/features/client-home/components/SegmentedTabs"
 import { SummaryCards } from "@/features/client-home/components/SummaryCards"
 import { getFirstName, getGreeting, getInitials } from "@/features/client-home/greeting"
 import { colors, spacing } from "@/features/client-home/theme"
@@ -24,10 +24,34 @@ import { CancelServiceModal } from "@/features/contracts/CancelServiceModal"
 import { useUnreadNotifications } from "@/features/notifications/hooks"
 import { ReviewModal } from "@/features/service-requests/components/ReviewModal"
 import { useServiceRequests } from "@/features/service-requests/hooks"
-import type { RequestContract } from "@/features/service-requests/types"
+import type { RequestContract, RequestStatus } from "@/features/service-requests/types"
 import { authClient } from "@/lib/auth-client"
 
-const FILTERS = ["Todas", "Perto de mim", "Recentes"]
+type RequestTabKey = "open" | "completed" | "canceled"
+
+// Agrupa cada status em uma aba. "Em aberto" reúne tudo que ainda não foi
+// finalizado; concluídas e canceladas ganham abas próprias (histórico).
+function tabOfStatus(status: RequestStatus): RequestTabKey {
+  if (status === "COMPLETED") return "completed"
+  if (status === "CANCELED") return "canceled"
+  return "open"
+}
+
+// Mensagem amigável para cada aba sem solicitações, evitando telas vazias.
+const EMPTY_BY_TAB: Record<RequestTabKey, { title: string; description: string }> = {
+  open: {
+    title: "Nenhuma solicitação em aberto",
+    description: "Você não tem solicitações aguardando ação no momento.",
+  },
+  completed: {
+    title: "Nenhuma solicitação concluída",
+    description: "Seus serviços finalizados aparecerão aqui.",
+  },
+  canceled: {
+    title: "Nenhuma solicitação cancelada",
+    description: "Solicitações canceladas aparecerão aqui.",
+  },
+}
 
 export function ClientHome() {
   const { data: session } = authClient.useSession()
@@ -36,23 +60,34 @@ export function ClientHome() {
   const { unreadCount } = useUnreadNotifications()
 
   const [search, setSearch] = useState("")
-  const [activeFilter, setActiveFilter] = useState(FILTERS[0])
+  const [activeTab, setActiveTab] = useState<RequestTabKey>("open")
   const [reviewContract, setReviewContract] = useState<RequestContract | null>(null)
   const [cancelContractId, setCancelContractId] = useState<string | null>(null)
 
-  const filteredRequests = useMemo(() => {
-    const term = search.trim().toLowerCase()
-
-    if (!term) {
-      return requests
+  // Contadores por aba, sobre a lista completa (independem da busca).
+  const counts = useMemo(() => {
+    const result: Record<RequestTabKey, number> = { open: 0, completed: 0, canceled: 0 }
+    for (const request of requests) {
+      result[tabOfStatus(request.status)] += 1
     }
+    return result
+  }, [requests])
 
-    return requests.filter((request) =>
-      [request.title, request.category.name, request.city.name].some((field) =>
+  // Lista visível: solicitações da aba ativa que também casam com a busca.
+  const visibleRequests = useMemo(() => {
+    const term = search.trim().toLowerCase()
+    return requests.filter((request) => {
+      if (tabOfStatus(request.status) !== activeTab) {
+        return false
+      }
+      if (!term) {
+        return true
+      }
+      return [request.title, request.category.name, request.city.name].some((field) =>
         field.toLowerCase().includes(term),
-      ),
-    )
-  }, [requests, search])
+      )
+    })
+  }, [requests, search, activeTab])
 
   function goToCreateRequest() {
     router.push(routes.newRequest)
@@ -78,7 +113,6 @@ export function ClientHome() {
 
       <View style={styles.searchBlock}>
         <SearchBar onChangeText={setSearch} value={search} />
-        <FilterChips active={activeFilter} onSelect={setActiveFilter} options={FILTERS} />
       </View>
 
       <CreateRequestButton onPress={goToCreateRequest} />
@@ -87,6 +121,19 @@ export function ClientHome() {
 
       <View>
         <SectionHeader title="Minhas solicitações" />
+        {requests.length > 0 ? (
+          <View style={styles.tabsBlock}>
+            <SegmentedTabs
+              active={activeTab}
+              onSelect={setActiveTab}
+              tabs={[
+                { key: "open", label: "Em aberto", count: counts.open },
+                { key: "completed", label: "Concluídas", count: counts.completed },
+                { key: "canceled", label: "Canceladas", count: counts.canceled },
+              ]}
+            />
+          </View>
+        ) : null}
         <View style={styles.listBlock}>{renderRequests()}</View>
       </View>
 
@@ -143,19 +190,26 @@ export function ClientHome() {
       )
     }
 
-    if (filteredRequests.length === 0) {
+    if (visibleRequests.length === 0) {
+      if (search.trim()) {
+        return (
+          <EmptyState
+            description="Nenhuma solicitação corresponde à sua busca."
+            icon="search-outline"
+            title="Sem resultados"
+          />
+        )
+      }
+
+      const empty = EMPTY_BY_TAB[activeTab]
       return (
-        <EmptyState
-          description="Nenhuma solicitação corresponde à sua busca."
-          icon="search-outline"
-          title="Sem resultados"
-        />
+        <EmptyState description={empty.description} icon="document-text-outline" title={empty.title} />
       )
     }
 
     return (
       <View style={styles.cardList}>
-        {filteredRequests.map((request) => (
+        {visibleRequests.map((request) => (
           <RequestCard
             key={request.id}
             onCancelContract={
@@ -196,5 +250,8 @@ const styles = StyleSheet.create({
   },
   searchBlock: {
     gap: 14,
+  },
+  tabsBlock: {
+    marginTop: 14,
   },
 })
