@@ -7,6 +7,7 @@ import {
   fetchOpportunities,
   fetchProfessionalDashboard,
   fetchProfessionalProfile,
+  fetchProfessionalRejectedProposals,
   fetchProfessionalReviews,
   fetchProfessionalServices,
 } from "./service"
@@ -15,6 +16,7 @@ import type {
   ProfessionalProfileInfo,
   ProfessionalReview,
   ProfessionalService,
+  RejectedProposal,
 } from "./types"
 
 // Oportunidades (solicitações abertas compatíveis). Recarrega ao focar a tela,
@@ -96,6 +98,47 @@ export function useProfessionalDashboard() {
   const refetch = useCallback(() => load("refresh"), [load])
 
   return { dashboard, isLoading, isRefreshing, error, refetch }
+}
+
+// Propostas recusadas pelos clientes. Recarrega ao focar a tela, mantendo o
+// filtro "Propostas recusadas" da tela de serviços sempre atualizado.
+export function useRejectedProposals() {
+  const [proposals, setProposals] = useState<RejectedProposal[]>([])
+  const [isLoading, setIsLoading] = useState(true)
+  const [isRefreshing, setIsRefreshing] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+  const loadedOnce = useRef(false)
+
+  const load = useCallback(async (mode: "initial" | "refresh") => {
+    if (mode === "refresh") {
+      setIsRefreshing(true)
+    } else {
+      setIsLoading(true)
+    }
+    setError(null)
+
+    const result = await fetchProfessionalRejectedProposals()
+
+    if (result.ok) {
+      setProposals(result.data)
+    } else {
+      setError(result.error)
+    }
+
+    loadedOnce.current = true
+    setIsLoading(false)
+    setIsRefreshing(false)
+  }, [])
+
+  useFocusEffect(
+    useCallback(() => {
+      void load(loadedOnce.current ? "refresh" : "initial")
+    }, [load]),
+  )
+
+  const refetch = useCallback(() => load("refresh"), [load])
+
+  return { proposals, isLoading, isRefreshing, error, refetch }
 }
 
 // Dados do perfil profissional.

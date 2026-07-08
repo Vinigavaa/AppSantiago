@@ -9,6 +9,7 @@ import type {
   ProfessionalReview,
   ProfessionalService,
   PublicProfessional,
+  RejectedProposal,
   UpdateProfileInput,
 } from "./types"
 
@@ -49,6 +50,13 @@ export async function fetchOpportunity(id: string): Promise<ApiResult<Opportunit
 
 export async function fetchProfessionalDashboard(): Promise<ApiResult<ProfessionalDashboard>> {
   return appFetch<ProfessionalDashboard>("/professional/dashboard")
+}
+
+export async function fetchProfessionalRejectedProposals(): Promise<ApiResult<RejectedProposal[]>> {
+  const result = await appFetch<{ proposals: RejectedProposal[] }>(
+    "/professional/proposals/rejected",
+  )
+  return result.ok ? { ok: true, data: result.data.proposals } : result
 }
 
 export async function fetchProfessionalProfile(): Promise<ApiResult<ProfessionalProfileInfo>> {

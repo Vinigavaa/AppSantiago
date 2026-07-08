@@ -143,12 +143,17 @@ async function main() {
 
   // Dashboard (zeros para conta nova) e perfil.
   const dashboard = (await (await pro("/api/app/professional/dashboard")).json()) as {
-    completedThisMonth: number
-    proposalsThisMonth: number
+    servicesToStart: number
+    servicesInProgress: number
+    rejectedProposals: number
+    totalEarned: number
   }
   check(
     "dashboard inicial zerado",
-    dashboard.completedThisMonth === 0 && dashboard.proposalsThisMonth === 0,
+    dashboard.servicesToStart === 0 &&
+      dashboard.servicesInProgress === 0 &&
+      dashboard.rejectedProposals === 0 &&
+      dashboard.totalEarned === 0,
     dashboard,
   )
 

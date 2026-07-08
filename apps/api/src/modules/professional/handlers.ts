@@ -5,7 +5,7 @@ import { serializeOwnProposal } from "@/modules/proposals/serialize"
 import { serializeServiceRequest, serviceRequestInclude } from "@/modules/service-requests/serialize"
 import type { AuthedContext } from "@/modules/shared/require-auth"
 
-import { getProfessionalCoverage } from "./professional-context"
+import { getOrCreateProfessionalProfileId, getProfessionalCoverage } from "./professional-context"
 
 const idSchema = z.uuid()
 
@@ -14,12 +14,6 @@ function forbidden(context: AuthedContext) {
     { code: "FORBIDDEN", message: "Disponível apenas para profissionais." },
     403,
   )
-}
-
-// Início do mês corrente (00:00 do dia 1), para os indicadores do dashboard.
-function startOfMonth(): Date {
-  const now = new Date()
-  return new Date(now.getFullYear(), now.getMonth(), 1)
 }
 
 // Só o primeiro nome — preserva a privacidade do cliente/avaliador na vitrine.
@@ -136,7 +130,13 @@ export async function opportunityDetailHandler(context: AuthedContext) {
   })
 }
 
-// Indicadores de desempenho do mês. Retorna zeros quando ainda não há registros.
+// Painel de acompanhamento do profissional. Cada número é um atalho para uma
+// lista já filtrada na tela de serviços. Retorna zeros quando não há registros.
+//
+// - servicesToStart: contratados aguardando início (ACCEPTED)
+// - servicesInProgress: em atendimento (IN_PROGRESS)
+// - rejectedProposals: propostas recusadas pelos clientes (REJECTED)
+// - totalEarned: valor recebido, somando apenas serviços concluídos (COMPLETED)
 export async function professionalDashboardHandler(context: AuthedContext) {
   const user = context.get("user")
 
@@ -144,32 +144,72 @@ export async function professionalDashboardHandler(context: AuthedContext) {
     return forbidden(context)
   }
 
-  const profile = await prisma.professionalProfile.upsert({
-    where: { userId: user.id },
-    update: {},
-    create: { userId: user.id },
-    select: { id: true, ratingAverage: true, ratingCount: true },
-  })
+  const professionalId = await getOrCreateProfessionalProfileId(user.id)
 
-  const monthStart = startOfMonth()
-
-  const [proposalsThisMonth, completedThisMonth] = await Promise.all([
-    prisma.proposal.count({
-      where: { professionalId: profile.id, createdAt: { gte: monthStart } },
-    }),
-    prisma.serviceContract.count({
-      where: {
-        professionalId: profile.id,
-        status: "COMPLETED",
-        completedAt: { gte: monthStart },
-      },
+  const [servicesToStart, servicesInProgress, rejectedProposals, earned] = await Promise.all([
+    prisma.serviceContract.count({ where: { professionalId, status: "ACCEPTED" } }),
+    prisma.serviceContract.count({ where: { professionalId, status: "IN_PROGRESS" } }),
+    prisma.proposal.count({ where: { professionalId, status: "REJECTED" } }),
+    // O valor recebido vem do preço da proposta cujo contrato foi concluído.
+    prisma.proposal.aggregate({
+      _sum: { price: true },
+      where: { professionalId, serviceContract: { status: "COMPLETED" } },
     }),
   ])
 
   return context.json({
-    completedThisMonth,
-    proposalsThisMonth,
-    ratingAverage: Number(profile.ratingAverage),
-    ratingCount: profile.ratingCount,
+    servicesToStart,
+    servicesInProgress,
+    rejectedProposals,
+    totalEarned: Number(earned._sum.price ?? 0),
+  })
+}
+
+// Propostas do profissional recusadas pelos clientes. Histórico somente leitura,
+// acessível pelo filtro "Propostas recusadas" da tela de serviços.
+export async function professionalRejectedProposalsHandler(context: AuthedContext) {
+  const user = context.get("user")
+
+  if (user.role !== "PROFESSIONAL") {
+    return forbidden(context)
+  }
+
+  const professionalId = await getOrCreateProfessionalProfileId(user.id)
+
+  const proposals = await prisma.proposal.findMany({
+    where: { professionalId, status: "REJECTED" },
+    orderBy: { createdAt: "desc" },
+    select: {
+      id: true,
+      price: true,
+      description: true,
+      estimatedDays: true,
+      createdAt: true,
+      serviceRequest: {
+        select: {
+          title: true,
+          category: { select: { name: true } },
+          city: { select: { name: true, state: true } },
+        },
+      },
+    },
+  })
+
+  return context.json({
+    proposals: proposals.map((proposal) => ({
+      id: proposal.id,
+      price: Number(proposal.price),
+      message: proposal.description,
+      estimatedDays: proposal.estimatedDays,
+      createdAt: proposal.createdAt.toISOString(),
+      serviceRequest: {
+        title: proposal.serviceRequest.title,
+        category: proposal.serviceRequest.category.name,
+        city: {
+          name: proposal.serviceRequest.city.name,
+          state: proposal.serviceRequest.city.state,
+        },
+      },
+    })),
   })
 }

@@ -2,11 +2,23 @@
 // criadas por clientes — mesmo contrato já consumido na área do cliente.
 export type { ServiceRequest as Opportunity } from "@/features/service-requests/types"
 
+// Indicadores do painel do profissional. Cada número é um atalho para uma lista
+// já filtrada na tela de serviços; totalEarned considera só serviços concluídos.
 export type ProfessionalDashboard = {
-  completedThisMonth: number
-  proposalsThisMonth: number
-  ratingAverage: number
-  ratingCount: number
+  servicesToStart: number
+  servicesInProgress: number
+  rejectedProposals: number
+  totalEarned: number
+}
+
+// Proposta recusada pelo cliente, exibida no filtro "Propostas recusadas".
+export type RejectedProposal = {
+  id: string
+  price: number
+  message: string
+  estimatedDays: number | null
+  createdAt: string
+  serviceRequest: { title: string; category: string; city: { name: string; state: string } }
 }
 
 export type RatingDistribution = Record<"1" | "2" | "3" | "4" | "5", number>

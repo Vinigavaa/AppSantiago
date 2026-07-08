@@ -1,3 +1,4 @@
+import { type Href, router } from "expo-router"
 import {
   ActivityIndicator,
   RefreshControl,
@@ -8,17 +9,21 @@ import {
 } from "react-native"
 import { useSafeAreaInsets } from "react-native-safe-area-context"
 
-import { StatCards } from "@/features/client-home/components/StatCards"
+import { routes } from "@/constants/routes"
 import { colors, spacing } from "@/features/client-home/theme"
+import { formatProposalPrice } from "@/features/proposals/format"
 
+import { DashboardCard } from "./components/DashboardCard"
 import { useProfessionalDashboard } from "./hooks"
+
+// Abre a tela de serviços já no filtro correspondente ao cartão tocado.
+function goToServices(filter: "accepted" | "in_progress" | "rejected") {
+  router.push(`${routes.services}?filter=${filter}` as Href)
+}
 
 export function DashboardScreen() {
   const insets = useSafeAreaInsets()
   const { dashboard, isLoading, isRefreshing, error, refetch } = useProfessionalDashboard()
-
-  const rating =
-    dashboard && dashboard.ratingCount > 0 ? dashboard.ratingAverage.toFixed(1) : "—"
 
   return (
     <ScrollView
@@ -30,7 +35,7 @@ export function DashboardScreen() {
     >
       <View>
         <Text style={styles.title}>Dashboard</Text>
-        <Text style={styles.subtitle}>Seu desempenho neste mês</Text>
+        <Text style={styles.subtitle}>Acompanhe seus serviços e ganhos</Text>
       </View>
 
       {isLoading && !dashboard ? (
@@ -40,13 +45,36 @@ export function DashboardScreen() {
       ) : error && !dashboard ? (
         <Text style={styles.error}>{error}</Text>
       ) : (
-        <StatCards
-          items={[
-            { label: "Serviços", value: dashboard?.completedThisMonth ?? 0 },
-            { label: "Propostas", value: dashboard?.proposalsThisMonth ?? 0 },
-            { label: "Estrelas", value: rating },
-          ]}
-        />
+        <View style={styles.grid}>
+          <View style={styles.row}>
+            <DashboardCard
+              icon="construct-outline"
+              label="Serviços para iniciar"
+              onPress={() => goToServices("accepted")}
+              value={dashboard?.servicesToStart ?? 0}
+            />
+            <DashboardCard
+              icon="time-outline"
+              label="Em andamento"
+              onPress={() => goToServices("in_progress")}
+              value={dashboard?.servicesInProgress ?? 0}
+            />
+          </View>
+          <View style={styles.row}>
+            <DashboardCard
+              icon="close-circle-outline"
+              label="Propostas recusadas"
+              onPress={() => goToServices("rejected")}
+              value={dashboard?.rejectedProposals ?? 0}
+            />
+            <DashboardCard
+              icon="cash-outline"
+              label="Total arrecadado"
+              tone="accent"
+              value={formatProposalPrice(dashboard?.totalEarned ?? 0)}
+            />
+          </View>
+        </View>
       )}
     </ScrollView>
   )
@@ -65,6 +93,13 @@ const styles = StyleSheet.create({
     color: colors.textSecondary,
     fontSize: 14,
     textAlign: "center",
+  },
+  grid: {
+    gap: spacing.cardGap,
+  },
+  row: {
+    flexDirection: "row",
+    gap: spacing.cardGap,
   },
   screen: {
     backgroundColor: colors.screenBg,
