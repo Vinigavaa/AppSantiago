@@ -241,7 +241,7 @@ async function main() {
     request?: { status?: string; contract?: unknown }
   }
   check("solicitação volta para OPEN", reopened.request?.status === "OPEN", reopened.request?.status)
-  check("contrato removido da solicitação", reopened.request?.contract === null)
+  check("solicitação reaberta sem contrato ativo", reopened.request?.contract === null)
 
   const canceledProposal = await prisma.proposal.findFirst({
     where: { serviceRequestId: requestId, professionalId: proProfileId },

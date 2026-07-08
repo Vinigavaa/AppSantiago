@@ -79,7 +79,9 @@ export async function professionalServicesHandler(context: AuthedContext) {
   const professionalId = await getOrCreateProfessionalProfileId(user.id)
 
   const contracts = await prisma.serviceContract.findMany({
-    where: { professionalId },
+    // Contratos que o próprio profissional cancelou (desistência) somem da lista
+    // dele. Cancelamentos feitos pelo cliente continuam visíveis como histórico.
+    where: { professionalId, NOT: { status: "CANCELED", canceledBy: user.id } },
     include: contractInclude,
     orderBy: { acceptedAt: "desc" },
   })

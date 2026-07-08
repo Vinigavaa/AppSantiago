@@ -82,14 +82,23 @@ export async function cancelContractHandler(context: AuthedContext) {
   const reason = parsed.data.reason
 
   // Cancelamento pelo profissional: ele desiste do serviço já contratado. A
-  // solicitação volta a ficar ABERTA para receber novas propostas, e some das
-  // telas dele. Para isso o contrato é removido (a solicitação só admite um
-  // contrato por vez) e a proposta dele é marcada como cancelada — o que a
-  // exclui das oportunidades e impede novo envio.
+  // solicitação volta a ficar ABERTA para receber novas propostas. O contrato é
+  // mantido como CANCELADO (auditoria: quem/quando/motivo) para que o cliente
+  // veja no histórico que o profissional desistiu; ele é ocultado das telas do
+  // profissional. A proposta dele é marcada como cancelada — o que a exclui das
+  // oportunidades e impede novo envio.
   if (isProfessional) {
     await prisma.$transaction([
       prisma.proposal.update({ where: { id: contract.proposalId }, data: { status: "CANCELED" } }),
-      prisma.serviceContract.delete({ where: { id: contract.id } }),
+      prisma.serviceContract.update({
+        where: { id: contract.id },
+        data: {
+          status: "CANCELED",
+          canceledAt: new Date(),
+          canceledBy: user.id,
+          cancelReason: reason ?? null,
+        },
+      }),
       prisma.serviceRequest.update({
         where: { id: contract.serviceRequestId },
         data: { status: "OPEN" },

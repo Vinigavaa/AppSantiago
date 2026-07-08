@@ -21,8 +21,14 @@ export type ReceivedProposal = {
     ratingCount: number
   }
   serviceRequest: { id: string; title: string; category: string }
-  // Presente quando a proposta foi aceita (contrato criado).
-  contract: { status: ServiceStatus; acceptedAt: string } | null
+  // Presente quando a proposta foi aceita (contrato criado). Quando o serviço é
+  // cancelado, canceledBy indica quem desistiu (o profissional ou o cliente).
+  contract: {
+    status: ServiceStatus
+    acceptedAt: string
+    canceledBy: "PROFESSIONAL" | "CLIENT" | null
+    canceledAt: string | null
+  } | null
 }
 
 // Resumo da proposta do próprio profissional (no detalhe da oportunidade).

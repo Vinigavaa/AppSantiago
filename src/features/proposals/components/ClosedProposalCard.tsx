@@ -1,3 +1,4 @@
+import { Ionicons } from "@expo/vector-icons"
 import { Image, StyleSheet, Text, View } from "react-native"
 
 import { getInitials } from "@/features/client-home/greeting"
@@ -12,13 +13,27 @@ type Props = {
 }
 
 // Card da aba "Recusadas": propostas encerradas (recusadas pelo cliente ou
-// canceladas pelo profissional). Apenas histórico — sem ações.
+// canceladas). Apenas histórico — sem ações.
+//
+// Caso especial: o profissional desistir de um serviço que já havia sido aceito.
+// Aqui o cancelamento partiu dele (não do cliente nem do sistema), então o card
+// ganha um destaque explícito para não gerar dúvida.
 export function ClosedProposalCard({ proposal }: Props) {
-  const { professional } = proposal
+  const { professional, contract } = proposal
   const status = getProposalStatusStyle(proposal.status)
 
+  const canceledByProfessional =
+    proposal.status === "CANCELED" && contract?.canceledBy === "PROFESSIONAL"
+
   return (
-    <View style={styles.card}>
+    <View style={[styles.card, canceledByProfessional && styles.cardAlert]}>
+      {canceledByProfessional ? (
+        <View style={styles.alert}>
+          <Ionicons color={alertColor} name="alert-circle" size={18} />
+          <Text style={styles.alertTitle}>O profissional cancelou este serviço</Text>
+        </View>
+      ) : null}
+
       <View style={styles.header}>
         {professional.avatarUrl ? (
           <Image source={{ uri: professional.avatarUrl }} style={styles.avatar} />
@@ -35,9 +50,15 @@ export function ClosedProposalCard({ proposal }: Props) {
           </Text>
         </View>
 
-        <View style={[styles.statusPill, { backgroundColor: status.background }]}>
-          <Text style={[styles.statusText, { color: status.color }]}>{status.label}</Text>
-        </View>
+        {canceledByProfessional ? (
+          <View style={[styles.statusPill, styles.statusPillAlert]}>
+            <Text style={[styles.statusText, { color: alertColor }]}>Cancelada</Text>
+          </View>
+        ) : (
+          <View style={[styles.statusPill, { backgroundColor: status.background }]}>
+            <Text style={[styles.statusText, { color: status.color }]}>{status.label}</Text>
+          </View>
+        )}
       </View>
 
       <View style={styles.footer}>
@@ -48,7 +69,27 @@ export function ClosedProposalCard({ proposal }: Props) {
   )
 }
 
+// Tom âmbar de atenção (mesma família usada em "Em andamento"), para sinalizar
+// que algo mudou sem transmitir erro ou culpa do cliente.
+const alertColor = "#92600A"
+const alertBg = "#FBF1DD"
+const alertBorder = "#EAD3A2"
+
 const styles = StyleSheet.create({
+  alert: {
+    alignItems: "center",
+    backgroundColor: alertBg,
+    borderRadius: radius.tag,
+    flexDirection: "row",
+    gap: 6,
+    padding: 12,
+  },
+  alertTitle: {
+    color: alertColor,
+    flex: 1,
+    fontSize: 14,
+    fontWeight: "700",
+  },
   avatar: {
     alignItems: "center",
     backgroundColor: colors.avatarBg,
@@ -70,6 +111,12 @@ const styles = StyleSheet.create({
     gap: 10,
     opacity: 0.9,
     padding: spacing.card,
+  },
+  // Cancelamento pelo profissional: card em destaque (borda âmbar, sem esmaecer)
+  // para separá-lo das demais propostas encerradas.
+  cardAlert: {
+    borderColor: alertBorder,
+    opacity: 1,
   },
   date: {
     color: colors.textTertiary,
@@ -107,6 +154,9 @@ const styles = StyleSheet.create({
     borderRadius: radius.tag,
     paddingHorizontal: 10,
     paddingVertical: 4,
+  },
+  statusPillAlert: {
+    backgroundColor: alertBg,
   },
   statusText: {
     fontSize: 12,
