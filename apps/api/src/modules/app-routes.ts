@@ -2,6 +2,12 @@ import { type Context, Hono } from "hono"
 
 import { createRateLimitMiddleware } from "@/http/rate-limit"
 import { listCategoriesHandler, listCitiesHandler } from "@/modules/catalog/handlers"
+import {
+  listChatsHandler,
+  listMessagesHandler,
+  openChatHandler,
+  sendMessageHandler,
+} from "@/modules/chat/handlers"
 import { cancelContractHandler, reportNoShowHandler } from "@/modules/contracts/handlers"
 import {
   listNotificationsHandler,
@@ -117,6 +123,13 @@ appRoutes.post("/proposals/:id/cancel", cancelProposalHandler)
 
 // Avaliações: o cliente avalia o profissional após o serviço ser concluído.
 appRoutes.post("/reviews", createReviewHandler)
+
+// Chat: conversa 1:1 entre cliente e profissional. Abrir reutiliza a conversa
+// existente do par; listar traz as conversas com mensagens e não-lidas.
+appRoutes.post("/chats", openChatHandler)
+appRoutes.get("/chats", listChatsHandler)
+appRoutes.get("/chats/:id/messages", listMessagesHandler)
+appRoutes.post("/chats/:id/messages", sendMessageHandler)
 
 // Central de notificações: lista do usuário + marcar como lidas ao abrir.
 appRoutes.get("/notifications", listNotificationsHandler)

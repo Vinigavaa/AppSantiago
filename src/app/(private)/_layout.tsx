@@ -71,6 +71,7 @@ export default function PrivateLayout() {
         />
 
         {/* Telas exclusivas do cliente / alcançáveis por push: sem aba. */}
+        <Tabs.Screen name="chat" options={{ href: null }} />
         <Tabs.Screen name="search" options={{ href: null }} />
         <Tabs.Screen name="proposals" options={{ href: null }} />
         <Tabs.Screen name="new-request" options={{ href: null }} />
@@ -114,6 +115,7 @@ export default function PrivateLayout() {
       />
 
       {/* Telas exclusivas do profissional / alcançáveis por push: sem aba. */}
+      <Tabs.Screen name="chat" options={{ href: null }} />
       <Tabs.Screen name="dashboard" options={{ href: null }} />
       <Tabs.Screen name="services" options={{ href: null }} />
       <Tabs.Screen name="new-request" options={{ href: null }} />

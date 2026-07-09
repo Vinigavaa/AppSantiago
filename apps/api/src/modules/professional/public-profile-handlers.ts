@@ -69,6 +69,8 @@ export async function publicProfessionalProfileHandler(context: AuthedContext) {
   return context.json({
     professional: {
       id: profile.id,
+      // userId identifica a pessoa para iniciar uma conversa (botão "Conversar").
+      userId: profile.user.id,
       name: profile.user.displayUsername ?? profile.user.name,
       avatarUrl: profile.user.avatarUrl,
       bio: profile.bio,

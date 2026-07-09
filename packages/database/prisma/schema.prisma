@@ -251,7 +251,6 @@ model ServiceRequest {
   // Um contrato ativo por vez, mas o histórico guarda os cancelados: uma
   // solicitação pode ser recontratada após um cancelamento por não comparecimento.
   serviceContracts    ServiceContract[]
-  chats               Chat[]
 
   @@index([clientId])
   @@index([categoryId])
@@ -310,7 +309,6 @@ model ServiceContract {
   client           ClientProfile         @relation(fields: [clientId], references: [id], onDelete: Restrict)
   professional     ProfessionalProfile   @relation(fields: [professionalId], references: [id], onDelete: Restrict)
   reviews          Review[]
-  chats            Chat[]
 
   @@index([serviceRequestId])
   @@index([clientId])
@@ -335,35 +333,36 @@ model Review {
   @@index([reviewedId])
 }
 
+// Conversa 1:1 entre um cliente e um profissional. É única por par e reutilizável:
+// pode ser iniciada a qualquer momento (ex.: pelo perfil), independente de haver
+// uma solicitação ou proposta. Todo o histórico fica preservado no mesmo registro.
 model Chat {
-  id                String              @id @default(uuid()) @db.Uuid
-  serviceRequestId  String              @db.Uuid
-  serviceContractId String?             @db.Uuid
-  clientId          String              @db.Uuid
-  professionalId    String              @db.Uuid
-  createdAt         DateTime            @default(now())
-  updatedAt         DateTime            @updatedAt
-  serviceRequest    ServiceRequest      @relation(fields: [serviceRequestId], references: [id], onDelete: Cascade)
-  serviceContract   ServiceContract?    @relation(fields: [serviceContractId], references: [id], onDelete: SetNull)
-  client            ClientProfile       @relation(fields: [clientId], references: [id], onDelete: Restrict)
-  professional      ProfessionalProfile @relation(fields: [professionalId], references: [id], onDelete: Restrict)
-  messages          Message[]
+  id             String              @id @default(uuid()) @db.Uuid
+  clientId       String              @db.Uuid
+  professionalId String              @db.Uuid
+  createdAt      DateTime            @default(now())
+  updatedAt      DateTime            @updatedAt
+  client         ClientProfile       @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  professional   ProfessionalProfile @relation(fields: [professionalId], references: [id], onDelete: Cascade)
+  messages       Message[]
 
-  @@unique([serviceRequestId, professionalId])
+  @@unique([clientId, professionalId])
   @@index([clientId])
   @@index([professionalId])
-  @@index([serviceRequestId])
 }
 
 model Message {
-  id        String    @id @default(uuid()) @db.Uuid
-  chatId    String    @db.Uuid
-  senderId  String    @db.Uuid
-  content   String    @db.Text
-  readAt    DateTime?
-  createdAt DateTime  @default(now())
-  chat      Chat      @relation(fields: [chatId], references: [id], onDelete: Cascade)
-  sender    User      @relation("MessageSender", fields: [senderId], references: [id], onDelete: Restrict)
+  id            String    @id @default(uuid()) @db.Uuid
+  chatId        String    @db.Uuid
+  senderId      String    @db.Uuid
+  content       String    @db.Text
+  // Estrutura preparada para anexos (imagens/arquivos) sem alterar o fluxo de
+  // texto: hoje sempre nulo; o envio de texto continua usando apenas `content`.
+  attachmentUrl String?
+  readAt        DateTime?
+  createdAt     DateTime  @default(now())
+  chat          Chat      @relation(fields: [chatId], references: [id], onDelete: Cascade)
+  sender        User      @relation("MessageSender", fields: [senderId], references: [id], onDelete: Cascade)
 
   @@index([chatId])
   @@index([senderId])

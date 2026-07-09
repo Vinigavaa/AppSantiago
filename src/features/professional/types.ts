@@ -65,8 +65,9 @@ export type PublicReview = {
 }
 
 // Reputação do cliente exibida ao profissional na oportunidade (antes de propor).
-// Apenas nota e total — não expõe quem avaliou.
+// Apenas nota e total — não expõe quem avaliou. `userId` permite iniciar conversa.
 export type OpportunityClient = {
+  userId: string
   name: string
   ratingAverage: number
   ratingCount: number
@@ -76,6 +77,8 @@ export type OpportunityClient = {
 // Não traz dados de contato — apenas identidade, reputação e atuação.
 export type PublicProfessional = {
   id: string
+  // userId da pessoa por trás do perfil — usado para iniciar uma conversa.
+  userId: string
   name: string
   avatarUrl: string | null
   bio: string | null

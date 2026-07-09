@@ -13,6 +13,7 @@ import {
 import { useSafeAreaInsets } from "react-native-safe-area-context"
 
 import { Button } from "@/components/ui/Button"
+import { useStartChat } from "@/features/chat/hooks"
 import { getInitials } from "@/features/client-home/greeting"
 import { colors, radius, spacing } from "@/features/client-home/theme"
 import { formatRelativeTime } from "@/features/service-requests/format"
@@ -23,6 +24,7 @@ import type { PublicProfessional } from "./types"
 
 export function PublicProfessionalScreen({ id }: { id: string }) {
   const insets = useSafeAreaInsets()
+  const { start, isStarting } = useStartChat()
   const [professional, setProfessional] = useState<PublicProfessional | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -114,6 +116,22 @@ export function PublicProfessionalScreen({ id }: { id: string }) {
             <Text style={styles.ratingLabel}>{ratingLabel}</Text>
           </View>
         </View>
+
+        <Pressable
+          accessibilityRole="button"
+          disabled={isStarting}
+          onPress={() => start(professional.userId)}
+          style={({ pressed }) => [styles.chatButton, pressed && styles.pressed]}
+        >
+          {isStarting ? (
+            <ActivityIndicator color="#FFFFFF" size="small" />
+          ) : (
+            <>
+              <Ionicons color="#FFFFFF" name="chatbubble-ellipses-outline" size={18} />
+              <Text style={styles.chatButtonText}>Conversar</Text>
+            </>
+          )}
+        </Pressable>
 
         <View style={styles.statsRow}>
           <StatBox
@@ -250,6 +268,21 @@ const styles = StyleSheet.create({
     color: colors.accent,
     fontSize: 13,
     fontWeight: "500",
+  },
+  chatButton: {
+    alignItems: "center",
+    backgroundColor: colors.accent,
+    borderRadius: radius.search,
+    flexDirection: "row",
+    gap: 8,
+    justifyContent: "center",
+    minHeight: 50,
+    paddingVertical: 14,
+  },
+  chatButtonText: {
+    color: "#FFFFFF",
+    fontSize: 15,
+    fontWeight: "700",
   },
   chips: {
     flexDirection: "row",

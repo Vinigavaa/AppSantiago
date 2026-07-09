@@ -113,7 +113,7 @@ export async function opportunityDetailHandler(context: AuthedContext) {
     select: {
       ratingAverage: true,
       ratingCount: true,
-      user: { select: { name: true } },
+      user: { select: { id: true, name: true } },
     },
   })
 
@@ -122,6 +122,8 @@ export async function opportunityDetailHandler(context: AuthedContext) {
     myProposal: ownProposal ? serializeOwnProposal(ownProposal) : null,
     client: client
       ? {
+          // userId permite ao profissional iniciar uma conversa com o cliente.
+          userId: client.user.id,
           name: firstName(client.user.name),
           ratingAverage: Number(client.ratingAverage),
           ratingCount: client.ratingCount,

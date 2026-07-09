@@ -12,6 +12,7 @@ import {
 } from "react-native"
 import { useSafeAreaInsets } from "react-native-safe-area-context"
 
+import { useStartChat } from "@/features/chat/hooks"
 import { colors, radius, spacing } from "@/features/client-home/theme"
 import {
   formatProposalPrice,
@@ -317,7 +318,9 @@ function SentProposalCard({
 }
 
 // Reputação do cliente que abriu a solicitação — dá confiança antes de propor.
+// Permite também iniciar uma conversa para esclarecer detalhes antes da proposta.
 function ClientReputation({ client }: { client: OpportunityClient }) {
+  const { start, isStarting } = useStartChat()
   const ratingLabel =
     client.ratingCount > 0
       ? `${client.ratingAverage.toFixed(1)} (${client.ratingCount} ${
@@ -335,6 +338,22 @@ function ClientReputation({ client }: { client: OpportunityClient }) {
           <Text style={styles.clientRatingLabel}>{ratingLabel}</Text>
         </View>
       </View>
+
+      <Pressable
+        accessibilityRole="button"
+        disabled={isStarting}
+        onPress={() => start(client.userId)}
+        style={({ pressed }) => [styles.chatClientButton, pressed && styles.pressed]}
+      >
+        {isStarting ? (
+          <ActivityIndicator color={colors.accent} size="small" />
+        ) : (
+          <>
+            <Ionicons color={colors.accent} name="chatbubble-ellipses-outline" size={16} />
+            <Text style={styles.chatClientText}>Conversar com o cliente</Text>
+          </>
+        )}
+      </Pressable>
     </View>
   )
 }
@@ -388,6 +407,21 @@ const styles = StyleSheet.create({
     gap: 14,
     justifyContent: "center",
     paddingHorizontal: spacing.screen,
+  },
+  chatClientButton: {
+    alignItems: "center",
+    backgroundColor: colors.accentSoftBg,
+    borderRadius: radius.search,
+    flexDirection: "row",
+    gap: 8,
+    justifyContent: "center",
+    minHeight: 44,
+    paddingVertical: 11,
+  },
+  chatClientText: {
+    color: colors.accent,
+    fontSize: 14,
+    fontWeight: "700",
   },
   clientCard: {
     backgroundColor: colors.surface,

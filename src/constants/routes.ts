@@ -1,6 +1,7 @@
 import type { Href } from "expo-router"
 
 export const routes = {
+  chat: "/chat" as Href,
   dashboard: "/dashboard" as Href,
   editRequest: "/edit-request" as Href,
   forgotPassword: "/forgot-password" as Href,
