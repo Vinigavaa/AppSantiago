@@ -29,12 +29,21 @@ function friendlyError(status: number, body: ApiErrorBody | null): string {
   return body?.message ?? "Não foi possível concluir a operação. Tente novamente."
 }
 
+// Tempo máximo por requisição. Sem isso, uma conexão que morre (ex.: servidor
+// reiniciando) deixa a Promise pendurada para sempre e a tela fica girando.
+const REQUEST_TIMEOUT_MS = 30_000
+
 // Cliente para as rotas autenticadas do app (/api/app/*). Anexa o cookie de
 // sessão do better-auth (necessário no mobile; na web o navegador já o envia).
 export async function appFetch<T>(
   path: string,
   options?: { method?: string; body?: unknown },
 ): Promise<ApiResult<T>> {
+  // AbortController garante que a requisição sempre termine (sucesso, erro ou
+  // timeout), então a UI nunca fica presa esperando indefinidamente.
+  const controller = new AbortController()
+  const timeoutId = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS)
+
   try {
     const headers: Record<string, string> = { "content-type": "application/json" }
     const cookie = authClient.getCookie()
@@ -48,6 +57,7 @@ export async function appFetch<T>(
       headers,
       credentials: "include",
       body: options?.body === undefined ? undefined : JSON.stringify(options.body),
+      signal: controller.signal,
     })
 
     const payload = (await response.json().catch(() => null)) as T | ApiErrorBody | null
@@ -61,10 +71,20 @@ export async function appFetch<T>(
     }
 
     return { ok: true, data: payload as T }
-  } catch {
+  } catch (error) {
+    // Abort = estourou o timeout; demais = falha de rede.
+    if (error instanceof Error && error.name === "AbortError") {
+      return {
+        ok: false,
+        error: "A conexão demorou demais. Verifique sua internet e tente novamente.",
+      }
+    }
+
     return {
       ok: false,
       error: "Não foi possível conectar ao servidor. Verifique sua conexão.",
     }
+  } finally {
+    clearTimeout(timeoutId)
   }
 }
