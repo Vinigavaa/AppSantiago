@@ -1,33 +1,24 @@
 import { Ionicons } from "@expo/vector-icons"
 import { useState } from "react"
-import { ActivityIndicator, Pressable, StyleSheet, TextInput, View } from "react-native"
+import { Pressable, StyleSheet, TextInput, View } from "react-native"
 
 import { colors, radius } from "@/features/client-home/theme"
 
-// Barra de digitação. Envia com o botão; a estrutura de anexos entra no futuro
+// Barra de digitação. O envio é otimista: limpa o campo e entrega na hora para a
+// conversa (que mostra o estado de envio). A estrutura de anexos entra no futuro
 // sem mexer neste fluxo de texto.
-export function MessageInput({
-  onSend,
-  isSending,
-}: {
-  onSend: (content: string) => Promise<boolean>
-  isSending: boolean
-}) {
+export function MessageInput({ onSend }: { onSend: (content: string) => void }) {
   const [value, setValue] = useState("")
   const trimmed = value.trim()
-  const canSend = trimmed.length > 0 && !isSending
+  const canSend = trimmed.length > 0
 
-  async function handleSend() {
+  function handleSend() {
     if (!canSend) {
       return
     }
 
-    // Limpa otimista; se falhar, devolve o texto para o usuário tentar de novo.
     setValue("")
-    const ok = await onSend(trimmed)
-    if (!ok) {
-      setValue(trimmed)
-    }
+    onSend(trimmed)
   }
 
   return (
@@ -51,11 +42,7 @@ export function MessageInput({
           pressed && canSend && styles.pressed,
         ]}
       >
-        {isSending ? (
-          <ActivityIndicator color="#FFFFFF" size="small" />
-        ) : (
-          <Ionicons color="#FFFFFF" name="arrow-up" size={20} />
-        )}
+        <Ionicons color="#FFFFFF" name="arrow-up" size={20} />
       </Pressable>
     </View>
   )

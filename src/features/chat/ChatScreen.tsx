@@ -31,7 +31,7 @@ function profileHrefFor(otherUser: ChatOtherUser): Href | null {
 
 export function ChatScreen({ chatId }: { chatId: string }) {
   const insets = useSafeAreaInsets()
-  const { messages, otherUser, isLoading, error, isSending, send } = useChat(chatId)
+  const { messages, otherUser, isLoading, error, send, retry } = useChat(chatId)
   const listRef = useRef<FlatList>(null)
 
   const profileHref = otherUser ? profileHrefFor(otherUser) : null
@@ -71,13 +71,13 @@ export function ChatScreen({ chatId }: { chatId: string }) {
           }
           onContentSizeChange={() => listRef.current?.scrollToEnd({ animated: false })}
           ref={listRef}
-          renderItem={({ item }) => <MessageBubble message={item} />}
+          renderItem={({ item }) => <MessageBubble message={item} onRetry={retry} />}
           showsVerticalScrollIndicator={false}
         />
       )}
 
       <View style={{ paddingBottom: insets.bottom }}>
-        <MessageInput isSending={isSending} onSend={send} />
+        <MessageInput onSend={send} />
       </View>
     </KeyboardAvoidingView>
   )

@@ -8,9 +8,16 @@ import { fetchChats, fetchMessages, openChat, sendMessage } from "./service"
 import type { ChatMessage, ChatOtherUser, ChatSummary } from "./types"
 
 // Enquanto a lista/conversa está em foco, revalidamos em intervalo curto — é o
-// "tempo real" via polling, simples e suficiente para o volume esperado.
-const CHAT_LIST_POLL_MS = 10_000
-const CHAT_MESSAGES_POLL_MS = 4_000
+// "tempo real" via polling, simples e suficiente para o volume esperado. A
+// conversa aberta atualiza mais rápido para novas mensagens chegarem quase na
+// hora; o envio é otimista (aparece na tela na hora, sem esperar o servidor).
+const CHAT_LIST_POLL_MS = 5_000
+const CHAT_MESSAGES_POLL_MS = 2_000
+
+// Envio resiliente ao cold start do servidor: se a primeira tentativa falha
+// (timeout enquanto o servidor "acorda"), tenta de novo antes de marcar como falha.
+const MAX_SEND_ATTEMPTS = 3
+const SEND_RETRY_DELAY_MS = 1_500
 
 // Lista de conversas. Recarrega ao focar e faz polling silencioso para atualizar
 // prévias e não-lidas sem piscar a tela.
@@ -57,14 +64,32 @@ export function useChats() {
   return { chats, totalUnread, isLoading, isRefreshing, error, refetch }
 }
 
+// Junta as mensagens do servidor (fonte da verdade) com as locais ainda pendentes
+// (enviando/falha), que ainda não existem no servidor. Sem isso, o polling
+// "engoliria" a mensagem otimista recém-enviada.
+function mergeMessages(server: ChatMessage[], previous: ChatMessage[]): ChatMessage[] {
+  const serverIds = new Set(server.map((message) => message.id))
+  const pending = previous.filter(
+    (message) =>
+      (message.status === "sending" || message.status === "failed") && !serverIds.has(message.id),
+  )
+  return [...server, ...pending]
+}
+
+// Id temporário de uma mensagem otimista (antes do servidor confirmar).
+function localId(): string {
+  return `local-${Date.now()}-${Math.random().toString(36).slice(2)}`
+}
+
 // Uma conversa: histórico, cabeçalho (outra pessoa) e envio. Faz polling enquanto
-// aberta, então mensagens novas e recibos de leitura chegam sozinhos.
+// aberta, então mensagens novas e recibos de leitura chegam sozinhos. O envio é
+// otimista: a mensagem aparece na hora e depois é confirmada (ou marcada como
+// falha, com opção de reenviar).
 export function useChat(chatId: string) {
   const [messages, setMessages] = useState<ChatMessage[]>([])
   const [otherUser, setOtherUser] = useState<ChatOtherUser | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
-  const [isSending, setIsSending] = useState(false)
   const loadedOnce = useRef(false)
 
   const load = useCallback(
@@ -76,7 +101,7 @@ export function useChat(chatId: string) {
       const result = await fetchMessages(chatId)
 
       if (result.ok) {
-        setMessages(result.data.messages)
+        setMessages((previous) => mergeMessages(result.data.messages, previous))
         setOtherUser(result.data.otherUser)
         setError(null)
       } else if (mode === "initial") {
@@ -97,25 +122,73 @@ export function useChat(chatId: string) {
     }, [load]),
   )
 
-  const send = useCallback(
-    async (content: string): Promise<boolean> => {
-      setIsSending(true)
-      const result = await sendMessage(chatId, content)
-      setIsSending(false)
+  // Faz a chamada ao servidor para uma mensagem já visível (otimista). Tenta
+  // algumas vezes antes de desistir: cobre o cold start do servidor (a primeira
+  // requisição após ociosidade pode estourar o timeout enquanto ele "acorda"), de
+  // modo que a mensagem se recupera sozinha sem o usuário precisar reenviar. Ao
+  // confirmar, troca a temporária pela definitiva (id real); só marca "failed"
+  // depois de esgotar as tentativas, mantendo o texto na conversa.
+  const deliver = useCallback(
+    async (id: string, content: string) => {
+      for (let attempt = 1; attempt <= MAX_SEND_ATTEMPTS; attempt += 1) {
+        const result = await sendMessage(chatId, content)
 
-      if (result.ok) {
-        // Acrescenta na hora; o próximo polling reconcilia com o servidor.
-        setMessages((current) => [...current, result.data])
-        return true
+        if (result.ok) {
+          setMessages((previous) =>
+            previous.map((message) =>
+              message.id === id ? { ...result.data, status: "sent" as const } : message,
+            ),
+          )
+          return
+        }
+
+        if (attempt < MAX_SEND_ATTEMPTS) {
+          await new Promise((resolve) => setTimeout(resolve, SEND_RETRY_DELAY_MS))
+        }
       }
 
-      Alert.alert("Não foi possível enviar", result.error)
-      return false
+      setMessages((previous) =>
+        previous.map((message) =>
+          message.id === id ? { ...message, status: "failed" as const } : message,
+        ),
+      )
     },
     [chatId],
   )
 
-  return { messages, otherUser, isLoading, error, isSending, send }
+  // Toca em enviar: a mensagem aparece imediatamente com status "sending".
+  const send = useCallback(
+    (content: string) => {
+      const id = localId()
+      const optimistic: ChatMessage = {
+        id,
+        content,
+        attachmentUrl: null,
+        mine: true,
+        read: false,
+        createdAt: new Date().toISOString(),
+        status: "sending",
+      }
+      setMessages((previous) => [...previous, optimistic])
+      void deliver(id, content)
+    },
+    [deliver],
+  )
+
+  // Reenvia uma mensagem que falhou, sem o usuário reescrever o texto.
+  const retry = useCallback(
+    (message: ChatMessage) => {
+      setMessages((previous) =>
+        previous.map((item) =>
+          item.id === message.id ? { ...item, status: "sending" as const } : item,
+        ),
+      )
+      void deliver(message.id, message.content)
+    },
+    [deliver],
+  )
+
+  return { messages, otherUser, isLoading, error, send, retry }
 }
 
 // Abre a conversa com um usuário e navega para ela. Usado pelos botões

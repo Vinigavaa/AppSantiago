@@ -17,8 +17,14 @@ export type ChatSummary = {
   updatedAt: string
 }
 
+// Estado de entrega de uma mensagem enviada localmente (envio otimista):
+// "sending" enquanto vai ao servidor, "failed" se der erro. Mensagens vindas do
+// servidor não têm status (ficam implicitamente entregues).
+export type MessageStatus = "sending" | "sent" | "failed"
+
 // Uma mensagem na visão de quem lê: `mine` diferencia enviada/recebida e `read`
 // alimenta os recibos (entregue/lida). `attachmentUrl` fica pronto para anexos.
+// `status` só existe em mensagens locais ainda não confirmadas pelo servidor.
 export type ChatMessage = {
   id: string
   content: string
@@ -26,4 +32,5 @@ export type ChatMessage = {
   mine: boolean
   read: boolean
   createdAt: string
+  status?: MessageStatus
 }
