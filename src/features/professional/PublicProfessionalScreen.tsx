@@ -1,5 +1,5 @@
 import { Ionicons } from "@expo/vector-icons"
-import { router } from "expo-router"
+import { type Href, router } from "expo-router"
 import { useCallback, useEffect, useState } from "react"
 import {
   ActivityIndicator,
@@ -14,6 +14,7 @@ import {
 import { useSafeAreaInsets } from "react-native-safe-area-context"
 
 import { Button } from "@/components/ui/Button"
+import { routes } from "@/constants/routes"
 import { blockUser, unblockUser } from "@/features/blocks/service"
 import { useStartChat } from "@/features/chat/hooks"
 import { getInitials } from "@/features/client-home/greeting"
@@ -78,6 +79,17 @@ export function PublicProfessionalScreen({ id }: { id: string }) {
           },
         },
       ],
+    )
+  }
+
+  // Solicitar serviço: abre a criação de solicitação já com a categoria principal
+  // do profissional pré-selecionada, quando ele tiver categoria definida.
+  function handleRequestService() {
+    const mainCategoryId = professional?.categories[0]?.id
+    router.push(
+      (mainCategoryId
+        ? `${routes.newRequest}?categoryId=${mainCategoryId}`
+        : routes.newRequest) as Href,
     )
   }
 
@@ -194,21 +206,32 @@ export function PublicProfessionalScreen({ id }: { id: string }) {
             )}
           </Pressable>
         ) : (
-          <Pressable
-            accessibilityRole="button"
-            disabled={isStarting}
-            onPress={() => start(professional.userId)}
-            style={({ pressed }) => [styles.chatButton, pressed && styles.pressed]}
-          >
-            {isStarting ? (
-              <ActivityIndicator color="#FFFFFF" size="small" />
-            ) : (
-              <>
-                <Ionicons color="#FFFFFF" name="chatbubble-ellipses-outline" size={18} />
-                <Text style={styles.chatButtonText}>Conversar</Text>
-              </>
-            )}
-          </Pressable>
+          <View style={styles.actionsRow}>
+            <Pressable
+              accessibilityRole="button"
+              disabled={isStarting}
+              onPress={() => start(professional.userId)}
+              style={({ pressed }) => [styles.chatButton, pressed && styles.pressed]}
+            >
+              {isStarting ? (
+                <ActivityIndicator color="#FFFFFF" size="small" />
+              ) : (
+                <>
+                  <Ionicons color="#FFFFFF" name="chatbubble-ellipses-outline" size={18} />
+                  <Text style={styles.chatButtonText}>Conversar</Text>
+                </>
+              )}
+            </Pressable>
+
+            <Pressable
+              accessibilityRole="button"
+              onPress={handleRequestService}
+              style={({ pressed }) => [styles.requestButton, pressed && styles.pressed]}
+            >
+              <Ionicons color={colors.accent} name="add-circle-outline" size={18} />
+              <Text style={styles.requestButtonText}>Solicitar Serviço</Text>
+            </Pressable>
+          </View>
         )}
 
         <View style={styles.statsRow}>
@@ -313,6 +336,10 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     width: 76,
   },
+  actionsRow: {
+    flexDirection: "row",
+    gap: 10,
+  },
   avatarText: {
     color: colors.avatarText,
     fontSize: 26,
@@ -351,6 +378,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     backgroundColor: colors.accent,
     borderRadius: radius.search,
+    flex: 1,
     flexDirection: "row",
     gap: 8,
     justifyContent: "center",
@@ -443,6 +471,22 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     gap: 8,
     marginTop: 4,
+  },
+  requestButton: {
+    alignItems: "center",
+    backgroundColor: colors.accentSoftBg,
+    borderRadius: radius.search,
+    flex: 1,
+    flexDirection: "row",
+    gap: 8,
+    justifyContent: "center",
+    minHeight: 50,
+    paddingVertical: 14,
+  },
+  requestButtonText: {
+    color: colors.accent,
+    fontSize: 15,
+    fontWeight: "700",
   },
   retry: {
     paddingHorizontal: 24,

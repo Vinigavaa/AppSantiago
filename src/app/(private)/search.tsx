@@ -1,12 +1,5 @@
-import { PlaceholderScreen } from "@/features/client-home/components/PlaceholderScreen"
+import { ProfessionalSearchScreen } from "@/features/professional/ProfessionalSearchScreen"
 
 export default function Search() {
-  return (
-    <PlaceholderScreen
-      emptyDescription="Em breve você poderá buscar serviços e categorias por aqui."
-      emptyTitle="Busca em construção"
-      icon="search-outline"
-      title="Buscar"
-    />
-  )
+  return <ProfessionalSearchScreen />
 }

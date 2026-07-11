@@ -95,6 +95,34 @@ export type PublicProfessional = {
   reviews: PublicReview[]
 }
 
+// Cartão de profissional na busca/descoberta. Só dados públicos reais.
+export type ProfessionalSummary = {
+  id: string
+  userId: string
+  name: string
+  avatarUrl: string | null
+  bio: string | null
+  mainCategory: string | null
+  categories: { id: string; name: string }[]
+  cities: { id: string; name: string; state: string }[]
+  ratingAverage: number
+  ratingCount: number
+  servicesCompleted: number
+  experience: number | null
+}
+
+// Critérios de ordenação da busca de profissionais.
+export type ProfessionalSort = "rating" | "reviews" | "experience" | "recent"
+
+// Filtros combináveis da busca. Campos vazios/nulos = sem aquele filtro.
+export type ProfessionalSearchFilters = {
+  q: string
+  categoryId: string | null
+  cityId: string | null
+  minRating: number | null
+  sort: ProfessionalSort
+}
+
 export type UpdateProfileInput = {
   name: string
   displayName: string | null

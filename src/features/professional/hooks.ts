@@ -1,5 +1,5 @@
 import { useFocusEffect } from "expo-router"
-import { useCallback, useRef, useState } from "react"
+import { useCallback, useEffect, useRef, useState } from "react"
 
 import type { ServiceRequest } from "@/features/service-requests/types"
 
@@ -10,12 +10,15 @@ import {
   fetchProfessionalRejectedProposals,
   fetchProfessionalReviews,
   fetchProfessionalServices,
+  searchProfessionals,
 } from "./service"
 import type {
   ProfessionalDashboard,
   ProfessionalProfileInfo,
   ProfessionalReview,
+  ProfessionalSearchFilters,
   ProfessionalService,
+  ProfessionalSummary,
   RejectedProposal,
 } from "./types"
 
@@ -258,4 +261,70 @@ export function useProfessionalServices() {
   }, [])
 
   return { services, isLoading, isRefreshing, error, refetch, replaceService }
+}
+
+// Estado inicial da busca de profissionais: sem filtros, ordenado por avaliação.
+export const DEFAULT_PROFESSIONAL_FILTERS: ProfessionalSearchFilters = {
+  q: "",
+  categoryId: null,
+  cityId: null,
+  minRating: null,
+  sort: "rating",
+}
+
+// Espera após a digitação antes de buscar — evita uma requisição por tecla.
+const SEARCH_DEBOUNCE_MS = 350
+
+// Busca de profissionais. O texto é aplicado com debounce; categoria, cidade,
+// nota e ordenação disparam a busca na hora. Retorna sempre dados reais da API.
+export function useProfessionalSearch() {
+  const [filters, setFilters] = useState<ProfessionalSearchFilters>(DEFAULT_PROFESSIONAL_FILTERS)
+  const [debouncedQuery, setDebouncedQuery] = useState("")
+  const [results, setResults] = useState<ProfessionalSummary[]>([])
+  const [isLoading, setIsLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+
+  useEffect(() => {
+    const timeoutId = setTimeout(() => setDebouncedQuery(filters.q), SEARCH_DEBOUNCE_MS)
+    return () => clearTimeout(timeoutId)
+  }, [filters.q])
+
+  useEffect(() => {
+    let cancelled = false
+    setIsLoading(true)
+
+    void searchProfessionals({
+      q: debouncedQuery,
+      categoryId: filters.categoryId,
+      cityId: filters.cityId,
+      minRating: filters.minRating,
+      sort: filters.sort,
+    }).then((result) => {
+      if (cancelled) {
+        return
+      }
+      if (result.ok) {
+        setResults(result.data)
+        setError(null)
+      } else {
+        setError(result.error)
+      }
+      setIsLoading(false)
+    })
+
+    return () => {
+      cancelled = true
+    }
+  }, [debouncedQuery, filters.categoryId, filters.cityId, filters.minRating, filters.sort])
+
+  const setField = useCallback(
+    <K extends keyof ProfessionalSearchFilters>(key: K, value: ProfessionalSearchFilters[K]) => {
+      setFilters((current) => ({ ...current, [key]: value }))
+    },
+    [],
+  )
+
+  const resetFilters = useCallback(() => setFilters(DEFAULT_PROFESSIONAL_FILTERS), [])
+
+  return { filters, setField, resetFilters, results, isLoading, error }
 }

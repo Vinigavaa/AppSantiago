@@ -1,5 +1,5 @@
 import { Ionicons } from "@expo/vector-icons"
-import { router, useFocusEffect } from "expo-router"
+import { router, useFocusEffect, useLocalSearchParams } from "expo-router"
 import { useCallback, useEffect } from "react"
 import {
   ActivityIndicator,
@@ -23,14 +23,25 @@ import { useRequestForm } from "@/features/service-requests/useCreateRequestForm
 
 export default function NewRequest() {
   const insets = useSafeAreaInsets()
+  // Quando chega da busca de profissionais, a categoria vem pré-selecionada.
+  const { categoryId } = useLocalSearchParams<{ categoryId?: string }>()
   const { categories, cities, isLoading, error: catalogError, reload } = useCatalog()
   const { form, errors, submitError, isSubmitting, isSuccess, setField, submit, reset } =
     useRequestForm({ onSubmit: createServiceRequest })
 
-  // A tela é mantida montada pelo navegador de abas. Ao sair (inclusive após o
-  // sucesso), limpamos o formulário para que a próxima abertura mostre um form
-  // vazio — e não a tela de "Solicitação publicada".
-  useFocusEffect(useCallback(() => () => reset(), [reset]))
+  // A tela é mantida montada pelo navegador de abas. Ao focar, pré-seleciona a
+  // categoria recebida (se houver); ao sair (inclusive após o sucesso), limpa o
+  // formulário para que a próxima abertura sem parâmetro comece vazia.
+  useFocusEffect(
+    useCallback(() => {
+      if (categoryId) {
+        setField("categoryId", categoryId)
+      }
+      return () => reset()
+      // setField é estável na prática (envolve setState); depende só do parâmetro.
+      // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [categoryId, reset]),
+  )
 
   // Após o sucesso, mostra a confirmação e segue para a área de solicitações.
   useEffect(() => {

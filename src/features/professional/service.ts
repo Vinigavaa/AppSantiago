@@ -7,7 +7,9 @@ import type {
   ProfessionalDashboard,
   ProfessionalProfileInfo,
   ProfessionalReview,
+  ProfessionalSearchFilters,
   ProfessionalService,
+  ProfessionalSummary,
   PublicProfessional,
   RejectedProposal,
   UpdateProfileInput,
@@ -19,6 +21,27 @@ export async function fetchPublicProfessional(
 ): Promise<ApiResult<PublicProfessional>> {
   const result = await appFetch<{ professional: PublicProfessional }>(`/professionals/${id}`)
   return result.ok ? { ok: true, data: result.data.professional } : result
+}
+
+// Busca de profissionais com filtros combináveis. Monta a query só com os filtros
+// realmente aplicados, mantendo a URL limpa.
+export async function searchProfessionals(
+  filters: ProfessionalSearchFilters,
+): Promise<ApiResult<ProfessionalSummary[]>> {
+  const params = new URLSearchParams()
+  const term = filters.q.trim()
+
+  if (term) params.set("q", term)
+  if (filters.categoryId) params.set("categoryId", filters.categoryId)
+  if (filters.cityId) params.set("cityId", filters.cityId)
+  if (filters.minRating) params.set("minRating", String(filters.minRating))
+  params.set("sort", filters.sort)
+
+  const query = params.toString()
+  const result = await appFetch<{ professionals: ProfessionalSummary[] }>(
+    `/professionals${query ? `?${query}` : ""}`,
+  )
+  return result.ok ? { ok: true, data: result.data.professionals } : result
 }
 
 // Detalhe da oportunidade + a proposta já enviada pelo profissional (se houver)

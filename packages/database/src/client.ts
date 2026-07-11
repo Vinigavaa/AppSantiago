@@ -1,4 +1,4 @@
-import { PrismaClient } from "@prisma/client"
+import { Prisma, PrismaClient } from "@prisma/client"
 import { PrismaPg } from "@prisma/adapter-pg"
 import { config } from "dotenv"
 import { resolve } from "node:path"
@@ -23,6 +23,9 @@ if (!connectionString) {
 }
 
 const adapter = new PrismaPg({ connectionString })
+
+// Reexporta o namespace Prisma para os handlers tiparem where/orderBy/etc.
+export { Prisma }
 
 export const prisma = globalForPrisma.prisma ?? new PrismaClient({ adapter })
 

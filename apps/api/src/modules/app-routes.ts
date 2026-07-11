@@ -34,6 +34,7 @@ import {
   updateProfessionalProfileHandler,
 } from "@/modules/professional/profile-handlers"
 import { publicProfessionalProfileHandler } from "@/modules/professional/public-profile-handlers"
+import { searchProfessionalsHandler } from "@/modules/professional/search-handlers"
 import {
   completeServiceHandler,
   professionalServicesHandler,
@@ -116,6 +117,9 @@ appRoutes.get("/service-requests/:id", serviceRequestDetailHandler)
 appRoutes.patch("/service-requests/:id", updateServiceRequestHandler)
 appRoutes.delete("/service-requests/:id", deleteServiceRequestHandler)
 
+// Busca de profissionais: descoberta pelo cliente (nome/categoria/cidade/nota,
+// com ordenação). Rota estática antes da rota com :id para não ser capturada.
+appRoutes.get("/professionals", searchProfessionalsHandler)
 // Perfil público do profissional: qualquer usuário autenticado pode consultar
 // para decidir uma contratação. Não expõe dados de contato.
 appRoutes.get("/professionals/:id", publicProfessionalProfileHandler)
