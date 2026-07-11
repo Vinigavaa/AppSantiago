@@ -1,6 +1,7 @@
 import { prisma } from "@santiago/database"
 import { z } from "zod"
 
+import { getBlockedUserIds, isBlockedBetween } from "@/modules/blocks/service"
 import { sendPushToUser, sendPushToUsers } from "@/modules/notifications/push"
 import { getProfessionalCoverage } from "@/modules/professional/professional-context"
 import type { AuthedContext } from "@/modules/shared/require-auth"
@@ -57,6 +58,11 @@ export async function createProposalHandler(context: AuthedContext) {
   })
 
   if (!request) {
+    return context.json({ code: "NOT_FOUND", message: "Solicitação não encontrada." }, 404)
+  }
+
+  // Cliente bloqueado (em qualquer direção): a solicitação fica indisponível.
+  if (await isBlockedBetween(user.id, request.client.userId)) {
     return context.json({ code: "NOT_FOUND", message: "Solicitação não encontrada." }, 404)
   }
 
@@ -146,8 +152,14 @@ export async function listReceivedProposalsHandler(context: AuthedContext) {
     return forbidden(context, "Disponível apenas para clientes.")
   }
 
+  // Propostas de profissionais bloqueados (em qualquer direção) somem da caixa.
+  const blockedUserIds = await getBlockedUserIds(user.id)
+
   const proposals = await prisma.proposal.findMany({
-    where: { serviceRequest: { client: { userId: user.id } } },
+    where: {
+      serviceRequest: { client: { userId: user.id } },
+      professional: { user: { id: { notIn: blockedUserIds } } },
+    },
     include: clientProposalInclude,
     orderBy: { createdAt: "desc" },
   })

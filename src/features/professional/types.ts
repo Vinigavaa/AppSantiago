@@ -87,6 +87,10 @@ export type PublicProfessional = {
   cities: { id: string; name: string; state: string }[]
   ratingAverage: number
   ratingCount: number
+  // Se o cliente que consulta bloqueou este profissional. Quando true, a tela
+  // troca "Conversar" por "Desbloquear". (Se o profissional tivesse bloqueado o
+  // cliente, o perfil nem seria retornado.)
+  blockedByMe: boolean
   stats: { servicesCompleted: number }
   reviews: PublicReview[]
 }

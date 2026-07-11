@@ -13,11 +13,13 @@ export function ChatHeader({
   paddingTop,
   onBack,
   onOpenProfile,
+  onBlock,
 }: {
   otherUser: ChatOtherUser | null
   paddingTop: number
   onBack: () => void
   onOpenProfile?: () => void
+  onBlock?: () => void
 }) {
   return (
     <View style={[styles.header, { paddingTop: paddingTop + 12 }]}>
@@ -45,6 +47,18 @@ export function ChatHeader({
             </Text>
             {onOpenProfile ? <Text style={styles.link}>Ver perfil</Text> : null}
           </View>
+        </Pressable>
+      ) : null}
+
+      {otherUser && onBlock ? (
+        <Pressable
+          accessibilityLabel="Mais opções"
+          accessibilityRole="button"
+          hitSlop={8}
+          onPress={onBlock}
+          style={({ pressed }) => [styles.menuButton, pressed && styles.pressed]}
+        >
+          <Ionicons color={colors.textPrimary} name="ellipsis-vertical" size={20} />
         </Pressable>
       ) : null}
     </View>
@@ -80,6 +94,14 @@ const styles = StyleSheet.create({
     color: colors.accent,
     fontSize: 12,
     fontWeight: "600",
+  },
+  menuButton: {
+    alignItems: "center",
+    backgroundColor: colors.iconMutedBg,
+    borderRadius: 999,
+    height: 40,
+    justifyContent: "center",
+    width: 40,
   },
   name: {
     color: colors.textPrimary,

@@ -12,9 +12,11 @@ import type { ChatMessage } from "../types"
 export function MessageBubble({
   message,
   onRetry,
+  onLongPress,
 }: {
   message: ChatMessage
   onRetry?: (message: ChatMessage) => void
+  onLongPress?: (message: ChatMessage) => void
 }) {
   const mine = message.mine
   const failed = message.status === "failed"
@@ -44,6 +46,14 @@ export function MessageBubble({
               <Ionicons color={colors.danger} name="alert-circle" size={13} />
               <Text style={styles.failedText}>Não enviada · Toque para tentar novamente</Text>
             </View>
+          </Pressable>
+        ) : mine && onLongPress ? (
+          <Pressable
+            accessibilityRole="button"
+            delayLongPress={300}
+            onLongPress={() => onLongPress(message)}
+          >
+            {bubble}
           </Pressable>
         ) : (
           bubble

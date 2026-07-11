@@ -1,7 +1,9 @@
 import { Ionicons } from "@expo/vector-icons"
+import { router } from "expo-router"
 import { useState } from "react"
 import {
   ActivityIndicator,
+  Pressable,
   ScrollView,
   StyleSheet,
   Text,
@@ -10,6 +12,7 @@ import {
 import { useSafeAreaInsets } from "react-native-safe-area-context"
 
 import { Button } from "@/components/ui/Button"
+import { routes } from "@/constants/routes"
 import { SectionHeader } from "@/features/client-home/components/SectionHeader"
 import { getInitials } from "@/features/client-home/greeting"
 import { colors, radius, spacing } from "@/features/client-home/theme"
@@ -187,6 +190,16 @@ export function ProfessionalProfileScreen() {
           </View>
         </View>
 
+        <Pressable
+          accessibilityRole="button"
+          onPress={() => router.push(routes.blockedUsers)}
+          style={({ pressed }) => [styles.menuItem, pressed && styles.pressed]}
+        >
+          <Ionicons color={colors.textPrimary} name="ban-outline" size={20} />
+          <Text style={styles.menuLabel}>Usuários bloqueados</Text>
+          <Ionicons color={colors.textTertiary} name="chevron-forward" size={18} />
+        </Pressable>
+
         <Button
           disabled={isSubmitting}
           label={isSubmitting ? "Saindo..." : "Sair"}
@@ -355,6 +368,23 @@ const styles = StyleSheet.create({
     fontSize: 15,
     fontWeight: "600",
   },
+  menuItem: {
+    alignItems: "center",
+    backgroundColor: colors.surface,
+    borderColor: colors.cardBorder,
+    borderRadius: radius.card,
+    borderWidth: 1,
+    flexDirection: "row",
+    gap: 12,
+    paddingHorizontal: 16,
+    paddingVertical: 16,
+  },
+  menuLabel: {
+    color: colors.textPrimary,
+    flex: 1,
+    fontSize: 15,
+    fontWeight: "600",
+  },
   name: {
     color: colors.textPrimary,
     fontSize: 22,
@@ -377,6 +407,9 @@ const styles = StyleSheet.create({
     color: "#FFFFFF",
     fontSize: 14,
     fontWeight: "600",
+  },
+  pressed: {
+    opacity: 0.7,
   },
   ratingLabel: {
     color: colors.textSecondary,

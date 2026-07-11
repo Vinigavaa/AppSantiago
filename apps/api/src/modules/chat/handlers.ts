@@ -1,6 +1,7 @@
 import { prisma } from "@santiago/database"
 import { z } from "zod"
 
+import { getBlockedUserIds, isBlockedBetween } from "@/modules/blocks/service"
 import { sendPushToUser } from "@/modules/notifications/push"
 import { getOrCreateProfessionalProfileId } from "@/modules/professional/professional-context"
 import { getOrCreateClientProfileId } from "@/modules/service-requests/client-profile"
@@ -54,6 +55,10 @@ async function resolvePair(
 
   if (!target) {
     return { ok: false, message: "Usuário não encontrado." }
+  }
+
+  if (await isBlockedBetween(currentUser.id, target.id)) {
+    return { ok: false, message: "Conversa indisponível." }
   }
 
   const roles = [currentUser.role, target.role]
@@ -131,10 +136,19 @@ export async function openChatHandler(context: AuthedContext) {
 export async function listChatsHandler(context: AuthedContext) {
   const user = context.get("user")
 
+  // Oculta conversas com quem foi bloqueado (em qualquer direção). Como um dos
+  // lados do par é sempre o próprio usuário, filtrar pelos dois papéis exclui
+  // exatamente as conversas cujo "outro" participante está bloqueado.
+  const blockedUserIds = await getBlockedUserIds(user.id)
+
   const chats = await prisma.chat.findMany({
     where: {
       messages: { some: {} },
       OR: [{ client: { userId: user.id } }, { professional: { userId: user.id } }],
+      NOT: [
+        { client: { userId: { in: blockedUserIds } } },
+        { professional: { userId: { in: blockedUserIds } } },
+      ],
     },
     orderBy: { updatedAt: "desc" },
     select: {
@@ -186,6 +200,11 @@ export async function listMessagesHandler(context: AuthedContext) {
     return chatNotFound(context)
   }
 
+  // Conversa bloqueada fica indisponível como se não existisse (mesmo 404).
+  if (await isBlockedBetween(user.id, otherParticipant(chat, user.id).userId)) {
+    return chatNotFound(context)
+  }
+
   await prisma.message.updateMany({
     where: { chatId: chat.id, senderId: { not: user.id }, readAt: null },
     data: { readAt: new Date() },
@@ -223,6 +242,11 @@ export async function sendMessageHandler(context: AuthedContext) {
 
   const recipient = otherParticipant(chat, user.id)
 
+  // Não é possível enviar mensagem para quem foi bloqueado (em qualquer direção).
+  if (await isBlockedBetween(user.id, recipient.userId)) {
+    return forbidden(context, "Conversa indisponível.")
+  }
+
   // Cria a mensagem e "sobe" a conversa (updatedAt) para ordenar a lista.
   const [message] = await prisma.$transaction([
     prisma.message.create({
@@ -251,4 +275,56 @@ export async function sendMessageHandler(context: AuthedContext) {
   void sendPushToUser(recipient.userId, "Nova mensagem", preview)
 
   return context.json({ message: serializeMessage(message, user.id) }, 201)
+}
+
+// Exclui uma mensagem enviada, apenas enquanto o destinatário ainda não a leu.
+// A remoção é definitiva e some para os dois lados. Só o remetente pode excluir.
+export async function deleteMessageHandler(context: AuthedContext) {
+  const user = context.get("user")
+  const chatId = context.req.param("id")
+  const messageId = context.req.param("messageId")
+
+  const chat = await loadAuthorizedChat(chatId, user.id)
+
+  if (!chat) {
+    return chatNotFound(context)
+  }
+
+  if (!idSchema.safeParse(messageId).success) {
+    return context.json({ code: "NOT_FOUND", message: "Mensagem não encontrada." }, 404)
+  }
+
+  const message = await prisma.message.findUnique({
+    where: { id: messageId },
+    select: { id: true, chatId: true, senderId: true, readAt: true },
+  })
+
+  // Mensagem inexistente, de outra conversa ou de outra pessoa: trata como
+  // inexistente (não revela mensagens que não pertencem ao usuário).
+  if (!message || message.chatId !== chat.id || message.senderId !== user.id) {
+    return context.json({ code: "NOT_FOUND", message: "Mensagem não encontrada." }, 404)
+  }
+
+  if (message.readAt !== null) {
+    return context.json(
+      { code: "ALREADY_READ", message: "Não é mais possível excluir: a mensagem já foi lida." },
+      409,
+    )
+  }
+
+  // Exclusão condicionada a `readAt: null` de forma atômica: se a outra pessoa
+  // marcou como lida entre a verificação acima e aqui, o delete não afeta nada e
+  // respondemos que já não é possível excluir.
+  const deleted = await prisma.message.deleteMany({
+    where: { id: message.id, senderId: user.id, readAt: null },
+  })
+
+  if (deleted.count === 0) {
+    return context.json(
+      { code: "ALREADY_READ", message: "Não é mais possível excluir: a mensagem já foi lida." },
+      409,
+    )
+  }
+
+  return context.json({ deleted: true })
 }

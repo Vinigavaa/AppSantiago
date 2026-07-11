@@ -4,7 +4,7 @@ import { Alert } from "react-native"
 
 import { routes } from "@/constants/routes"
 
-import { fetchChats, fetchMessages, openChat, sendMessage } from "./service"
+import { deleteMessage, fetchChats, fetchMessages, openChat, sendMessage } from "./service"
 import type { ChatMessage, ChatOtherUser, ChatSummary } from "./types"
 
 // Enquanto a lista/conversa está em foco, revalidamos em intervalo curto — é o
@@ -66,14 +66,20 @@ export function useChats() {
 
 // Junta as mensagens do servidor (fonte da verdade) com as locais ainda pendentes
 // (enviando/falha), que ainda não existem no servidor. Sem isso, o polling
-// "engoliria" a mensagem otimista recém-enviada.
-function mergeMessages(server: ChatMessage[], previous: ChatMessage[]): ChatMessage[] {
+// "engoliria" a mensagem otimista recém-enviada. `deleting` são ids em exclusão
+// otimista: ficam de fora até o servidor confirmar, evitando que um poll que
+// chegue antes da confirmação faça a mensagem "piscar" de volta na tela.
+function mergeMessages(
+  server: ChatMessage[],
+  previous: ChatMessage[],
+  deleting: Set<string>,
+): ChatMessage[] {
   const serverIds = new Set(server.map((message) => message.id))
   const pending = previous.filter(
     (message) =>
       (message.status === "sending" || message.status === "failed") && !serverIds.has(message.id),
   )
-  return [...server, ...pending]
+  return [...server, ...pending].filter((message) => !deleting.has(message.id))
 }
 
 // Id temporário de uma mensagem otimista (antes do servidor confirmar).
@@ -91,6 +97,8 @@ export function useChat(chatId: string) {
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const loadedOnce = useRef(false)
+  // Ids em exclusão otimista, escondidos dos merges até o servidor confirmar.
+  const deletingIds = useRef<Set<string>>(new Set())
 
   const load = useCallback(
     async (mode: "initial" | "silent") => {
@@ -101,7 +109,7 @@ export function useChat(chatId: string) {
       const result = await fetchMessages(chatId)
 
       if (result.ok) {
-        setMessages((previous) => mergeMessages(result.data.messages, previous))
+        setMessages((previous) => mergeMessages(result.data.messages, previous, deletingIds.current))
         setOtherUser(result.data.otherUser)
         setError(null)
       } else if (mode === "initial") {
@@ -140,6 +148,11 @@ export function useChat(chatId: string) {
             ),
           )
           return
+        }
+
+        // 403 = conversa bloqueada: reenviar não vai adiantar, falha na hora.
+        if (result.status === 403) {
+          break
         }
 
         if (attempt < MAX_SEND_ATTEMPTS) {
@@ -188,7 +201,29 @@ export function useChat(chatId: string) {
     [deliver],
   )
 
-  return { messages, otherUser, isLoading, error, send, retry }
+  // Exclui uma mensagem enviada (só antes de lida). Remove da tela na hora e, em
+  // falha (ex.: 409 — foi lida nesse meio-tempo), ressincroniza com o servidor
+  // para a mensagem reaparecer e devolve o erro para a tela avisar o usuário.
+  const remove = useCallback(
+    async (message: ChatMessage): Promise<{ ok: boolean; error?: string }> => {
+      deletingIds.current.add(message.id)
+      setMessages((previous) => previous.filter((item) => item.id !== message.id))
+
+      const result = await deleteMessage(chatId, message.id)
+
+      deletingIds.current.delete(message.id)
+
+      if (!result.ok) {
+        await load("silent")
+        return { ok: false, error: result.error }
+      }
+
+      return { ok: true }
+    },
+    [chatId, load],
+  )
+
+  return { messages, otherUser, isLoading, error, send, retry, remove }
 }
 
 // Abre a conversa com um usuário e navega para ela. Usado pelos botões

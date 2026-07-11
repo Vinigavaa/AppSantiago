@@ -1,8 +1,14 @@
 import { type Context, Hono } from "hono"
 
 import { createRateLimitMiddleware } from "@/http/rate-limit"
+import {
+  blockUserHandler,
+  listBlockedUsersHandler,
+  unblockUserHandler,
+} from "@/modules/blocks/handlers"
 import { listCategoriesHandler, listCitiesHandler } from "@/modules/catalog/handlers"
 import {
+  deleteMessageHandler,
   listChatsHandler,
   listMessagesHandler,
   openChatHandler,
@@ -130,6 +136,14 @@ appRoutes.post("/chats", openChatHandler)
 appRoutes.get("/chats", listChatsHandler)
 appRoutes.get("/chats/:id/messages", listMessagesHandler)
 appRoutes.post("/chats/:id/messages", sendMessageHandler)
+// Excluir mensagem enviada (apenas enquanto não foi lida pelo destinatário).
+appRoutes.delete("/chats/:id/messages/:messageId", deleteMessageHandler)
+
+// Bloqueio entre usuários: bloquear, listar bloqueados e desbloquear. O efeito
+// (sumir das listas/conversas) é aplicado nos próprios handlers de chat/oportunidades.
+appRoutes.post("/blocks", blockUserHandler)
+appRoutes.get("/blocks", listBlockedUsersHandler)
+appRoutes.delete("/blocks/:targetUserId", unblockUserHandler)
 
 // Central de notificações: lista do usuário + marcar como lidas ao abrir.
 appRoutes.get("/notifications", listNotificationsHandler)

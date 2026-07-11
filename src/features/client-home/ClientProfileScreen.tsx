@@ -1,7 +1,10 @@
-import { ScrollView, StyleSheet, Text, View } from "react-native"
+import { Ionicons } from "@expo/vector-icons"
+import { router } from "expo-router"
+import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native"
 import { useSafeAreaInsets } from "react-native-safe-area-context"
 
 import { Button } from "@/components/ui/Button"
+import { routes } from "@/constants/routes"
 import { useAuth } from "@/features/auth/hooks/useAuth"
 import { getInitials } from "@/features/client-home/greeting"
 import { colors, radius, spacing } from "@/features/client-home/theme"
@@ -29,6 +32,16 @@ export function ClientProfileScreen() {
         <Text style={styles.name}>{name}</Text>
         {email ? <Text style={styles.email}>{email}</Text> : null}
       </View>
+
+      <Pressable
+        accessibilityRole="button"
+        onPress={() => router.push(routes.blockedUsers)}
+        style={({ pressed }) => [styles.menuItem, pressed && styles.pressed]}
+      >
+        <Ionicons color={colors.textPrimary} name="ban-outline" size={20} />
+        <Text style={styles.menuLabel}>Usuários bloqueados</Text>
+        <Ionicons color={colors.textTertiary} name="chevron-forward" size={18} />
+      </Pressable>
 
       <Button
         disabled={isSubmitting}
@@ -73,11 +86,31 @@ const styles = StyleSheet.create({
     color: colors.textSecondary,
     fontSize: 14,
   },
+  menuItem: {
+    alignItems: "center",
+    backgroundColor: colors.surface,
+    borderColor: colors.cardBorder,
+    borderRadius: radius.card,
+    borderWidth: 1,
+    flexDirection: "row",
+    gap: 12,
+    paddingHorizontal: 16,
+    paddingVertical: 16,
+  },
+  menuLabel: {
+    color: colors.textPrimary,
+    flex: 1,
+    fontSize: 15,
+    fontWeight: "600",
+  },
   name: {
     color: colors.textPrimary,
     fontSize: 20,
     fontWeight: "700",
     marginTop: 6,
+  },
+  pressed: {
+    opacity: 0.7,
   },
   screen: {
     backgroundColor: colors.screenBg,

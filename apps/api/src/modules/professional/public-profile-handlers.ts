@@ -1,6 +1,7 @@
 import { prisma } from "@santiago/database"
 import { z } from "zod"
 
+import { blockStateBetween } from "@/modules/blocks/service"
 import type { AuthedContext } from "@/modules/shared/require-auth"
 
 const idSchema = z.uuid()
@@ -15,6 +16,7 @@ function firstName(name: string): string {
 // contratação. Traz identidade, reputação, atuação e avaliações — nunca dados de
 // contato (e-mail/telefone), que só são liberados após a contratação.
 export async function publicProfessionalProfileHandler(context: AuthedContext) {
+  const user = context.get("user")
   const id = context.req.param("id")
 
   if (!idSchema.safeParse(id).success) {
@@ -42,6 +44,15 @@ export async function publicProfessionalProfileHandler(context: AuthedContext) {
 
   if (!profile) {
     return context.json({ code: "NOT_FOUND", message: "Profissional não encontrado." }, 404)
+  }
+
+  const block = await blockStateBetween(user.id, profile.user.id)
+
+  // Se o profissional bloqueou este cliente, o perfil some para ele (como se não
+  // existisse). Se o cliente bloqueou o profissional, o perfil ainda é exibido —
+  // com o estado `block.byMe` a UI mostra "Desbloquear" no lugar de "Conversar".
+  if (block.byThem) {
+    return context.json({ code: "NOT_FOUND", message: "Perfil indisponível." }, 404)
   }
 
   const [servicesCompleted, reviews] = await Promise.all([
@@ -79,6 +90,8 @@ export async function publicProfessionalProfileHandler(context: AuthedContext) {
       cities,
       ratingAverage: Number(profile.ratingAverage),
       ratingCount: profile.ratingCount,
+      // byMe habilita "Desbloquear"; byThem nunca chega aqui (perfil 404 acima).
+      blockedByMe: block.byMe,
       stats: { servicesCompleted },
       reviews: reviews.map((review) => ({
         id: review.id,

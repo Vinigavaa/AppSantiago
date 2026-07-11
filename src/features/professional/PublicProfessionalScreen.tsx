@@ -3,6 +3,7 @@ import { router } from "expo-router"
 import { useCallback, useEffect, useState } from "react"
 import {
   ActivityIndicator,
+  Alert,
   Image,
   Pressable,
   ScrollView,
@@ -13,6 +14,7 @@ import {
 import { useSafeAreaInsets } from "react-native-safe-area-context"
 
 import { Button } from "@/components/ui/Button"
+import { blockUser, unblockUser } from "@/features/blocks/service"
 import { useStartChat } from "@/features/chat/hooks"
 import { getInitials } from "@/features/client-home/greeting"
 import { colors, radius, spacing } from "@/features/client-home/theme"
@@ -27,6 +29,7 @@ export function PublicProfessionalScreen({ id }: { id: string }) {
   const { start, isStarting } = useStartChat()
   const [professional, setProfessional] = useState<PublicProfessional | null>(null)
   const [isLoading, setIsLoading] = useState(true)
+  const [isUpdatingBlock, setIsUpdatingBlock] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
   const load = useCallback(async () => {
@@ -48,6 +51,52 @@ export function PublicProfessionalScreen({ id }: { id: string }) {
     void load()
   }, [load])
 
+  // Bloquear: confirma, bloqueia e volta — o profissional some das listas e
+  // conversas do cliente. O bloqueio é aplicado no backend.
+  function confirmBlock() {
+    if (!professional) {
+      return
+    }
+
+    Alert.alert(
+      `Bloquear ${professional.name}?`,
+      "Ele deixará de aparecer para você e vocês não poderão mais trocar mensagens. Você pode desfazer em Usuários bloqueados.",
+      [
+        { text: "Cancelar", style: "cancel" },
+        {
+          text: "Bloquear",
+          style: "destructive",
+          onPress: async () => {
+            setIsUpdatingBlock(true)
+            const result = await blockUser(professional.userId)
+            setIsUpdatingBlock(false)
+            if (result.ok) {
+              router.back()
+            } else {
+              Alert.alert("Não foi possível bloquear", result.error)
+            }
+          },
+        },
+      ],
+    )
+  }
+
+  // Desbloquear: refaz a carga para restaurar o botão "Conversar".
+  async function handleUnblock() {
+    if (!professional) {
+      return
+    }
+
+    setIsUpdatingBlock(true)
+    const result = await unblockUser(professional.userId)
+    setIsUpdatingBlock(false)
+    if (result.ok) {
+      void load()
+    } else {
+      Alert.alert("Não foi possível desbloquear", result.error)
+    }
+  }
+
   return (
     <View style={styles.screen}>
       <View style={[styles.header, { paddingTop: insets.top + 12 }]}>
@@ -61,6 +110,17 @@ export function PublicProfessionalScreen({ id }: { id: string }) {
           <Ionicons color={colors.textPrimary} name="chevron-back" size={22} />
         </Pressable>
         <Text style={styles.headerTitle}>Perfil do profissional</Text>
+        {professional && !professional.blockedByMe ? (
+          <Pressable
+            accessibilityLabel="Bloquear profissional"
+            accessibilityRole="button"
+            hitSlop={8}
+            onPress={confirmBlock}
+            style={({ pressed }) => [styles.menuButton, pressed && styles.pressed]}
+          >
+            <Ionicons color={colors.textPrimary} name="ellipsis-vertical" size={20} />
+          </Pressable>
+        ) : null}
       </View>
 
       <ScrollView
@@ -117,21 +177,39 @@ export function PublicProfessionalScreen({ id }: { id: string }) {
           </View>
         </View>
 
-        <Pressable
-          accessibilityRole="button"
-          disabled={isStarting}
-          onPress={() => start(professional.userId)}
-          style={({ pressed }) => [styles.chatButton, pressed && styles.pressed]}
-        >
-          {isStarting ? (
-            <ActivityIndicator color="#FFFFFF" size="small" />
-          ) : (
-            <>
-              <Ionicons color="#FFFFFF" name="chatbubble-ellipses-outline" size={18} />
-              <Text style={styles.chatButtonText}>Conversar</Text>
-            </>
-          )}
-        </Pressable>
+        {professional.blockedByMe ? (
+          <Pressable
+            accessibilityRole="button"
+            disabled={isUpdatingBlock}
+            onPress={handleUnblock}
+            style={({ pressed }) => [styles.unblockButton, pressed && styles.pressed]}
+          >
+            {isUpdatingBlock ? (
+              <ActivityIndicator color={colors.accent} size="small" />
+            ) : (
+              <>
+                <Ionicons color={colors.accent} name="lock-open-outline" size={18} />
+                <Text style={styles.unblockButtonText}>Desbloquear</Text>
+              </>
+            )}
+          </Pressable>
+        ) : (
+          <Pressable
+            accessibilityRole="button"
+            disabled={isStarting}
+            onPress={() => start(professional.userId)}
+            style={({ pressed }) => [styles.chatButton, pressed && styles.pressed]}
+          >
+            {isStarting ? (
+              <ActivityIndicator color="#FFFFFF" size="small" />
+            ) : (
+              <>
+                <Ionicons color="#FFFFFF" name="chatbubble-ellipses-outline" size={18} />
+                <Text style={styles.chatButtonText}>Conversar</Text>
+              </>
+            )}
+          </Pressable>
+        )}
 
         <View style={styles.statsRow}>
           <StatBox
@@ -329,8 +407,17 @@ const styles = StyleSheet.create({
   },
   headerTitle: {
     color: colors.textPrimary,
+    flex: 1,
     fontSize: 20,
     fontWeight: "700",
+  },
+  menuButton: {
+    alignItems: "center",
+    backgroundColor: colors.iconMutedBg,
+    borderRadius: 999,
+    height: 40,
+    justifyContent: "center",
+    width: 40,
   },
   mainCategory: {
     color: colors.accent,
@@ -435,5 +522,20 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     paddingHorizontal: 12,
     paddingVertical: 16,
+  },
+  unblockButton: {
+    alignItems: "center",
+    backgroundColor: colors.accentSoftBg,
+    borderRadius: radius.search,
+    flexDirection: "row",
+    gap: 8,
+    justifyContent: "center",
+    minHeight: 50,
+    paddingVertical: 14,
+  },
+  unblockButtonText: {
+    color: colors.accent,
+    fontSize: 15,
+    fontWeight: "700",
   },
 })

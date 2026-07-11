@@ -1,6 +1,7 @@
 import { prisma } from "@santiago/database"
 import { z } from "zod"
 
+import { getBlockedUserIds, isBlockedBetween } from "@/modules/blocks/service"
 import { serializeOwnProposal } from "@/modules/proposals/serialize"
 import { serializeServiceRequest, serviceRequestInclude } from "@/modules/service-requests/serialize"
 import type { AuthedContext } from "@/modules/shared/require-auth"
@@ -38,11 +39,15 @@ export async function listOpportunitiesHandler(context: AuthedContext) {
     return context.json({ opportunities: [] })
   }
 
+  // Clientes bloqueados (em qualquer direção) somem das oportunidades.
+  const blockedUserIds = await getBlockedUserIds(user.id)
+
   const requests = await prisma.serviceRequest.findMany({
     where: {
       status: "OPEN",
       categoryId: { in: coverage.categoryIds },
       cityId: { in: coverage.cityIds },
+      client: { userId: { notIn: blockedUserIds } },
       // Não exibir solicitações em que este profissional já enviou proposta
       // (qualquer status): assim que ele propõe, a solicitação sai da home dele.
       NOT: {
@@ -116,6 +121,14 @@ export async function opportunityDetailHandler(context: AuthedContext) {
       user: { select: { id: true, name: true } },
     },
   })
+
+  // Cliente bloqueado (em qualquer direção): a oportunidade fica indisponível.
+  if (client && (await isBlockedBetween(user.id, client.user.id))) {
+    return context.json(
+      { code: "NOT_FOUND", message: "Oportunidade indisponível." },
+      404,
+    )
+  }
 
   return context.json({
     opportunity: serializeServiceRequest(request),

@@ -39,3 +39,16 @@ export async function sendMessage(
   })
   return result.ok ? { ok: true, data: result.data.message } : result
 }
+
+// Exclui uma mensagem enviada (permitido apenas enquanto não foi lida). Falha com
+// 409 se o destinatário já a visualizou.
+export async function deleteMessage(
+  chatId: string,
+  messageId: string,
+): Promise<ApiResult<void>> {
+  const result = await appFetch<{ deleted: boolean }>(
+    `/chats/${chatId}/messages/${messageId}`,
+    { method: "DELETE" },
+  )
+  return result.ok ? { ok: true, data: undefined } : result
+}

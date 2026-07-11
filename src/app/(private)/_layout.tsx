@@ -81,6 +81,7 @@ export default function PrivateLayout() {
         <Tabs.Screen name="professionals" options={{ href: null }} />
         <Tabs.Screen name="opportunity-details" options={{ href: null }} />
         <Tabs.Screen name="notifications" options={{ href: null }} />
+        <Tabs.Screen name="blocked-users" options={{ href: null }} />
       </Tabs>
     )
   }
@@ -125,6 +126,7 @@ export default function PrivateLayout() {
       <Tabs.Screen name="professionals" options={{ href: null }} />
       <Tabs.Screen name="opportunity-details" options={{ href: null }} />
       <Tabs.Screen name="notifications" options={{ href: null }} />
+      <Tabs.Screen name="blocked-users" options={{ href: null }} />
     </Tabs>
   )
 }
