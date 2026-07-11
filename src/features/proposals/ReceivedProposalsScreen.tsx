@@ -1,17 +1,10 @@
 import { Ionicons } from "@expo/vector-icons"
 import { type Href, router } from "expo-router"
 import { useMemo, useState } from "react"
-import {
-  ActivityIndicator,
-  Alert,
-  RefreshControl,
-  ScrollView,
-  StyleSheet,
-  Text,
-  View,
-} from "react-native"
+import { Alert, RefreshControl, ScrollView, StyleSheet, Text, View } from "react-native"
 import { useSafeAreaInsets } from "react-native-safe-area-context"
 
+import { LoadingState } from "@/components/ui/LoadingState"
 import { routes } from "@/constants/routes"
 import { EmptyState } from "@/features/client-home/components/EmptyState"
 import { colors, spacing } from "@/features/client-home/theme"
@@ -162,11 +155,7 @@ export function ReceivedProposalsScreen() {
 
   function renderBody() {
     if (isLoading) {
-      return (
-        <View style={styles.centered}>
-          <ActivityIndicator color={colors.accent} />
-        </View>
-      )
+      return <LoadingState />
     }
 
     if (error && proposals.length === 0) {
@@ -221,9 +210,6 @@ export function ReceivedProposalsScreen() {
 }
 
 const styles = StyleSheet.create({
-  centered: {
-    paddingVertical: 48,
-  },
   content: {
     gap: 18,
     paddingBottom: 28,

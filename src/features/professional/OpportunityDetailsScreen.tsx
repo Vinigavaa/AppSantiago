@@ -1,17 +1,12 @@
 import { Ionicons } from "@expo/vector-icons"
 import { router, useLocalSearchParams } from "expo-router"
 import { useCallback, useEffect, useState } from "react"
-import {
-  ActivityIndicator,
-  Alert,
-  Pressable,
-  ScrollView,
-  StyleSheet,
-  Text,
-  View,
-} from "react-native"
+import { ActivityIndicator, Alert, Pressable, ScrollView, StyleSheet, Text, View } from "react-native"
 import { useSafeAreaInsets } from "react-native-safe-area-context"
 
+import { LoadingState } from "@/components/ui/LoadingState"
+import { ScreenHeader } from "@/components/ui/ScreenHeader"
+import { EmptyState } from "@/features/client-home/components/EmptyState"
 import { useStartChat } from "@/features/chat/hooks"
 import { colors, radius, spacing } from "@/features/client-home/theme"
 import {
@@ -109,33 +104,19 @@ export function OpportunityDetailsScreen() {
 
   return (
     <View style={styles.screen}>
-      <View style={[styles.header, { paddingTop: insets.top + 12 }]}>
-        <Pressable
-          accessibilityLabel="Voltar"
-          accessibilityRole="button"
-          hitSlop={8}
-          onPress={() => router.back()}
-          style={({ pressed }) => [styles.backButton, pressed && styles.pressed]}
-        >
-          <Ionicons color={colors.textPrimary} name="chevron-back" size={22} />
-        </Pressable>
-        <Text style={styles.headerTitle}>Detalhes da oportunidade</Text>
-      </View>
+      <ScreenHeader onBack={() => router.back()} title="Detalhes da oportunidade" />
 
       {isLoading ? (
-        <View style={styles.centered}>
-          <ActivityIndicator color={colors.accent} />
-        </View>
+        <LoadingState />
       ) : error || !opportunity ? (
-        <View style={styles.centered}>
-          <Text style={styles.errorText}>{error ?? "Não foi possível carregar."}</Text>
-          <Pressable
-            accessibilityRole="button"
-            onPress={load}
-            style={({ pressed }) => [styles.retry, pressed && styles.pressed]}
-          >
-            <Text style={styles.retryText}>Tentar novamente</Text>
-          </Pressable>
+        <View style={styles.stateWrap}>
+          <EmptyState
+            actionLabel="Tentar novamente"
+            description={error ?? "Não foi possível carregar."}
+            icon="cloud-offline-outline"
+            onPressAction={load}
+            title="Não foi possível carregar"
+          />
         </View>
       ) : (
         <Details
@@ -381,14 +362,6 @@ function InfoRow({
 }
 
 const styles = StyleSheet.create({
-  backButton: {
-    alignItems: "center",
-    backgroundColor: colors.iconMutedBg,
-    borderRadius: 999,
-    height: 40,
-    justifyContent: "center",
-    width: 40,
-  },
   cancelButton: {
     alignItems: "center",
     borderColor: colors.danger,
@@ -400,13 +373,6 @@ const styles = StyleSheet.create({
     color: colors.danger,
     fontSize: 14,
     fontWeight: "600",
-  },
-  centered: {
-    alignItems: "center",
-    flex: 1,
-    gap: 14,
-    justifyContent: "center",
-    paddingHorizontal: spacing.screen,
   },
   chatClientButton: {
     alignItems: "center",
@@ -491,24 +457,6 @@ const styles = StyleSheet.create({
     backgroundColor: colors.cardBorder,
     height: 1,
   },
-  errorText: {
-    color: colors.textSecondary,
-    fontSize: 14,
-    textAlign: "center",
-  },
-  header: {
-    alignItems: "center",
-    backgroundColor: colors.screenBg,
-    flexDirection: "row",
-    gap: 12,
-    paddingBottom: 12,
-    paddingHorizontal: spacing.screen,
-  },
-  headerTitle: {
-    color: colors.textPrimary,
-    fontSize: 20,
-    fontWeight: "700",
-  },
   infoCard: {
     backgroundColor: colors.surface,
     borderColor: colors.cardBorder,
@@ -524,17 +472,6 @@ const styles = StyleSheet.create({
     color: colors.textTertiary,
     fontSize: 13,
     lineHeight: 18,
-  },
-  retry: {
-    backgroundColor: colors.accentSoftBg,
-    borderRadius: radius.search,
-    paddingHorizontal: 20,
-    paddingVertical: 12,
-  },
-  retryText: {
-    color: colors.accent,
-    fontSize: 14,
-    fontWeight: "600",
   },
   row: {
     alignItems: "center",
@@ -567,6 +504,10 @@ const styles = StyleSheet.create({
   screen: {
     backgroundColor: colors.screenBg,
     flex: 1,
+  },
+  stateWrap: {
+    paddingHorizontal: spacing.screen,
+    paddingTop: 8,
   },
   section: {
     gap: 8,

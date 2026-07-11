@@ -1,14 +1,9 @@
 import { type Href, router } from "expo-router"
 import { useMemo, useState } from "react"
-import {
-  ActivityIndicator,
-  RefreshControl,
-  ScrollView,
-  StyleSheet,
-  View,
-} from "react-native"
+import { RefreshControl, ScrollView, StyleSheet, View } from "react-native"
 import { useSafeAreaInsets } from "react-native-safe-area-context"
 
+import { LoadingState } from "@/components/ui/LoadingState"
 import { routes } from "@/constants/routes"
 import { CreateRequestButton } from "@/features/client-home/components/CreateRequestButton"
 import { EmptyState } from "@/features/client-home/components/EmptyState"
@@ -159,11 +154,7 @@ export function ClientHome() {
 
   function renderRequests() {
     if (isLoading) {
-      return (
-        <View style={styles.centered}>
-          <ActivityIndicator color={colors.accent} />
-        </View>
-      )
+      return <LoadingState />
     }
 
     if (error && requests.length === 0) {
@@ -232,9 +223,6 @@ export function ClientHome() {
 const styles = StyleSheet.create({
   cardList: {
     gap: spacing.cardGap,
-  },
-  centered: {
-    paddingVertical: 32,
   },
   content: {
     gap: 20,

@@ -1,19 +1,10 @@
-import { Ionicons } from "@expo/vector-icons"
 import { router, useFocusEffect } from "expo-router"
 import { useCallback, useEffect, useMemo, useRef } from "react"
-import {
-  ActivityIndicator,
-  KeyboardAvoidingView,
-  Platform,
-  Pressable,
-  ScrollView,
-  StyleSheet,
-  Text,
-  View,
-} from "react-native"
-import { useSafeAreaInsets } from "react-native-safe-area-context"
+import { KeyboardAvoidingView, Platform, ScrollView, StyleSheet, View } from "react-native"
 
-import { Button } from "@/components/ui/Button"
+import { LoadingState } from "@/components/ui/LoadingState"
+import { ScreenHeader } from "@/components/ui/ScreenHeader"
+import { EmptyState } from "@/features/client-home/components/EmptyState"
 import { colors, spacing } from "@/features/client-home/theme"
 import { RequestForm } from "@/features/service-requests/components/RequestForm"
 import { useCatalog, useServiceRequestDetail } from "@/features/service-requests/hooks"
@@ -22,7 +13,6 @@ import type { CreateServiceRequestInput } from "@/features/service-requests/type
 import { detailToFormState, useRequestForm } from "@/features/service-requests/useCreateRequestForm"
 
 export function EditRequestScreen({ id }: { id: string }) {
-  const insets = useSafeAreaInsets()
   const { categories, cities, isLoading: catalogLoading, error: catalogError, reload } = useCatalog()
   const { request, isLoading: detailLoading, error: detailError } = useServiceRequestDetail(id)
 
@@ -33,18 +23,7 @@ export function EditRequestScreen({ id }: { id: string }) {
       behavior={Platform.OS === "ios" ? "padding" : undefined}
       style={styles.screen}
     >
-      <View style={[styles.header, { paddingTop: insets.top + 12 }]}>
-        <Pressable
-          accessibilityLabel="Voltar"
-          accessibilityRole="button"
-          hitSlop={8}
-          onPress={() => router.back()}
-          style={({ pressed }) => [styles.backButton, pressed && styles.pressed]}
-        >
-          <Ionicons color={colors.textPrimary} name="chevron-back" size={22} />
-        </Pressable>
-        <Text style={styles.headerTitle}>Editar solicitação</Text>
-      </View>
+      <ScreenHeader onBack={() => router.back()} title="Editar solicitação" />
 
       <ScrollView
         contentContainerStyle={styles.content}
@@ -52,16 +31,15 @@ export function EditRequestScreen({ id }: { id: string }) {
         showsVerticalScrollIndicator={false}
       >
         {isLoading ? (
-          <View style={styles.centered}>
-            <ActivityIndicator color={colors.accent} />
-          </View>
+          <LoadingState />
         ) : catalogError || !request ? (
-          <View style={styles.centered}>
-            <Text style={styles.errorText}>
-              {catalogError ?? detailError ?? "Não foi possível carregar a solicitação."}
-            </Text>
-            <Button label="Tentar novamente" onPress={reload} style={styles.retry} variant="secondary" />
-          </View>
+          <EmptyState
+            actionLabel="Tentar novamente"
+            description={catalogError ?? detailError ?? "Não foi possível carregar a solicitação."}
+            icon="cloud-offline-outline"
+            onPressAction={reload}
+            title="Não foi possível carregar"
+          />
         ) : (
           <EditForm categories={categories} cities={cities} detail={request} id={id} key={id} />
         )}
@@ -126,48 +104,11 @@ function EditForm({
 }
 
 const styles = StyleSheet.create({
-  backButton: {
-    alignItems: "center",
-    backgroundColor: colors.iconMutedBg,
-    borderRadius: 999,
-    height: 40,
-    justifyContent: "center",
-    width: 40,
-  },
-  centered: {
-    alignItems: "center",
-    gap: 14,
-    paddingVertical: 60,
-  },
   content: {
     gap: 18,
     paddingBottom: 40,
     paddingHorizontal: spacing.screen,
     paddingTop: 8,
-  },
-  errorText: {
-    color: colors.textSecondary,
-    fontSize: 14,
-    textAlign: "center",
-  },
-  header: {
-    alignItems: "center",
-    backgroundColor: colors.screenBg,
-    flexDirection: "row",
-    gap: 12,
-    paddingBottom: 12,
-    paddingHorizontal: spacing.screen,
-  },
-  headerTitle: {
-    color: colors.textPrimary,
-    fontSize: 20,
-    fontWeight: "700",
-  },
-  pressed: {
-    opacity: 0.7,
-  },
-  retry: {
-    paddingHorizontal: 24,
   },
   screen: {
     backgroundColor: colors.screenBg,

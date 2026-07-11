@@ -1,16 +1,9 @@
 import { useLocalSearchParams } from "expo-router"
 import { useEffect, useMemo, useState } from "react"
-import {
-  ActivityIndicator,
-  Alert,
-  RefreshControl,
-  ScrollView,
-  StyleSheet,
-  Text,
-  View,
-} from "react-native"
+import { Alert, RefreshControl, ScrollView, StyleSheet, Text, View } from "react-native"
 import { useSafeAreaInsets } from "react-native-safe-area-context"
 
+import { LoadingState } from "@/components/ui/LoadingState"
 import { EmptyState } from "@/features/client-home/components/EmptyState"
 import { FilterChips } from "@/features/client-home/components/FilterChips"
 import { colors, spacing } from "@/features/client-home/theme"
@@ -179,11 +172,7 @@ export function ProfessionalServicesScreen() {
 
   function renderRejected() {
     if (rejectedLoading) {
-      return (
-        <View style={styles.centered}>
-          <ActivityIndicator color={colors.accent} />
-        </View>
-      )
+      return <LoadingState />
     }
 
     if (rejectedError && rejectedProposals.length === 0) {
@@ -219,11 +208,7 @@ export function ProfessionalServicesScreen() {
 
   function renderServices() {
     if (isLoading) {
-      return (
-        <View style={styles.centered}>
-          <ActivityIndicator color={colors.accent} />
-        </View>
-      )
+      return <LoadingState />
     }
 
     if (error && services.length === 0) {
@@ -277,9 +262,6 @@ export function ProfessionalServicesScreen() {
 }
 
 const styles = StyleSheet.create({
-  centered: {
-    paddingVertical: 48,
-  },
   chipsContent: {
     gap: 10,
   },

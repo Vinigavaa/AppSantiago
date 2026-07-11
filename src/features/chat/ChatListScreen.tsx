@@ -1,14 +1,8 @@
 import { type Href, router } from "expo-router"
-import {
-  ActivityIndicator,
-  FlatList,
-  RefreshControl,
-  StyleSheet,
-  Text,
-  View,
-} from "react-native"
+import { FlatList, RefreshControl, StyleSheet, Text, View } from "react-native"
 import { useSafeAreaInsets } from "react-native-safe-area-context"
 
+import { LoadingState } from "@/components/ui/LoadingState"
 import { routes } from "@/constants/routes"
 import { EmptyState } from "@/features/client-home/components/EmptyState"
 import { colors, spacing } from "@/features/client-home/theme"
@@ -28,9 +22,7 @@ export function ChatListScreen() {
       </View>
 
       {isLoading && chats.length === 0 ? (
-        <View style={styles.centered}>
-          <ActivityIndicator color={colors.accent} />
-        </View>
+        <LoadingState fill />
       ) : error && chats.length === 0 ? (
         <View style={styles.centered}>
           <EmptyState

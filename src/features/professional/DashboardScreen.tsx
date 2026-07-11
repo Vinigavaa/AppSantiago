@@ -1,14 +1,8 @@
 import { type Href, router } from "expo-router"
-import {
-  ActivityIndicator,
-  RefreshControl,
-  ScrollView,
-  StyleSheet,
-  Text,
-  View,
-} from "react-native"
+import { RefreshControl, ScrollView, StyleSheet, Text, View } from "react-native"
 import { useSafeAreaInsets } from "react-native-safe-area-context"
 
+import { LoadingState } from "@/components/ui/LoadingState"
 import { routes } from "@/constants/routes"
 import { colors, spacing } from "@/features/client-home/theme"
 import { formatProposalPrice } from "@/features/proposals/format"
@@ -39,9 +33,7 @@ export function DashboardScreen() {
       </View>
 
       {isLoading && !dashboard ? (
-        <View style={styles.centered}>
-          <ActivityIndicator color={colors.accent} />
-        </View>
+        <LoadingState />
       ) : error && !dashboard ? (
         <Text style={styles.error}>{error}</Text>
       ) : (
@@ -81,9 +73,6 @@ export function DashboardScreen() {
 }
 
 const styles = StyleSheet.create({
-  centered: {
-    paddingVertical: 32,
-  },
   content: {
     gap: 20,
     paddingBottom: 28,

@@ -1,9 +1,10 @@
 import { Ionicons } from "@expo/vector-icons"
 import { type Href, router } from "expo-router"
 import { useMemo, useState } from "react"
-import { ActivityIndicator, FlatList, Pressable, StyleSheet, Text, View } from "react-native"
+import { FlatList, Pressable, StyleSheet, Text, View } from "react-native"
 import { useSafeAreaInsets } from "react-native-safe-area-context"
 
+import { LoadingState } from "@/components/ui/LoadingState"
 import { routes } from "@/constants/routes"
 import { EmptyState } from "@/features/client-home/components/EmptyState"
 import { SearchBar } from "@/features/client-home/components/SearchBar"
@@ -147,11 +148,7 @@ export function ProfessionalSearchScreen() {
 
   function renderEmpty() {
     if (isLoading) {
-      return (
-        <View style={styles.centered}>
-          <ActivityIndicator color={colors.accent} />
-        </View>
-      )
+      return <LoadingState />
     }
 
     if (error) {
@@ -175,9 +172,6 @@ export function ProfessionalSearchScreen() {
 }
 
 const styles = StyleSheet.create({
-  centered: {
-    paddingVertical: 48,
-  },
   clearText: {
     color: colors.accent,
     fontSize: 14,

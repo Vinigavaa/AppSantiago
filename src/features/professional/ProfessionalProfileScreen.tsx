@@ -1,17 +1,11 @@
 import { Ionicons } from "@expo/vector-icons"
 import { router } from "expo-router"
 import { useState } from "react"
-import {
-  ActivityIndicator,
-  Pressable,
-  ScrollView,
-  StyleSheet,
-  Text,
-  View,
-} from "react-native"
+import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native"
 import { useSafeAreaInsets } from "react-native-safe-area-context"
 
 import { Button } from "@/components/ui/Button"
+import { LoadingState } from "@/components/ui/LoadingState"
 import { routes } from "@/constants/routes"
 import { SectionHeader } from "@/features/client-home/components/SectionHeader"
 import { getInitials } from "@/features/client-home/greeting"
@@ -79,11 +73,7 @@ export function ProfessionalProfileScreen() {
   }
 
   if (isLoading && !profile) {
-    return (
-      <View style={styles.loading}>
-        <ActivityIndicator color={colors.accent} />
-      </View>
-    )
+    return <LoadingState fill />
   }
 
   if (!profile) {

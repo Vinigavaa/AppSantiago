@@ -1,17 +1,10 @@
 import { Ionicons } from "@expo/vector-icons"
 import { router } from "expo-router"
-import {
-  ActivityIndicator,
-  Pressable,
-  RefreshControl,
-  ScrollView,
-  StyleSheet,
-  Text,
-  View,
-} from "react-native"
-import { useSafeAreaInsets } from "react-native-safe-area-context"
+import { RefreshControl, ScrollView, StyleSheet, Text, View } from "react-native"
 
 import { EmptyState } from "@/features/client-home/components/EmptyState"
+import { LoadingState } from "@/components/ui/LoadingState"
+import { ScreenHeader } from "@/components/ui/ScreenHeader"
 import { colors, radius, spacing } from "@/features/client-home/theme"
 import { formatRelativeTime } from "@/features/service-requests/format"
 
@@ -20,23 +13,11 @@ import { useNotificationCenter } from "./hooks"
 import type { AppNotification } from "./types"
 
 export function NotificationsScreen() {
-  const insets = useSafeAreaInsets()
   const { notifications, isLoading, isRefreshing, error, refetch } = useNotificationCenter()
 
   return (
     <View style={styles.screen}>
-      <View style={[styles.header, { paddingTop: insets.top + 12 }]}>
-        <Pressable
-          accessibilityLabel="Voltar"
-          accessibilityRole="button"
-          hitSlop={8}
-          onPress={() => router.back()}
-          style={({ pressed }) => [styles.backButton, pressed && styles.pressed]}
-        >
-          <Ionicons color={colors.textPrimary} name="chevron-back" size={22} />
-        </Pressable>
-        <Text style={styles.headerTitle}>Notificações</Text>
-      </View>
+      <ScreenHeader onBack={() => router.back()} title="Notificações" />
 
       <ScrollView
         contentContainerStyle={styles.content}
@@ -52,11 +33,7 @@ export function NotificationsScreen() {
 
   function renderBody() {
     if (isLoading) {
-      return (
-        <View style={styles.centered}>
-          <ActivityIndicator color={colors.accent} />
-        </View>
-      )
+      return <LoadingState />
     }
 
     if (error && notifications.length === 0) {
@@ -112,35 +89,11 @@ function NotificationRow({ notification }: { notification: AppNotification }) {
 }
 
 const styles = StyleSheet.create({
-  backButton: {
-    alignItems: "center",
-    backgroundColor: colors.iconMutedBg,
-    borderRadius: 999,
-    height: 40,
-    justifyContent: "center",
-    width: 40,
-  },
-  centered: {
-    paddingVertical: 48,
-  },
   content: {
     gap: spacing.cardGap,
     paddingBottom: 28,
     paddingHorizontal: spacing.screen,
     paddingTop: 8,
-  },
-  header: {
-    alignItems: "center",
-    backgroundColor: colors.screenBg,
-    flexDirection: "row",
-    gap: 12,
-    paddingBottom: 12,
-    paddingHorizontal: spacing.screen,
-  },
-  headerTitle: {
-    color: colors.textPrimary,
-    fontSize: 20,
-    fontWeight: "700",
   },
   iconWrap: {
     alignItems: "center",
@@ -151,9 +104,6 @@ const styles = StyleSheet.create({
   },
   list: {
     gap: 10,
-  },
-  pressed: {
-    opacity: 0.7,
   },
   row: {
     backgroundColor: colors.surface,

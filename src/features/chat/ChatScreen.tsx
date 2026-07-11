@@ -1,7 +1,6 @@
 import { type Href, router } from "expo-router"
 import { useRef } from "react"
 import {
-  ActivityIndicator,
   Alert,
   FlatList,
   KeyboardAvoidingView,
@@ -12,6 +11,7 @@ import {
 } from "react-native"
 import { useSafeAreaInsets } from "react-native-safe-area-context"
 
+import { LoadingState } from "@/components/ui/LoadingState"
 import { routes } from "@/constants/routes"
 import { blockUser } from "@/features/blocks/service"
 import { colors, spacing } from "@/features/client-home/theme"
@@ -122,9 +122,7 @@ export function ChatScreen({ chatId }: { chatId: string }) {
       />
 
       {isLoading && messages.length === 0 ? (
-        <View style={styles.centered}>
-          <ActivityIndicator color={colors.accent} />
-        </View>
+        <LoadingState fill />
       ) : error && messages.length === 0 ? (
         <View style={styles.centered}>
           <Text style={styles.errorText}>{error}</Text>

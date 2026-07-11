@@ -1,19 +1,11 @@
 import { Ionicons } from "@expo/vector-icons"
 import { type Href, router } from "expo-router"
 import { useCallback, useEffect, useState } from "react"
-import {
-  ActivityIndicator,
-  Alert,
-  Image,
-  Pressable,
-  ScrollView,
-  StyleSheet,
-  Text,
-  View,
-} from "react-native"
-import { useSafeAreaInsets } from "react-native-safe-area-context"
+import { Alert, Image, Pressable, ScrollView, StyleSheet, Text, View } from "react-native"
 
 import { Button } from "@/components/ui/Button"
+import { LoadingState } from "@/components/ui/LoadingState"
+import { ScreenHeader } from "@/components/ui/ScreenHeader"
 import { routes } from "@/constants/routes"
 import { blockUser, unblockUser } from "@/features/blocks/service"
 import { useStartChat } from "@/features/chat/hooks"
@@ -26,7 +18,6 @@ import { fetchPublicProfessional } from "./service"
 import type { PublicProfessional } from "./types"
 
 export function PublicProfessionalScreen({ id }: { id: string }) {
-  const insets = useSafeAreaInsets()
   const { start, isStarting } = useStartChat()
   const [professional, setProfessional] = useState<PublicProfessional | null>(null)
   const [isLoading, setIsLoading] = useState(true)
@@ -111,29 +102,23 @@ export function PublicProfessionalScreen({ id }: { id: string }) {
 
   return (
     <View style={styles.screen}>
-      <View style={[styles.header, { paddingTop: insets.top + 12 }]}>
-        <Pressable
-          accessibilityLabel="Voltar"
-          accessibilityRole="button"
-          hitSlop={8}
-          onPress={() => router.back()}
-          style={({ pressed }) => [styles.backButton, pressed && styles.pressed]}
-        >
-          <Ionicons color={colors.textPrimary} name="chevron-back" size={22} />
-        </Pressable>
-        <Text style={styles.headerTitle}>Perfil do profissional</Text>
-        {professional && !professional.blockedByMe ? (
-          <Pressable
-            accessibilityLabel="Bloquear profissional"
-            accessibilityRole="button"
-            hitSlop={8}
-            onPress={confirmBlock}
-            style={({ pressed }) => [styles.menuButton, pressed && styles.pressed]}
-          >
-            <Ionicons color={colors.textPrimary} name="ellipsis-vertical" size={20} />
-          </Pressable>
-        ) : null}
-      </View>
+      <ScreenHeader
+        onBack={() => router.back()}
+        right={
+          professional && !professional.blockedByMe ? (
+            <Pressable
+              accessibilityLabel="Bloquear profissional"
+              accessibilityRole="button"
+              hitSlop={8}
+              onPress={confirmBlock}
+              style={({ pressed }) => [styles.menuButton, pressed && styles.pressed]}
+            >
+              <Ionicons color={colors.textPrimary} name="ellipsis-vertical" size={20} />
+            </Pressable>
+          ) : undefined
+        }
+        title="Perfil do profissional"
+      />
 
       <ScrollView
         contentContainerStyle={styles.content}
@@ -146,11 +131,7 @@ export function PublicProfessionalScreen({ id }: { id: string }) {
 
   function renderBody() {
     if (isLoading && !professional) {
-      return (
-        <View style={styles.centered}>
-          <ActivityIndicator color={colors.accent} />
-        </View>
-      )
+      return <LoadingState />
     }
 
     if (!professional) {
@@ -330,14 +311,6 @@ const styles = StyleSheet.create({
     fontSize: 26,
     fontWeight: "700",
   },
-  backButton: {
-    alignItems: "center",
-    backgroundColor: colors.iconMutedBg,
-    borderRadius: 999,
-    height: 40,
-    justifyContent: "center",
-    width: 40,
-  },
   bio: {
     color: colors.textSecondary,
     fontSize: 15,
@@ -384,14 +357,6 @@ const styles = StyleSheet.create({
     fontSize: 14,
     textAlign: "center",
   },
-  header: {
-    alignItems: "center",
-    backgroundColor: colors.screenBg,
-    flexDirection: "row",
-    gap: 12,
-    paddingBottom: 12,
-    paddingHorizontal: spacing.screen,
-  },
   headerCard: {
     alignItems: "center",
     backgroundColor: colors.surface,
@@ -401,12 +366,6 @@ const styles = StyleSheet.create({
     gap: 6,
     paddingHorizontal: 20,
     paddingVertical: 24,
-  },
-  headerTitle: {
-    color: colors.textPrimary,
-    flex: 1,
-    fontSize: 20,
-    fontWeight: "700",
   },
   menuButton: {
     alignItems: "center",

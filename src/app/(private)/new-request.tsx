@@ -1,19 +1,12 @@
 import { Ionicons } from "@expo/vector-icons"
 import { router, useFocusEffect, useLocalSearchParams } from "expo-router"
 import { useCallback, useEffect } from "react"
-import {
-  ActivityIndicator,
-  KeyboardAvoidingView,
-  Platform,
-  Pressable,
-  ScrollView,
-  StyleSheet,
-  Text,
-  View,
-} from "react-native"
+import { KeyboardAvoidingView, Platform, ScrollView, StyleSheet, Text, View } from "react-native"
 import { useSafeAreaInsets } from "react-native-safe-area-context"
 
 import { Button } from "@/components/ui/Button"
+import { LoadingState } from "@/components/ui/LoadingState"
+import { ScreenHeader } from "@/components/ui/ScreenHeader"
 import { routes } from "@/constants/routes"
 import { colors, radius, spacing } from "@/features/client-home/theme"
 import { RequestForm } from "@/features/service-requests/components/RequestForm"
@@ -63,18 +56,7 @@ export default function NewRequest() {
       behavior={Platform.OS === "ios" ? "padding" : undefined}
       style={styles.screen}
     >
-      <View style={[styles.header, { paddingTop: insets.top + 12 }]}>
-        <Pressable
-          accessibilityLabel="Voltar"
-          accessibilityRole="button"
-          hitSlop={8}
-          onPress={() => router.back()}
-          style={({ pressed }) => [styles.backButton, pressed && styles.pressed]}
-        >
-          <Ionicons color={colors.textPrimary} name="chevron-back" size={22} />
-        </Pressable>
-        <Text style={styles.headerTitle}>Nova solicitação</Text>
-      </View>
+      <ScreenHeader onBack={() => router.back()} title="Nova solicitação" />
 
       <ScrollView
         contentContainerStyle={styles.content}
@@ -82,9 +64,7 @@ export default function NewRequest() {
         showsVerticalScrollIndicator={false}
       >
         {isLoading ? (
-          <View style={styles.centered}>
-            <ActivityIndicator color={colors.accent} />
-          </View>
+          <LoadingState />
         ) : catalogError ? (
           <View style={styles.centered}>
             <Text style={styles.catalogError}>{catalogError}</Text>
@@ -125,14 +105,6 @@ function SuccessView({ insetsTop }: { insetsTop: number }) {
 }
 
 const styles = StyleSheet.create({
-  backButton: {
-    alignItems: "center",
-    backgroundColor: colors.iconMutedBg,
-    borderRadius: 999,
-    height: 40,
-    justifyContent: "center",
-    width: 40,
-  },
   catalogError: {
     color: colors.textSecondary,
     fontSize: 14,
@@ -148,22 +120,6 @@ const styles = StyleSheet.create({
     paddingBottom: 40,
     paddingHorizontal: spacing.screen,
     paddingTop: 8,
-  },
-  header: {
-    alignItems: "center",
-    backgroundColor: colors.screenBg,
-    flexDirection: "row",
-    gap: 12,
-    paddingBottom: 12,
-    paddingHorizontal: spacing.screen,
-  },
-  headerTitle: {
-    color: colors.textPrimary,
-    fontSize: 20,
-    fontWeight: "700",
-  },
-  pressed: {
-    opacity: 0.7,
   },
   retryButton: {
     paddingHorizontal: 24,
