@@ -1,4 +1,4 @@
-import { colors } from "@/features/client-home/theme"
+import { status } from "@/features/client-home/theme"
 
 import type { ProposalStatus, ServiceStatus } from "./types"
 
@@ -9,10 +9,10 @@ type StatusStyle = {
 }
 
 const STATUS_STYLES: Record<ProposalStatus, StatusStyle> = {
-  PENDING: { label: "Enviada", color: "#1D4ED8", background: "#E5EDFD" },
-  ACCEPTED: { label: "Aceita", color: "#1F7A45", background: colors.accentSoftBg },
-  REJECTED: { label: "Recusada", color: "#B91C1C", background: "#FCE8E8" },
-  CANCELED: { label: "Cancelada", color: "#475569", background: "#EEF1F4" },
+  PENDING: { label: "Enviada", ...status.info },
+  ACCEPTED: { label: "Aceita", ...status.success },
+  REJECTED: { label: "Recusada", ...status.danger },
+  CANCELED: { label: "Cancelada", ...status.neutral },
 }
 
 export function getProposalStatusStyle(status: ProposalStatus): StatusStyle {
@@ -21,10 +21,10 @@ export function getProposalStatusStyle(status: ProposalStatus): StatusStyle {
 
 // Status atual do serviço contratado (aba "Aceitas").
 const SERVICE_STATUS_STYLES: Record<ServiceStatus, StatusStyle> = {
-  ACCEPTED: { label: "Contratado", color: "#1D4ED8", background: "#E5EDFD" },
-  IN_PROGRESS: { label: "Em andamento", color: "#92600A", background: "#FBF1DD" },
-  COMPLETED: { label: "Concluído", color: "#1F7A45", background: colors.accentSoftBg },
-  CANCELED: { label: "Cancelado", color: "#B91C1C", background: "#FCE8E8" },
+  ACCEPTED: { label: "Contratado", ...status.info },
+  IN_PROGRESS: { label: "Em andamento", ...status.warning },
+  COMPLETED: { label: "Concluído", ...status.success },
+  CANCELED: { label: "Cancelado", ...status.danger },
 }
 
 export function getServiceStatusStyle(status: ServiceStatus): StatusStyle {

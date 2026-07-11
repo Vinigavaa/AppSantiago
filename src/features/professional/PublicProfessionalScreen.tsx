@@ -190,47 +190,29 @@ export function PublicProfessionalScreen({ id }: { id: string }) {
         </View>
 
         {professional.blockedByMe ? (
-          <Pressable
-            accessibilityRole="button"
-            disabled={isUpdatingBlock}
+          <Button
+            icon="lock-open-outline"
+            label="Desbloquear"
+            loading={isUpdatingBlock}
             onPress={handleUnblock}
-            style={({ pressed }) => [styles.unblockButton, pressed && styles.pressed]}
-          >
-            {isUpdatingBlock ? (
-              <ActivityIndicator color={colors.accent} size="small" />
-            ) : (
-              <>
-                <Ionicons color={colors.accent} name="lock-open-outline" size={18} />
-                <Text style={styles.unblockButtonText}>Desbloquear</Text>
-              </>
-            )}
-          </Pressable>
+            variant="secondary"
+          />
         ) : (
           <View style={styles.actionsRow}>
-            <Pressable
-              accessibilityRole="button"
-              disabled={isStarting}
+            <Button
+              icon="chatbubble-ellipses-outline"
+              label="Conversar"
+              loading={isStarting}
               onPress={() => start(professional.userId)}
-              style={({ pressed }) => [styles.chatButton, pressed && styles.pressed]}
-            >
-              {isStarting ? (
-                <ActivityIndicator color="#FFFFFF" size="small" />
-              ) : (
-                <>
-                  <Ionicons color="#FFFFFF" name="chatbubble-ellipses-outline" size={18} />
-                  <Text style={styles.chatButtonText}>Conversar</Text>
-                </>
-              )}
-            </Pressable>
-
-            <Pressable
-              accessibilityRole="button"
+              style={styles.actionButton}
+            />
+            <Button
+              icon="add-circle-outline"
+              label="Solicitar Serviço"
               onPress={handleRequestService}
-              style={({ pressed }) => [styles.requestButton, pressed && styles.pressed]}
-            >
-              <Ionicons color={colors.accent} name="add-circle-outline" size={18} />
-              <Text style={styles.requestButtonText}>Solicitar Serviço</Text>
-            </Pressable>
+              style={styles.actionButton}
+              variant="secondary"
+            />
           </View>
         )}
 
@@ -336,6 +318,9 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     width: 76,
   },
+  actionButton: {
+    flex: 1,
+  },
   actionsRow: {
     flexDirection: "row",
     gap: 10,
@@ -373,22 +358,6 @@ const styles = StyleSheet.create({
     color: colors.accent,
     fontSize: 13,
     fontWeight: "500",
-  },
-  chatButton: {
-    alignItems: "center",
-    backgroundColor: colors.accent,
-    borderRadius: radius.search,
-    flex: 1,
-    flexDirection: "row",
-    gap: 8,
-    justifyContent: "center",
-    minHeight: 50,
-    paddingVertical: 14,
-  },
-  chatButtonText: {
-    color: "#FFFFFF",
-    fontSize: 15,
-    fontWeight: "700",
   },
   chips: {
     flexDirection: "row",
@@ -472,22 +441,6 @@ const styles = StyleSheet.create({
     gap: 8,
     marginTop: 4,
   },
-  requestButton: {
-    alignItems: "center",
-    backgroundColor: colors.accentSoftBg,
-    borderRadius: radius.search,
-    flex: 1,
-    flexDirection: "row",
-    gap: 8,
-    justifyContent: "center",
-    minHeight: 50,
-    paddingVertical: 14,
-  },
-  requestButtonText: {
-    color: colors.accent,
-    fontSize: 15,
-    fontWeight: "700",
-  },
   retry: {
     paddingHorizontal: 24,
   },
@@ -566,20 +519,5 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     paddingHorizontal: 12,
     paddingVertical: 16,
-  },
-  unblockButton: {
-    alignItems: "center",
-    backgroundColor: colors.accentSoftBg,
-    borderRadius: radius.search,
-    flexDirection: "row",
-    gap: 8,
-    justifyContent: "center",
-    minHeight: 50,
-    paddingVertical: 14,
-  },
-  unblockButtonText: {
-    color: colors.accent,
-    fontSize: 15,
-    fontWeight: "700",
   },
 })

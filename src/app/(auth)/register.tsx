@@ -1,12 +1,13 @@
 import { zodResolver } from "@hookform/resolvers/zod"
 import { Link } from "expo-router"
 import { Controller, useForm } from "react-hook-form"
-import { KeyboardAvoidingView, Platform, ScrollView, StyleSheet, Text, View } from "react-native"
+import { KeyboardAvoidingView, Platform, ScrollView, Text, View } from "react-native"
 
 import { Button } from "@/components/ui/Button"
 import { Input } from "@/components/ui/Input"
 import { ProfileTypeSelector } from "@/components/ui/ProfileTypeSelector"
 import { routes } from "@/constants/routes"
+import { authStyles as styles } from "@/features/auth/authStyles"
 import { useAuth } from "@/features/auth/hooks/useAuth"
 import { signUpSchema, type SignUpInput } from "@/features/auth/schemas/auth-schemas"
 
@@ -93,7 +94,7 @@ export default function Register() {
           {errorMessage ? <Text style={styles.error}>{errorMessage}</Text> : null}
           {successMessage ? <Text style={styles.success}>{successMessage}</Text> : null}
 
-          <Button disabled={isSubmitting} label={isSubmitting ? "Criando..." : "Criar conta"} onPress={handleSubmit(signUp)} />
+          <Button label="Criar conta" loading={isSubmitting} onPress={handleSubmit(signUp)} />
         </View>
 
         <View style={styles.footer}>
@@ -106,57 +107,3 @@ export default function Register() {
     </KeyboardAvoidingView>
   )
 }
-
-const styles = StyleSheet.create({
-  container: {
-    backgroundColor: "#F8FAFC",
-    flex: 1,
-  },
-  content: {
-    flexGrow: 1,
-    justifyContent: "center",
-    padding: 24,
-  },
-  error: {
-    backgroundColor: "#FEE2E2",
-    borderRadius: 8,
-    color: "#991B1B",
-    padding: 12,
-  },
-  footer: {
-    alignItems: "center",
-    flexDirection: "row",
-    gap: 6,
-    justifyContent: "center",
-    marginTop: 24,
-  },
-  footerText: {
-    color: "#475569",
-  },
-  form: {
-    gap: 14,
-  },
-  header: {
-    gap: 8,
-    marginBottom: 28,
-  },
-  link: {
-    color: "#0F766E",
-    fontWeight: "700",
-  },
-  subtitle: {
-    color: "#475569",
-    fontSize: 16,
-  },
-  success: {
-    backgroundColor: "#DCFCE7",
-    borderRadius: 8,
-    color: "#166534",
-    padding: 12,
-  },
-  title: {
-    color: "#0F172A",
-    fontSize: 32,
-    fontWeight: "800",
-  },
-})

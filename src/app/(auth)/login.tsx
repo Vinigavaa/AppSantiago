@@ -1,11 +1,12 @@
 import { zodResolver } from "@hookform/resolvers/zod"
 import { Link } from "expo-router"
 import { Controller, useForm } from "react-hook-form"
-import { KeyboardAvoidingView, Platform, ScrollView, StyleSheet, Text, View } from "react-native"
+import { KeyboardAvoidingView, Platform, ScrollView, Text, View } from "react-native"
 
 import { Button } from "@/components/ui/Button"
 import { Input } from "@/components/ui/Input"
 import { routes } from "@/constants/routes"
+import { authStyles as styles } from "@/features/auth/authStyles"
 import { useAuth } from "@/features/auth/hooks/useAuth"
 import { signInSchema, type SignInInput } from "@/features/auth/schemas/auth-schemas"
 
@@ -82,9 +83,9 @@ export default function Login() {
 
           {errorMessage ? <Text style={styles.error}>{errorMessage}</Text> : null}
 
-          <Button disabled={isSubmitting} label={isSubmitting ? "Entrando..." : "Entrar"} onPress={handleSubmit(signIn)} />
+          <Button label="Entrar" loading={isSubmitting} onPress={handleSubmit(signIn)} />
 
-          <Link href={routes.forgotPassword} style={styles.forgotPassword}>
+          <Link href={routes.forgotPassword} style={styles.linkCentered}>
             Esqueci minha senha
           </Link>
         </View>
@@ -99,57 +100,3 @@ export default function Login() {
     </KeyboardAvoidingView>
   )
 }
-
-const styles = StyleSheet.create({
-  container: {
-    backgroundColor: "#F8FAFC",
-    flex: 1,
-  },
-  content: {
-    flexGrow: 1,
-    justifyContent: "center",
-    padding: 24,
-  },
-  error: {
-    backgroundColor: "#FEE2E2",
-    borderRadius: 8,
-    color: "#991B1B",
-    padding: 12,
-  },
-  footer: {
-    alignItems: "center",
-    flexDirection: "row",
-    gap: 6,
-    justifyContent: "center",
-    marginTop: 24,
-  },
-  footerText: {
-    color: "#475569",
-  },
-  forgotPassword: {
-    alignSelf: "center",
-    color: "#0F766E",
-    fontWeight: "700",
-    marginTop: 2,
-  },
-  form: {
-    gap: 14,
-  },
-  header: {
-    gap: 8,
-    marginBottom: 28,
-  },
-  link: {
-    color: "#0F766E",
-    fontWeight: "700",
-  },
-  subtitle: {
-    color: "#475569",
-    fontSize: 16,
-  },
-  title: {
-    color: "#0F172A",
-    fontSize: 32,
-    fontWeight: "800",
-  },
-})

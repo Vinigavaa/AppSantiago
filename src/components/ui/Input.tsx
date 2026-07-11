@@ -1,17 +1,21 @@
 import { StyleSheet, Text, TextInput, type TextInputProps, View } from "react-native"
 
+import { colors, radius, typography } from "@/features/client-home/theme"
+
 type Props = TextInputProps & {
   label: string
   error?: string
 }
 
+// Campo de texto único do app: mesma borda, raio, altura e tipografia. A borda
+// muda para vermelho quando há erro, com a mensagem logo abaixo.
 export function Input({ label, error, style, ...props }: Props) {
   return (
     <View style={styles.container}>
       <Text style={styles.label}>{label}</Text>
       <TextInput
         autoCapitalize="none"
-        placeholderTextColor="#6B7280"
+        placeholderTextColor={colors.textTertiary}
         style={[styles.input, error && styles.inputError, style]}
         {...props}
       />
@@ -25,24 +29,24 @@ const styles = StyleSheet.create({
     gap: 6,
   },
   error: {
-    color: "#B91C1C",
-    fontSize: 13,
+    ...typography.caption,
+    color: colors.danger,
   },
   input: {
-    backgroundColor: "#FFFFFF",
-    borderColor: "#CBD5E1",
-    borderRadius: 8,
+    ...typography.body,
+    backgroundColor: colors.surface,
+    borderColor: colors.chipInactiveBorder,
+    borderRadius: radius.control,
     borderWidth: 1,
-    color: "#111827",
-    minHeight: 48,
+    color: colors.textPrimary,
+    minHeight: 50,
     paddingHorizontal: 14,
   },
   inputError: {
-    borderColor: "#B91C1C",
+    borderColor: colors.danger,
   },
   label: {
-    color: "#111827",
-    fontSize: 14,
-    fontWeight: "600",
+    ...typography.label,
+    color: colors.textPrimary,
   },
 })

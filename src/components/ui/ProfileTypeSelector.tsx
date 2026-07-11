@@ -1,5 +1,6 @@
 import { Pressable, StyleSheet, Text, View } from "react-native"
 
+import { colors, radius, typography } from "@/features/client-home/theme"
 import type { AuthRole } from "@/types/auth"
 
 type Props = {
@@ -43,36 +44,36 @@ const styles = StyleSheet.create({
     gap: 6,
   },
   error: {
-    color: "#B91C1C",
-    fontSize: 13,
+    ...typography.caption,
+    color: colors.danger,
   },
   label: {
-    color: "#111827",
-    fontSize: 14,
-    fontWeight: "600",
+    ...typography.label,
+    color: colors.textPrimary,
   },
   option: {
     alignItems: "center",
-    borderColor: "#CBD5E1",
-    borderRadius: 8,
+    backgroundColor: colors.surface,
+    borderColor: colors.chipInactiveBorder,
+    borderRadius: radius.control,
     borderWidth: 1,
     flex: 1,
-    minHeight: 44,
     justifyContent: "center",
+    minHeight: 50,
   },
   optionLabel: {
-    color: "#334155",
-    fontWeight: "600",
+    ...typography.label,
+    color: colors.textSecondary,
   },
   options: {
     flexDirection: "row",
     gap: 8,
   },
   selected: {
-    backgroundColor: "#0F766E",
-    borderColor: "#0F766E",
+    backgroundColor: colors.primary,
+    borderColor: colors.primary,
   },
   selectedLabel: {
-    color: "#FFFFFF",
+    color: colors.onPrimary,
   },
 })

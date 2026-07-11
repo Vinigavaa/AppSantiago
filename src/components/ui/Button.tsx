@@ -1,29 +1,66 @@
-import { Pressable, StyleSheet, Text, type PressableProps } from "react-native"
+import { Ionicons } from "@expo/vector-icons"
+import { ActivityIndicator, Pressable, type PressableProps, StyleSheet, Text } from "react-native"
+
+import { colors, radius, typography } from "@/features/client-home/theme"
+
+type Variant = "primary" | "secondary" | "ghost" | "danger"
 
 type Props = PressableProps & {
   label: string
-  variant?: "primary" | "secondary"
+  variant?: Variant
+  loading?: boolean
+  icon?: keyof typeof Ionicons.glyphMap
 }
 
-export function Button({ label, variant = "primary", disabled, style, ...props }: Props) {
+// Cor do conteúdo (texto/ícone/spinner) por variante.
+const CONTENT_COLOR: Record<Variant, string> = {
+  primary: colors.onPrimary,
+  secondary: colors.primarySoftText,
+  ghost: colors.primary,
+  danger: colors.onPrimary,
+}
+
+// Botão único do app: mesmo formato, feedback ao pressionar e estados de
+// carregamento/desabilitado em todas as ações. Variantes diferenciam a ênfase —
+// `primary` só para a ação principal de cada tela.
+export function Button({
+  label,
+  variant = "primary",
+  loading = false,
+  icon,
+  disabled,
+  style,
+  ...props
+}: Props) {
+  const isDisabled = disabled || loading
+  const contentColor = CONTENT_COLOR[variant]
+
   return (
     <Pressable
       accessibilityRole="button"
-      disabled={disabled}
+      accessibilityState={{ disabled: !!isDisabled, busy: loading }}
+      disabled={isDisabled}
       style={(state) => {
         const { pressed } = state
 
         return [
           styles.button,
-          variant === "secondary" && styles.secondary,
-          disabled && styles.disabled,
-          pressed && !disabled && styles.pressed,
+          styles[variant],
+          isDisabled && styles.disabled,
+          pressed && !isDisabled && styles.pressed,
           typeof style === "function" ? style(state) : style,
         ]
       }}
       {...props}
     >
-      <Text style={[styles.label, variant === "secondary" && styles.secondaryLabel]}>{label}</Text>
+      {loading ? (
+        <ActivityIndicator color={contentColor} size="small" />
+      ) : (
+        <>
+          {icon ? <Ionicons color={contentColor} name={icon} size={18} /> : null}
+          <Text style={[styles.label, { color: contentColor }]}>{label}</Text>
+        </>
+      )}
     </Pressable>
   )
 }
@@ -31,27 +68,33 @@ export function Button({ label, variant = "primary", disabled, style, ...props }
 const styles = StyleSheet.create({
   button: {
     alignItems: "center",
-    backgroundColor: "#0F766E",
-    borderRadius: 8,
-    minHeight: 48,
+    borderRadius: radius.control,
+    flexDirection: "row",
+    gap: 8,
     justifyContent: "center",
+    minHeight: 50,
     paddingHorizontal: 16,
   },
+  danger: {
+    backgroundColor: colors.danger,
+  },
   disabled: {
-    opacity: 0.6,
+    opacity: 0.5,
+  },
+  ghost: {
+    backgroundColor: "transparent",
   },
   label: {
-    color: "#FFFFFF",
-    fontSize: 16,
-    fontWeight: "700",
+    ...typography.label,
+    fontSize: 15,
   },
   pressed: {
     opacity: 0.85,
   },
-  secondary: {
-    backgroundColor: "#E0F2F1",
+  primary: {
+    backgroundColor: colors.primary,
   },
-  secondaryLabel: {
-    color: "#0F766E",
+  secondary: {
+    backgroundColor: colors.primarySoft,
   },
 })

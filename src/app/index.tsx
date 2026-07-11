@@ -3,6 +3,7 @@ import { useEffect, useState } from "react"
 import { ActivityIndicator, StyleSheet, View } from "react-native"
 
 import { routes } from "@/constants/routes"
+import { colors } from "@/features/client-home/theme"
 import { getPendingVerificationEmail } from "@/features/auth/storage"
 import { authClient } from "@/lib/auth-client"
 
@@ -18,7 +19,7 @@ export default function Index() {
   if (isPending || pendingEmail === undefined) {
     return (
       <View style={styles.loading}>
-        <ActivityIndicator color="#0F766E" />
+        <ActivityIndicator color={colors.primary} />
       </View>
     )
   }
@@ -37,7 +38,7 @@ export default function Index() {
 const styles = StyleSheet.create({
   loading: {
     alignItems: "center",
-    backgroundColor: "#F8FAFC",
+    backgroundColor: colors.screenBg,
     flex: 1,
     justifyContent: "center",
   },

@@ -3,6 +3,7 @@ import { useRef } from "react"
 import { ActivityIndicator, StyleSheet, View } from "react-native"
 
 import { routes } from "@/constants/routes"
+import { colors } from "@/features/client-home/theme"
 import { authClient } from "@/lib/auth-client"
 
 export default function AuthLayout() {
@@ -15,7 +16,7 @@ export default function AuthLayout() {
   if (isPending && !hasLoadedOnce.current) {
     return (
       <View style={styles.loading}>
-        <ActivityIndicator color="#0F766E" />
+        <ActivityIndicator color={colors.primary} />
       </View>
     )
   }
@@ -32,7 +33,7 @@ export default function AuthLayout() {
 const styles = StyleSheet.create({
   loading: {
     alignItems: "center",
-    backgroundColor: "#F8FAFC",
+    backgroundColor: colors.screenBg,
     flex: 1,
     justifyContent: "center",
   },

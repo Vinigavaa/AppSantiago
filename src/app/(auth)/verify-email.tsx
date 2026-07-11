@@ -1,9 +1,11 @@
+import { Ionicons } from "@expo/vector-icons"
 import { Redirect, router, useLocalSearchParams } from "expo-router"
 import { useEffect, useState } from "react"
 import { ActivityIndicator, ScrollView, StyleSheet, Text, View } from "react-native"
 
 import { Button } from "@/components/ui/Button"
 import { routes } from "@/constants/routes"
+import { colors, radius, typography } from "@/features/client-home/theme"
 import {
   getEmailVerificationStatus,
   resendVerificationEmail,
@@ -44,7 +46,7 @@ export default function VerifyEmail() {
   if (isLoading) {
     return (
       <View style={styles.loading}>
-        <ActivityIndicator color="#0F766E" />
+        <ActivityIndicator color={colors.primary} />
       </View>
     )
   }
@@ -142,7 +144,7 @@ function VerifyEmailScreen({ email }: { email: string }) {
   return (
     <ScrollView contentContainerStyle={styles.content} style={styles.container}>
       <View style={styles.iconWrapper}>
-        <Text style={styles.iconCheck}>✓</Text>
+        <Ionicons color={colors.primary} name="checkmark" size={48} />
       </View>
 
       <View style={styles.header}>
@@ -163,15 +165,20 @@ function VerifyEmailScreen({ email }: { email: string }) {
       </Text>
 
       <View style={styles.actions}>
-        <Button disabled={isSending || cooldown > 0} label={resendLabel} onPress={handleResend} />
+        <Button
+          disabled={cooldown > 0}
+          label={resendLabel}
+          loading={isSending}
+          onPress={handleResend}
+        />
 
         {message ? (
           <Text style={isError ? styles.error : styles.success}>{message}</Text>
         ) : null}
 
         <Button
-          disabled={isChecking}
-          label={isChecking ? "Verificando..." : "Já verifiquei meu email"}
+          label="Já verifiquei meu email"
+          loading={isChecking}
           onPress={handleCheckVerified}
           variant="secondary"
         />
@@ -190,7 +197,7 @@ const styles = StyleSheet.create({
     marginTop: 28,
   },
   container: {
-    backgroundColor: "#F8FAFC",
+    backgroundColor: colors.screenBg,
     flex: 1,
   },
   content: {
@@ -200,19 +207,19 @@ const styles = StyleSheet.create({
   },
   emailBadge: {
     alignItems: "center",
-    backgroundColor: "#E0F2F1",
-    borderRadius: 10,
+    backgroundColor: colors.primarySoft,
+    borderRadius: radius.control,
     marginTop: 20,
     paddingHorizontal: 16,
     paddingVertical: 14,
   },
   emailText: {
-    color: "#0F766E",
+    color: colors.primarySoftText,
     fontSize: 16,
     fontWeight: "700",
   },
   exitLink: {
-    color: "#475569",
+    color: colors.textSecondary,
     fontSize: 15,
     fontWeight: "700",
     marginTop: 4,
@@ -220,9 +227,11 @@ const styles = StyleSheet.create({
     textAlign: "center",
   },
   error: {
-    backgroundColor: "#FEE2E2",
-    borderRadius: 8,
-    color: "#991B1B",
+    ...typography.caption,
+    backgroundColor: colors.dangerSoft,
+    borderRadius: radius.control,
+    color: colors.danger,
+    fontSize: 14,
     padding: 12,
   },
   header: {
@@ -231,22 +240,16 @@ const styles = StyleSheet.create({
     marginTop: 28,
   },
   hint: {
-    color: "#475569",
+    ...typography.body,
+    color: colors.textSecondary,
     fontSize: 14,
-    lineHeight: 20,
     marginTop: 18,
     textAlign: "center",
-  },
-  iconCheck: {
-    color: "#166534",
-    fontSize: 44,
-    fontWeight: "800",
-    lineHeight: 50,
   },
   iconWrapper: {
     alignItems: "center",
     alignSelf: "center",
-    backgroundColor: "#DCFCE7",
+    backgroundColor: colors.primarySoft,
     borderRadius: 56,
     height: 96,
     justifyContent: "center",
@@ -254,24 +257,27 @@ const styles = StyleSheet.create({
   },
   loading: {
     alignItems: "center",
-    backgroundColor: "#F8FAFC",
+    backgroundColor: colors.screenBg,
     flex: 1,
     justifyContent: "center",
   },
   subtitle: {
-    color: "#475569",
+    color: colors.textSecondary,
     fontSize: 16,
+    lineHeight: 22,
     textAlign: "center",
   },
   success: {
-    backgroundColor: "#DCFCE7",
-    borderRadius: 8,
-    color: "#166534",
+    ...typography.caption,
+    backgroundColor: colors.primarySoft,
+    borderRadius: radius.control,
+    color: colors.primarySoftText,
+    fontSize: 14,
     padding: 12,
   },
   title: {
-    color: "#0F172A",
-    fontSize: 28,
+    color: colors.textPrimary,
+    fontSize: 26,
     fontWeight: "800",
     textAlign: "center",
   },

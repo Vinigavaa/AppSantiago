@@ -1,4 +1,4 @@
-import { colors } from "@/features/client-home/theme"
+import { status } from "@/features/client-home/theme"
 
 import type { RequestStatus, Urgency } from "./types"
 
@@ -9,12 +9,12 @@ type StatusStyle = {
 }
 
 const STATUS_STYLES: Record<RequestStatus, StatusStyle> = {
-  OPEN: { label: "Aberta", color: "#1F7A45", background: colors.accentSoftBg },
-  IN_NEGOTIATION: { label: "Em negociação", color: "#92600A", background: "#FBF1DD" },
-  ACCEPTED: { label: "Contratada", color: "#1D4ED8", background: "#E5EDFD" },
-  IN_PROGRESS: { label: "Em andamento", color: "#1D4ED8", background: "#E5EDFD" },
-  COMPLETED: { label: "Concluída", color: "#475569", background: "#EEF1F4" },
-  CANCELED: { label: "Cancelada", color: "#B91C1C", background: "#FCE8E8" },
+  OPEN: { label: "Aberta", ...status.success },
+  IN_NEGOTIATION: { label: "Em negociação", ...status.warning },
+  ACCEPTED: { label: "Contratada", ...status.info },
+  IN_PROGRESS: { label: "Em andamento", ...status.info },
+  COMPLETED: { label: "Concluída", ...status.neutral },
+  CANCELED: { label: "Cancelada", ...status.danger },
 }
 
 export function getStatusStyle(status: RequestStatus): StatusStyle {
