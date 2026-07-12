@@ -23,6 +23,12 @@ const envSchema = z.object({
   EMAIL_PROVIDER: z.enum(["console", "resend"]).default("console"),
   EMAIL_REPLY_TO: z.email().optional(),
   RESEND_API_KEY: z.string().optional(),
+  // Cloudinary (armazenamento de imagens). Opcionais: sem elas a API sobe
+  // normalmente e os endpoints de upload ficam desativados. Em producao ficam
+  // no painel Environment do Render.
+  CLOUDINARY_CLOUD_NAME: z.string().optional(),
+  CLOUDINARY_API_KEY: z.string().optional(),
+  CLOUDINARY_API_SECRET: z.string().optional(),
 })
 
 export const env = envSchema.parse(process.env)
@@ -38,3 +44,14 @@ if (env.EMAIL_PROVIDER === "resend" && !env.RESEND_API_KEY) {
 export const corsOrigins = env.CORS_ORIGIN.split(",")
   .map((origin) => origin.trim())
   .filter(Boolean)
+
+// Configuracao da Cloudinary quando as tres variaveis estao presentes; caso
+// contrario, null (o recurso de imagens fica desativado, sem quebrar a API).
+export const cloudinaryConfig =
+  env.CLOUDINARY_CLOUD_NAME && env.CLOUDINARY_API_KEY && env.CLOUDINARY_API_SECRET
+    ? {
+        cloudName: env.CLOUDINARY_CLOUD_NAME,
+        apiKey: env.CLOUDINARY_API_KEY,
+        apiSecret: env.CLOUDINARY_API_SECRET,
+      }
+    : null
