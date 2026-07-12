@@ -1,10 +1,11 @@
 import { Ionicons } from "@expo/vector-icons"
 import { router, useFocusEffect, useLocalSearchParams } from "expo-router"
 import { useCallback, useEffect } from "react"
-import { KeyboardAvoidingView, Platform, ScrollView, StyleSheet, Text, View } from "react-native"
+import { StyleSheet, Text, View } from "react-native"
 import { useSafeAreaInsets } from "react-native-safe-area-context"
 
 import { Button } from "@/components/ui/Button"
+import { FormScroll } from "@/components/ui/FormScroll"
 import { LoadingState } from "@/components/ui/LoadingState"
 import { ScreenHeader } from "@/components/ui/ScreenHeader"
 import { routes } from "@/constants/routes"
@@ -52,17 +53,10 @@ export default function NewRequest() {
   }
 
   return (
-    <KeyboardAvoidingView
-      behavior={Platform.OS === "ios" ? "padding" : undefined}
-      style={styles.screen}
-    >
+    <View style={styles.screen}>
       <ScreenHeader onBack={() => router.back()} title="Nova solicitação" />
 
-      <ScrollView
-        contentContainerStyle={styles.content}
-        keyboardShouldPersistTaps="handled"
-        showsVerticalScrollIndicator={false}
-      >
+      <FormScroll contentContainerStyle={styles.content}>
         {isLoading ? (
           <LoadingState />
         ) : catalogError ? (
@@ -85,8 +79,8 @@ export default function NewRequest() {
             submittingLabel="Publicando..."
           />
         )}
-      </ScrollView>
-    </KeyboardAvoidingView>
+      </FormScroll>
+    </View>
   )
 }
 

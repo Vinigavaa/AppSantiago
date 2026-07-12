@@ -1,3 +1,4 @@
+import { forwardRef } from "react"
 import { StyleSheet, Text, TextInput, type TextInputProps, View } from "react-native"
 
 import { colors, radius, typography } from "@/features/client-home/theme"
@@ -8,12 +9,17 @@ type Props = TextInputProps & {
 }
 
 // Campo de texto único do app: mesma borda, raio, altura e tipografia. A borda
-// muda para vermelho quando há erro, com a mensagem logo abaixo.
-export function Input({ label, error, style, ...props }: Props) {
+// muda para vermelho quando há erro, com a mensagem logo abaixo. Encaminha a ref
+// para o TextInput interno, permitindo encadear o foco entre campos ("Próximo").
+export const Input = forwardRef<TextInput, Props>(function Input(
+  { label, error, style, ...props },
+  ref,
+) {
   return (
     <View style={styles.container}>
       <Text style={styles.label}>{label}</Text>
       <TextInput
+        ref={ref}
         autoCapitalize="none"
         placeholderTextColor={colors.textTertiary}
         style={[styles.input, error && styles.inputError, style]}
@@ -22,7 +28,7 @@ export function Input({ label, error, style, ...props }: Props) {
       {error ? <Text style={styles.error}>{error}</Text> : null}
     </View>
   )
-}
+})
 
 const styles = StyleSheet.create({
   container: {

@@ -1,3 +1,4 @@
+import { useRef } from "react"
 import { StyleSheet, Text, TextInput, View } from "react-native"
 
 import { Button } from "@/components/ui/Button"
@@ -54,6 +55,12 @@ export function RequestForm({
   onChange,
   onSubmit,
 }: Props) {
+  // Refs para encadear o foco entre os campos de endereço (botão "Próximo").
+  const numberRef = useRef<TextInput>(null)
+  const streetRef = useRef<TextInput>(null)
+  const neighborhoodRef = useRef<TextInput>(null)
+  const complementRef = useRef<TextInput>(null)
+
   return (
     <>
       {intro ? <Text style={styles.intro}>{intro}</Text> : null}
@@ -114,22 +121,30 @@ export function RequestForm({
         <View style={styles.addressRow}>
           <View style={styles.addressZip}>
             <TextInput
-              keyboardType="numeric"
+              keyboardType="number-pad"
               maxLength={9}
               onChangeText={(value) => onChange("zipCode", value)}
+              onSubmitEditing={() => numberRef.current?.focus()}
               placeholder="CEP"
               placeholderTextColor={colors.textTertiary}
+              returnKeyType="next"
               style={[styles.input, errors.zipCode && styles.inputError]}
+              submitBehavior="submit"
               value={form.zipCode}
             />
           </View>
           <View style={styles.addressNumber}>
             <TextInput
+              keyboardType="number-pad"
               maxLength={20}
               onChangeText={(value) => onChange("number", value)}
+              onSubmitEditing={() => streetRef.current?.focus()}
               placeholder="Número"
               placeholderTextColor={colors.textTertiary}
+              ref={numberRef}
+              returnKeyType="next"
               style={[styles.input, errors.number && styles.inputError]}
+              submitBehavior="submit"
               value={form.number}
             />
           </View>
@@ -140,9 +155,13 @@ export function RequestForm({
         <TextInput
           maxLength={160}
           onChangeText={(value) => onChange("street", value)}
+          onSubmitEditing={() => neighborhoodRef.current?.focus()}
           placeholder="Rua / Avenida"
           placeholderTextColor={colors.textTertiary}
+          ref={streetRef}
+          returnKeyType="next"
           style={[styles.input, errors.street && styles.inputError]}
+          submitBehavior="submit"
           value={form.street}
         />
         {errors.street ? <Text style={styles.error}>{errors.street}</Text> : null}
@@ -150,9 +169,13 @@ export function RequestForm({
         <TextInput
           maxLength={120}
           onChangeText={(value) => onChange("neighborhood", value)}
+          onSubmitEditing={() => complementRef.current?.focus()}
           placeholder="Bairro"
           placeholderTextColor={colors.textTertiary}
+          ref={neighborhoodRef}
+          returnKeyType="next"
           style={[styles.input, errors.neighborhood && styles.inputError]}
+          submitBehavior="submit"
           value={form.neighborhood}
         />
         {errors.neighborhood ? <Text style={styles.error}>{errors.neighborhood}</Text> : null}
@@ -162,6 +185,8 @@ export function RequestForm({
           onChangeText={(value) => onChange("complement", value)}
           placeholder="Complemento (opcional)"
           placeholderTextColor={colors.textTertiary}
+          ref={complementRef}
+          returnKeyType="done"
           style={styles.input}
           value={form.complement}
         />
@@ -180,7 +205,7 @@ export function RequestForm({
         <View style={styles.budgetRow}>
           <View style={styles.budgetField}>
             <TextInput
-              keyboardType="numeric"
+              keyboardType="decimal-pad"
               onChangeText={(value) => onChange("budgetMin", value)}
               placeholder="Mínimo"
               placeholderTextColor={colors.textTertiary}
@@ -190,10 +215,11 @@ export function RequestForm({
           </View>
           <View style={styles.budgetField}>
             <TextInput
-              keyboardType="numeric"
+              keyboardType="decimal-pad"
               onChangeText={(value) => onChange("budgetMax", value)}
               placeholder="Máximo"
               placeholderTextColor={colors.textTertiary}
+              returnKeyType="done"
               style={[styles.input, errors.budgetMax && styles.inputError]}
               value={form.budgetMax}
             />
@@ -278,7 +304,7 @@ const styles = StyleSheet.create({
     marginTop: 4,
   },
   submitError: {
-    backgroundColor: "#FCE8E8",
+    backgroundColor: colors.dangerSoft,
     borderRadius: radius.tag,
     color: colors.danger,
     fontSize: 14,

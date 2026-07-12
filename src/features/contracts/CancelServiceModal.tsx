@@ -4,7 +4,6 @@ import {
   ActivityIndicator,
   KeyboardAvoidingView,
   Modal,
-  Platform,
   Pressable,
   StyleSheet,
   Text,
@@ -49,10 +48,7 @@ export function CancelServiceModal({ contractId, onClose, onCanceled }: Props) {
 
   return (
     <Modal animationType="slide" onRequestClose={onClose} transparent visible>
-      <KeyboardAvoidingView
-        behavior={Platform.OS === "ios" ? "padding" : undefined}
-        style={styles.backdrop}
-      >
+      <KeyboardAvoidingView behavior="padding" style={styles.backdrop}>
         <View style={styles.sheet}>
           <View style={styles.header}>
             <Text style={styles.title}>Cancelar serviço</Text>

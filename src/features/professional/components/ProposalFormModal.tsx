@@ -1,9 +1,8 @@
 import { Ionicons } from "@expo/vector-icons"
-import { useEffect, useState } from "react"
+import { useEffect, useRef, useState } from "react"
 import {
   KeyboardAvoidingView,
   Modal,
-  Platform,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -36,6 +35,7 @@ function parsePrice(value: string): number | null {
 
 export function ProposalFormModal({ visible, serviceRequestId, onClose, onSent }: Props) {
   const insets = useSafeAreaInsets()
+  const messageRef = useRef<TextInput>(null)
   const [price, setPrice] = useState("")
   const [message, setMessage] = useState("")
   const [estimatedDays, setEstimatedDays] = useState<number | null>(null)
@@ -91,10 +91,7 @@ export function ProposalFormModal({ visible, serviceRequestId, onClose, onSent }
 
   return (
     <Modal animationType="slide" onRequestClose={onClose} visible={visible}>
-      <KeyboardAvoidingView
-        behavior={Platform.OS === "ios" ? "padding" : undefined}
-        style={styles.screen}
-      >
+      <KeyboardAvoidingView behavior="padding" style={styles.screen}>
         <View style={[styles.header, { paddingTop: insets.top + 12 }]}>
           <Pressable accessibilityLabel="Fechar" accessibilityRole="button" hitSlop={8} onPress={onClose}>
             <Ionicons color={colors.textPrimary} name="close" size={24} />
@@ -112,12 +109,15 @@ export function ProposalFormModal({ visible, serviceRequestId, onClose, onSent }
             <View style={styles.priceWrap}>
               <Text style={styles.pricePrefix}>R$</Text>
               <TextInput
-                keyboardType="numeric"
+                keyboardType="decimal-pad"
                 maxLength={12}
                 onChangeText={setPrice}
+                onSubmitEditing={() => messageRef.current?.focus()}
                 placeholder="500"
                 placeholderTextColor={colors.textTertiary}
+                returnKeyType="next"
                 style={styles.priceInput}
+                submitBehavior="submit"
                 value={price}
               />
             </View>
@@ -131,6 +131,7 @@ export function ProposalFormModal({ visible, serviceRequestId, onClose, onSent }
               onChangeText={setMessage}
               placeholder="Apresente-se e explique como você pode ajudar neste serviço."
               placeholderTextColor={colors.textTertiary}
+              ref={messageRef}
               style={[styles.input, styles.textArea]}
               value={message}
             />
@@ -204,7 +205,7 @@ const styles = StyleSheet.create({
     paddingTop: 8,
   },
   error: {
-    backgroundColor: "#FCE8E8",
+    backgroundColor: colors.dangerSoft,
     borderRadius: radius.tag,
     color: colors.danger,
     fontSize: 14,

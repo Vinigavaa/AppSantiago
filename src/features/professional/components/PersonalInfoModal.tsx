@@ -1,9 +1,8 @@
 import { Ionicons } from "@expo/vector-icons"
-import { useEffect, useState } from "react"
+import { useEffect, useRef, useState } from "react"
 import {
   KeyboardAvoidingView,
   Modal,
-  Platform,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -28,6 +27,8 @@ type Props = {
 
 export function PersonalInfoModal({ visible, profile, onClose, onSave }: Props) {
   const insets = useSafeAreaInsets()
+  const displayNameRef = useRef<TextInput>(null)
+  const phoneRef = useRef<TextInput>(null)
   const [name, setName] = useState(profile.name)
   const [displayName, setDisplayName] = useState(profile.displayName ?? "")
   const [phone, setPhone] = useState(profile.phone ?? "")
@@ -77,10 +78,7 @@ export function PersonalInfoModal({ visible, profile, onClose, onSave }: Props) 
 
   return (
     <Modal animationType="slide" onRequestClose={onClose} visible={visible}>
-      <KeyboardAvoidingView
-        behavior={Platform.OS === "ios" ? "padding" : undefined}
-        style={styles.screen}
-      >
+      <KeyboardAvoidingView behavior="padding" style={styles.screen}>
         <View style={[styles.header, { paddingTop: insets.top + 12 }]}>
           <Pressable accessibilityLabel="Fechar" accessibilityRole="button" hitSlop={8} onPress={onClose}>
             <Ionicons color={colors.textPrimary} name="close" size={24} />
@@ -95,22 +93,31 @@ export function PersonalInfoModal({ visible, profile, onClose, onSave }: Props) 
         >
           <Field label="Nome completo">
             <TextInput
+              autoCapitalize="words"
               maxLength={120}
               onChangeText={setName}
+              onSubmitEditing={() => displayNameRef.current?.focus()}
               placeholder="Seu nome"
               placeholderTextColor={colors.textTertiary}
+              returnKeyType="next"
               style={styles.input}
+              submitBehavior="submit"
               value={name}
             />
           </Field>
 
           <Field label="Nome de exibição (opcional)">
             <TextInput
+              autoCapitalize="words"
               maxLength={60}
               onChangeText={setDisplayName}
+              onSubmitEditing={() => phoneRef.current?.focus()}
               placeholder="Como deseja ser chamado"
               placeholderTextColor={colors.textTertiary}
+              ref={displayNameRef}
+              returnKeyType="next"
               style={styles.input}
+              submitBehavior="submit"
               value={displayName}
             />
           </Field>
@@ -122,6 +129,7 @@ export function PersonalInfoModal({ visible, profile, onClose, onSave }: Props) 
               onChangeText={setPhone}
               placeholder="(48) 99999-9999"
               placeholderTextColor={colors.textTertiary}
+              ref={phoneRef}
               style={styles.input}
               value={phone}
             />
@@ -173,7 +181,7 @@ const styles = StyleSheet.create({
     paddingTop: 8,
   },
   error: {
-    backgroundColor: "#FCE8E8",
+    backgroundColor: colors.dangerSoft,
     borderRadius: radius.tag,
     color: colors.danger,
     fontSize: 14,

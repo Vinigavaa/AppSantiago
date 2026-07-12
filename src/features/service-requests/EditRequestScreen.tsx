@@ -1,7 +1,8 @@
 import { router, useFocusEffect } from "expo-router"
 import { useCallback, useEffect, useMemo, useRef } from "react"
-import { KeyboardAvoidingView, Platform, ScrollView, StyleSheet, View } from "react-native"
+import { StyleSheet, View } from "react-native"
 
+import { FormScroll } from "@/components/ui/FormScroll"
 import { LoadingState } from "@/components/ui/LoadingState"
 import { ScreenHeader } from "@/components/ui/ScreenHeader"
 import { EmptyState } from "@/features/client-home/components/EmptyState"
@@ -19,17 +20,10 @@ export function EditRequestScreen({ id }: { id: string }) {
   const isLoading = catalogLoading || (detailLoading && !request)
 
   return (
-    <KeyboardAvoidingView
-      behavior={Platform.OS === "ios" ? "padding" : undefined}
-      style={styles.screen}
-    >
+    <View style={styles.screen}>
       <ScreenHeader onBack={() => router.back()} title="Editar solicitação" />
 
-      <ScrollView
-        contentContainerStyle={styles.content}
-        keyboardShouldPersistTaps="handled"
-        showsVerticalScrollIndicator={false}
-      >
+      <FormScroll contentContainerStyle={styles.content}>
         {isLoading ? (
           <LoadingState />
         ) : catalogError || !request ? (
@@ -43,8 +37,8 @@ export function EditRequestScreen({ id }: { id: string }) {
         ) : (
           <EditForm categories={categories} cities={cities} detail={request} id={id} key={id} />
         )}
-      </ScrollView>
-    </KeyboardAvoidingView>
+      </FormScroll>
+    </View>
   )
 }
 
