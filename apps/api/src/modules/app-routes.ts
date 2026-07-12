@@ -63,6 +63,7 @@ import {
   updateServiceRequestHandler,
 } from "@/modules/service-requests/handlers"
 import { requireAuth, type AuthenticatedUser } from "@/modules/shared/require-auth"
+import { avatarSignatureHandler, confirmAvatarHandler } from "@/modules/uploads/handlers"
 
 function ipKey(context: Context) {
   return `ip:${context.req.header("x-forwarded-for")?.split(",")[0]?.trim() ?? "unknown"}`
@@ -189,3 +190,8 @@ appRoutes.get("/client/profile", clientProfileHandler)
 appRoutes.patch("/client/profile", updateClientProfileHandler)
 appRoutes.get("/client/reviews", clientReviewsHandler)
 appRoutes.delete("/client/account", deleteClientAccountHandler)
+
+// Upload de imagens (Cloudinary). O app pede uma assinatura, envia a imagem
+// direto ao CDN e confirma; o servidor grava a URL do avatar do usuario.
+appRoutes.post("/uploads/avatar/signature", avatarSignatureHandler)
+appRoutes.post("/uploads/avatar/confirm", confirmAvatarHandler)

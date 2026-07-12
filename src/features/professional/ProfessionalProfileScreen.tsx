@@ -8,9 +8,9 @@ import { Button } from "@/components/ui/Button"
 import { LoadingState } from "@/components/ui/LoadingState"
 import { routes } from "@/constants/routes"
 import { SectionHeader } from "@/features/client-home/components/SectionHeader"
-import { getInitials } from "@/features/client-home/greeting"
 import { colors, radius, spacing } from "@/features/client-home/theme"
 import { useAuth } from "@/features/auth/hooks/useAuth"
+import { EditableAvatar } from "@/features/uploads/EditableAvatar"
 import { useCatalog } from "@/features/service-requests/hooks"
 
 import { MultiSelectModal } from "./components/MultiSelectModal"
@@ -102,9 +102,14 @@ export function ProfessionalProfileScreen() {
 
         {/* Cabeçalho: identidade + reputação resumida. */}
         <View style={styles.headerCard}>
-          <View style={styles.avatar}>
-            <Text style={styles.avatarText}>{getInitials(profile.name)}</Text>
-          </View>
+          <EditableAvatar
+            name={profile.name}
+            onUploaded={(avatarUrl) => {
+              setProfile({ ...profile, avatarUrl })
+              showNotice("Foto de perfil atualizada.")
+            }}
+            uri={profile.avatarUrl}
+          />
           <Text style={styles.name}>{profile.name}</Text>
           <Text style={styles.mainCategory}>{profile.mainCategory ?? "Categoria não definida"}</Text>
           <View style={styles.ratingRow}>
@@ -260,19 +265,6 @@ function Chips({ items, emptyText }: { items: string[]; emptyText: string }) {
 }
 
 const styles = StyleSheet.create({
-  avatar: {
-    alignItems: "center",
-    backgroundColor: colors.avatarBg,
-    borderRadius: radius.avatar,
-    height: 76,
-    justifyContent: "center",
-    width: 76,
-  },
-  avatarText: {
-    color: colors.avatarText,
-    fontSize: 26,
-    fontWeight: "700",
-  },
   chip: {
     backgroundColor: colors.accentSoftBg,
     borderRadius: radius.chip,

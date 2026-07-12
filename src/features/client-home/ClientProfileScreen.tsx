@@ -9,6 +9,7 @@ import { LoadingState } from "@/components/ui/LoadingState"
 import { Stars } from "@/components/ui/Stars"
 import { routes } from "@/constants/routes"
 import { useAuth } from "@/features/auth/hooks/useAuth"
+import { EditableAvatar } from "@/features/uploads/EditableAvatar"
 import { authClient } from "@/lib/auth-client"
 
 import { ChangePasswordModal } from "./components/ChangePasswordModal"
@@ -19,7 +20,6 @@ import { ReputationCard } from "./components/ReputationCard"
 import { ReviewList } from "./components/ReviewList"
 import { SectionHeader } from "./components/SectionHeader"
 import { StatCards } from "./components/StatCards"
-import { getInitials } from "./greeting"
 import { deleteClientAccount, updateClientProfile } from "./profile-service"
 import { useClientProfile, useClientReviews } from "./profile-hooks"
 import type { ClientProfileInfo, UpdateClientProfileInput } from "./profile-types"
@@ -107,9 +107,14 @@ export function ClientProfileScreen() {
 
         {/* Cabeçalho: identidade + reputação resumida. */}
         <View style={styles.headerCard}>
-          <View style={styles.avatar}>
-            <Text style={styles.avatarText}>{getInitials(profile.name)}</Text>
-          </View>
+          <EditableAvatar
+            name={profile.name}
+            onUploaded={(avatarUrl) => {
+              setProfile({ ...profile, avatarUrl })
+              showNotice("Foto de perfil atualizada.")
+            }}
+            uri={profile.avatarUrl}
+          />
           <Text style={styles.name}>{profile.name}</Text>
           {profile.username ? <Text style={styles.username}>@{profile.username}</Text> : null}
           {profile.mainCity ? (
@@ -309,19 +314,6 @@ const styles = StyleSheet.create({
   accountActions: {
     gap: 14,
     marginTop: 4,
-  },
-  avatar: {
-    alignItems: "center",
-    backgroundColor: colors.avatarBg,
-    borderRadius: radius.avatar,
-    height: 76,
-    justifyContent: "center",
-    width: 76,
-  },
-  avatarText: {
-    color: colors.avatarText,
-    fontSize: 26,
-    fontWeight: "700",
   },
   content: {
     gap: 18,
