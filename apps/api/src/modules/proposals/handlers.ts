@@ -1,4 +1,5 @@
 import { prisma } from "@santiago/database"
+import { Prisma } from "@prisma/client"
 import { z } from "zod"
 
 import { getBlockedUserIds, isBlockedBetween } from "@/modules/blocks/service"
@@ -254,46 +255,58 @@ export async function acceptProposalHandler(context: AuthedContext) {
     select: { professional: { select: { userId: true } } },
   })
 
-  await prisma.$transaction([
-    prisma.serviceContract.create({
-      data: {
-        serviceRequestId: proposal.serviceRequestId,
-        proposalId: proposal.id,
-        clientId: proposal.serviceRequest.clientId,
-        professionalId: proposal.professionalId,
-        status: "ACCEPTED",
-      },
-    }),
-    prisma.proposal.update({ where: { id: proposal.id }, data: { status: "ACCEPTED" } }),
-    prisma.proposal.updateMany({
-      where: { serviceRequestId: proposal.serviceRequestId, status: "PENDING", id: { not: proposal.id } },
-      data: { status: "REJECTED" },
-    }),
-    prisma.serviceRequest.update({
-      where: { id: proposal.serviceRequestId },
-      data: { status: "ACCEPTED" },
-    }),
-    prisma.notification.create({
-      data: {
-        userId: proposal.professional.userId,
-        type: "PROPOSAL_ACCEPTED",
-        title: "Proposta aceita",
-        message: "Sua proposta foi aceita.",
-      },
-    }),
-    ...(siblings.length > 0
-      ? [
-          prisma.notification.createMany({
-            data: siblings.map((sibling) => ({
-              userId: sibling.professional.userId,
-              type: "PROPOSAL_REJECTED" as const,
-              title: "Proposta não selecionada",
-              message: "Sua proposta não foi selecionada.",
-            })),
-          }),
-        ]
-      : []),
-  ])
+  try {
+    await prisma.$transaction([
+      prisma.serviceContract.create({
+        data: {
+          serviceRequestId: proposal.serviceRequestId,
+          proposalId: proposal.id,
+          clientId: proposal.serviceRequest.clientId,
+          professionalId: proposal.professionalId,
+          status: "ACCEPTED",
+        },
+      }),
+      prisma.proposal.update({ where: { id: proposal.id }, data: { status: "ACCEPTED" } }),
+      prisma.proposal.updateMany({
+        where: { serviceRequestId: proposal.serviceRequestId, status: "PENDING", id: { not: proposal.id } },
+        data: { status: "REJECTED" },
+      }),
+      prisma.serviceRequest.update({
+        where: { id: proposal.serviceRequestId },
+        data: { status: "ACCEPTED" },
+      }),
+      prisma.notification.create({
+        data: {
+          userId: proposal.professional.userId,
+          type: "PROPOSAL_ACCEPTED",
+          title: "Proposta aceita",
+          message: "Sua proposta foi aceita.",
+        },
+      }),
+      ...(siblings.length > 0
+        ? [
+            prisma.notification.createMany({
+              data: siblings.map((sibling) => ({
+                userId: sibling.professional.userId,
+                type: "PROPOSAL_REJECTED" as const,
+                title: "Proposta não selecionada",
+                message: "Sua proposta não foi selecionada.",
+              })),
+            }),
+          ]
+        : []),
+    ])
+  } catch (error) {
+    // Corrida de aceites concorrentes: o índice único de proposalId no contrato
+    // impede um segundo contrato. Tratamos como "já respondida" em vez de 500.
+    if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2002") {
+      return context.json(
+        { code: "ALREADY_ANSWERED", message: "Esta proposta já foi respondida." },
+        409,
+      )
+    }
+    throw error
+  }
 
   void sendPushToUser(proposal.professional.userId, "Proposta aceita", "Sua proposta foi aceita.")
   if (siblings.length > 0) {

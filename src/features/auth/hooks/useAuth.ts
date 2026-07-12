@@ -24,6 +24,10 @@ export function useAuth() {
   const [isSubmitting, setIsSubmitting] = useState(false)
 
   async function signIn(input: SignInInput) {
+    if (isSubmitting) {
+      return
+    }
+
     setIsSubmitting(true)
     setErrorMessage(null)
     setSuccessMessage(null)
@@ -42,6 +46,10 @@ export function useAuth() {
   }
 
   async function signUp(input: SignUpInput) {
+    if (isSubmitting) {
+      return
+    }
+
     setIsSubmitting(true)
     setErrorMessage(null)
     setSuccessMessage(null)
@@ -60,17 +68,30 @@ export function useAuth() {
   }
 
   async function signOut() {
+    if (isSubmitting) {
+      return
+    }
+
+    setIsSubmitting(true)
+    setErrorMessage(null)
+
     const result = await signOutService()
 
     if (!result.success) {
+      setIsSubmitting(false)
       setErrorMessage(result.message ?? "Não foi possível sair da conta.")
       return
     }
 
+    // Mantém isSubmitting travado enquanto navega para o login (evita toque duplo).
     router.replace(routes.login)
   }
 
   async function requestPasswordReset(input: ForgotPasswordInput) {
+    if (isSubmitting) {
+      return
+    }
+
     setIsSubmitting(true)
     setErrorMessage(null)
     setSuccessMessage(null)
@@ -88,6 +109,10 @@ export function useAuth() {
   }
 
   async function resetPassword(input: ResetPasswordInput) {
+    if (isSubmitting) {
+      return
+    }
+
     setIsSubmitting(true)
     setErrorMessage(null)
     setSuccessMessage(null)

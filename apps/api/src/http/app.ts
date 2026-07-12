@@ -34,6 +34,22 @@ app.get("/health", (context) => {
   return context.json({ ok: true })
 })
 
+// Rede de segurança: qualquer exceção não tratada em um handler vira uma resposta
+// JSON no mesmo formato do resto da API ({ code, message }), nunca um corpo do
+// framework ou um stack trace. O erro é registrado para diagnóstico no servidor.
+app.onError((error, context) => {
+  console.error("[api] erro não tratado", error)
+  return context.json(
+    { code: "INTERNAL", message: "Algo deu errado. Tente novamente em instantes." },
+    500,
+  )
+})
+
+// Rota inexistente também responde em JSON (o app espera sempre JSON).
+app.notFound((context) => {
+  return context.json({ code: "NOT_FOUND", message: "Recurso não encontrado." }, 404)
+})
+
 app.use("/api/auth/*", authRateLimit)
 app.use("/api/auth/*", publicSignUpGuard)
 app.use("/api/auth/*", emailVerificationGuard)
