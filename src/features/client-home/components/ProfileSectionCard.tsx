@@ -1,7 +1,7 @@
 import type { ReactNode } from "react"
 import { Pressable, StyleSheet, Text, View } from "react-native"
 
-import { colors, radius, spacing } from "@/features/client-home/theme"
+import { colors, radius, spacing } from "../theme"
 
 type Props = {
   title: string
@@ -10,8 +10,8 @@ type Props = {
   children: ReactNode
 }
 
-// Cartão de seção com cabeçalho (título + ação opcional). Usado nas áreas
-// editáveis do perfil (informações, categorias, cidades).
+// Cartão de seção com cabeçalho (título + ação opcional). Compartilhado pelos
+// perfis do cliente e do profissional nas áreas editáveis.
 export function ProfileSectionCard({ title, actionLabel, onPressAction, children }: Props) {
   return (
     <View style={styles.card}>

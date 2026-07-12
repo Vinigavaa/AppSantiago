@@ -25,7 +25,7 @@ import {
 import type { ServiceRequest } from "@/features/service-requests/types"
 
 import { ProposalFormModal } from "./components/ProposalFormModal"
-import { Stars } from "./components/Stars"
+import { Stars } from "@/components/ui/Stars"
 import { fetchOpportunity } from "./service"
 import type { OpportunityClient } from "./types"
 

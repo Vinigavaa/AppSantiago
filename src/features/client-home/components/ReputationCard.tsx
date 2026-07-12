@@ -1,9 +1,9 @@
 import { type DimensionValue, StyleSheet, Text, View } from "react-native"
 
-import { colors, radius, spacing } from "@/features/client-home/theme"
+import { STAR_COLOR, Stars } from "@/components/ui/Stars"
 
-import type { RatingDistribution } from "../types"
-import { STAR_COLOR, Stars } from "./Stars"
+import type { RatingDistribution } from "../reputation-types"
+import { colors, radius, spacing } from "../theme"
 
 type Props = {
   ratingAverage: number
@@ -13,6 +13,8 @@ type Props = {
 
 const STAR_ROWS: (keyof RatingDistribution)[] = ["5", "4", "3", "2", "1"]
 
+// Cartão de reputação: nota média + distribuição por estrelas. Compartilhado
+// entre o perfil do cliente e o do profissional.
 export function ReputationCard({ ratingAverage, ratingCount, distribution }: Props) {
   const maxCount = Math.max(1, ...STAR_ROWS.map((key) => distribution[key]))
 
@@ -20,9 +22,7 @@ export function ReputationCard({ ratingAverage, ratingCount, distribution }: Pro
     <View style={styles.card}>
       <View style={styles.summary}>
         <View style={styles.scoreColumn}>
-          <Text style={styles.score}>
-            {ratingCount > 0 ? ratingAverage.toFixed(1) : "—"}
-          </Text>
+          <Text style={styles.score}>{ratingCount > 0 ? ratingAverage.toFixed(1) : "—"}</Text>
           <Text style={styles.scoreMax}>de 5</Text>
         </View>
 

@@ -4,6 +4,7 @@ import { StyleSheet, View } from "react-native"
 const STAR_COLOR = "#F5A623"
 
 // Cinco estrelas preenchidas conforme a nota (arredonda para meia estrela).
+// Primitivo compartilhado por cliente e profissional (perfil, cards, avaliações).
 export function Stars({ rating, size = 16 }: { rating: number; size?: number }) {
   return (
     <View style={styles.row}>

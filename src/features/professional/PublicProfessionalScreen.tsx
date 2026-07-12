@@ -13,7 +13,7 @@ import { getInitials } from "@/features/client-home/greeting"
 import { colors, radius, spacing } from "@/features/client-home/theme"
 import { formatRelativeTime } from "@/features/service-requests/format"
 
-import { Stars } from "./components/Stars"
+import { Stars } from "@/components/ui/Stars"
 import { fetchPublicProfessional } from "./service"
 import type { PublicProfessional } from "./types"
 

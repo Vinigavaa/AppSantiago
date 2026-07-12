@@ -7,6 +7,12 @@ import {
   unblockUserHandler,
 } from "@/modules/blocks/handlers"
 import { listCategoriesHandler, listCitiesHandler } from "@/modules/catalog/handlers"
+import { deleteClientAccountHandler } from "@/modules/client/account-handlers"
+import {
+  clientProfileHandler,
+  clientReviewsHandler,
+  updateClientProfileHandler,
+} from "@/modules/client/profile-handlers"
 import {
   deleteMessageHandler,
   listChatsHandler,
@@ -176,3 +182,10 @@ appRoutes.patch("/professional/profile", updateProfessionalProfileHandler)
 appRoutes.put("/professional/categories", setProfessionalCategoriesHandler)
 appRoutes.put("/professional/cities", setProfessionalCitiesHandler)
 appRoutes.get("/professional/reviews", professionalReviewsHandler)
+
+// Perfil do cliente: leitura (identidade, reputação, estatísticas), edição de
+// dados pessoais, avaliações recebidas e exclusão definitiva da conta.
+appRoutes.get("/client/profile", clientProfileHandler)
+appRoutes.patch("/client/profile", updateClientProfileHandler)
+appRoutes.get("/client/reviews", clientReviewsHandler)
+appRoutes.delete("/client/account", deleteClientAccountHandler)

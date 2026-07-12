@@ -4,7 +4,6 @@ import {
   ActivityIndicator,
   KeyboardAvoidingView,
   Modal,
-  Platform,
   Pressable,
   StyleSheet,
   Text,
@@ -13,7 +12,7 @@ import {
 } from "react-native"
 
 import { colors, radius } from "@/features/client-home/theme"
-import { STAR_COLOR } from "@/features/professional/components/Stars"
+import { STAR_COLOR } from "@/components/ui/Stars"
 
 import { submitReview } from "../service"
 
@@ -65,7 +64,7 @@ export function ReviewModal({ contractId, title, subtitle, onClose, onReviewed }
   return (
     <Modal animationType="slide" onRequestClose={onClose} transparent visible>
       <KeyboardAvoidingView
-        behavior={Platform.OS === "ios" ? "padding" : undefined}
+        behavior="padding"
         style={styles.backdrop}
       >
         <View style={styles.sheet}>

@@ -5,7 +5,7 @@ import { ChatAvatar } from "@/features/chat/components/ChatAvatar"
 import { colors, radius, spacing } from "@/features/client-home/theme"
 
 import type { ProfessionalSummary } from "../types"
-import { Stars } from "./Stars"
+import { Stars } from "@/components/ui/Stars"
 
 type IoniconName = keyof typeof Ionicons.glyphMap
 

@@ -2,6 +2,8 @@
 // criadas por clientes — mesmo contrato já consumido na área do cliente.
 export type { ServiceRequest as Opportunity } from "@/features/service-requests/types"
 
+import type { RatingDistribution } from "@/features/client-home/reputation-types"
+
 // Indicadores do painel do profissional. Cada número é um atalho para uma lista
 // já filtrada na tela de serviços; totalEarned considera só serviços concluídos.
 export type ProfessionalDashboard = {
@@ -21,7 +23,7 @@ export type RejectedProposal = {
   serviceRequest: { title: string; category: string; city: { name: string; state: string } }
 }
 
-export type RatingDistribution = Record<"1" | "2" | "3" | "4" | "5", number>
+export type { RatingDistribution }
 
 export type ProfessionalStats = {
   servicesCompleted: number

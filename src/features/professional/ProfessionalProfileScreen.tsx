@@ -15,10 +15,10 @@ import { useCatalog } from "@/features/service-requests/hooks"
 
 import { MultiSelectModal } from "./components/MultiSelectModal"
 import { PersonalInfoModal } from "./components/PersonalInfoModal"
-import { ProfileSectionCard } from "./components/ProfileSectionCard"
-import { ReputationCard } from "./components/ReputationCard"
+import { ProfileSectionCard } from "@/features/client-home/components/ProfileSectionCard"
+import { ReputationCard } from "@/features/client-home/components/ReputationCard"
 import { ReviewsSection } from "./components/ReviewsSection"
-import { Stars } from "./components/Stars"
+import { Stars } from "@/components/ui/Stars"
 import { StatsSection } from "./components/StatsSection"
 import { useProfessionalProfile, useProfessionalReviews } from "./hooks"
 import {

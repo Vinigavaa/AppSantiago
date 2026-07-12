@@ -4,7 +4,7 @@ import { ActivityIndicator, Image, Pressable, StyleSheet, Text, View } from "rea
 import { getInitials } from "@/features/client-home/greeting"
 import { colors, radius, spacing } from "@/features/client-home/theme"
 import { formatRelativeTime } from "@/features/service-requests/format"
-import { Stars } from "@/features/professional/components/Stars"
+import { Stars } from "@/components/ui/Stars"
 
 import { formatProposalPrice, getEstimatedDaysLabel, getProposalStatusStyle } from "../format"
 import type { ReceivedProposal } from "../types"
