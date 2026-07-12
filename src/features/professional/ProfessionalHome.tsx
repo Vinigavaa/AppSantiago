@@ -29,7 +29,7 @@ function budgetValue(request: ServiceRequest): number {
 export function ProfessionalHome() {
   const { data: session } = authClient.useSession()
   const insets = useSafeAreaInsets()
-  const { opportunities, isLoading, isRefreshing, error, refetch } = useOpportunities()
+  const { opportunities, hasCoverage, isLoading, isRefreshing, error, refetch } = useOpportunities()
   const { unreadCount } = useUnreadNotifications()
 
   const [search, setSearch] = useState("")
@@ -113,11 +113,25 @@ export function ProfessionalHome() {
     }
 
     if (opportunities.length === 0) {
+      // Atuação ainda não configurada: orienta e leva direto ao perfil.
+      if (!hasCoverage) {
+        return (
+          <EmptyState
+            actionLabel="Configurar minha atuação"
+            description="Defina as categorias de serviço e as cidades onde deseja trabalhar para começar a receber oportunidades compatíveis com seu perfil."
+            icon="options-outline"
+            onPressAction={() => router.push(routes.profile)}
+            title="Você ainda não configurou sua área de atuação"
+          />
+        )
+      }
+
+      // Atuação configurada, mas sem solicitações compatíveis no momento.
       return (
         <EmptyState
-          description="Novas solicitações aparecerão aqui conforme forem criadas por clientes na sua região e área de atuação."
+          description="No momento não existem solicitações compatíveis com sua área de atuação. Novas oportunidades aparecerão automaticamente assim que forem criadas."
           icon="briefcase-outline"
-          title="Nenhuma oportunidade encontrada no momento."
+          title="Nenhuma oportunidade encontrada"
         />
       )
     }

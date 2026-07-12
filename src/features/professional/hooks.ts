@@ -26,6 +26,9 @@ import type {
 // então novas solicitações de clientes aparecem ao voltar para a Home.
 export function useOpportunities() {
   const [opportunities, setOpportunities] = useState<ServiceRequest[]>([])
+  // Começa como `true` para não piscar a mensagem de "configure sua atuação"
+  // antes da primeira resposta do servidor.
+  const [hasCoverage, setHasCoverage] = useState(true)
   const [isLoading, setIsLoading] = useState(true)
   const [isRefreshing, setIsRefreshing] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -42,7 +45,8 @@ export function useOpportunities() {
     const result = await fetchOpportunities()
 
     if (result.ok) {
-      setOpportunities(result.data)
+      setOpportunities(result.data.opportunities)
+      setHasCoverage(result.data.hasCoverage)
     } else {
       setError(result.error)
     }
@@ -60,7 +64,7 @@ export function useOpportunities() {
 
   const refetch = useCallback(() => load("refresh"), [load])
 
-  return { opportunities, isLoading, isRefreshing, error, refetch }
+  return { opportunities, hasCoverage, isLoading, isRefreshing, error, refetch }
 }
 
 // Indicadores do dashboard do profissional.

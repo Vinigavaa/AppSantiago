@@ -34,9 +34,10 @@ export async function listOpportunitiesHandler(context: AuthedContext) {
   const coverage = await getProfessionalCoverage(user.id)
 
   // Sem categorias ou sem cidades definidas não há como filtrar por área/região:
-  // o profissional ainda não tem oportunidades compatíveis.
+  // o profissional ainda não configurou sua atuação. `hasCoverage: false` permite
+  // ao app orientar o profissional a configurar categorias e cidades.
   if (!coverage || coverage.categoryIds.length === 0 || coverage.cityIds.length === 0) {
-    return context.json({ opportunities: [] })
+    return context.json({ opportunities: [], hasCoverage: false })
   }
 
   // Clientes bloqueados (em qualquer direção) somem das oportunidades.
@@ -60,7 +61,9 @@ export async function listOpportunitiesHandler(context: AuthedContext) {
     orderBy: { createdAt: "desc" },
   })
 
-  return context.json({ opportunities: requests.map(serializeServiceRequest) })
+  // Atuação configurada: uma lista vazia aqui significa "sem solicitações
+  // compatíveis no momento", não falta de configuração.
+  return context.json({ opportunities: requests.map(serializeServiceRequest), hasCoverage: true })
 }
 
 // Detalhe de uma oportunidade. Prepara a futura tela completa da solicitação.

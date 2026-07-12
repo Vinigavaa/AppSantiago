@@ -52,9 +52,20 @@ export type OpportunityDetail = {
   client: OpportunityClient | null
 }
 
-export async function fetchOpportunities(): Promise<ApiResult<ServiceRequest[]>> {
-  const result = await appFetch<{ opportunities: ServiceRequest[] }>("/opportunities")
-  return result.ok ? { ok: true, data: result.data.opportunities } : result
+// Oportunidades + se a atuação (categorias/cidades) está configurada. `hasCoverage`
+// diferencia "sem configuração" de "configurado mas sem solicitações compatíveis".
+export async function fetchOpportunities(): Promise<
+  ApiResult<{ opportunities: ServiceRequest[]; hasCoverage: boolean }>
+> {
+  const result = await appFetch<{ opportunities: ServiceRequest[]; hasCoverage: boolean }>(
+    "/opportunities",
+  )
+  return result.ok
+    ? {
+        ok: true,
+        data: { opportunities: result.data.opportunities, hasCoverage: result.data.hasCoverage },
+      }
+    : result
 }
 
 export async function fetchOpportunity(id: string): Promise<ApiResult<OpportunityDetail>> {
