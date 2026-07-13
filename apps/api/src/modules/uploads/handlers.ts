@@ -14,11 +14,62 @@ function avatarPublicId(userId: string): string {
   return `${AVATAR_FOLDER}/${userId}`
 }
 
+// Pasta das fotos de solicitacao, isolada por usuario. Os uploads recebem um
+// public_id gerado pela Cloudinary dentro desta pasta; a validacao no backend
+// confere que o public_id pertence a ela (o cliente não aponta para outra coisa).
+export function requestPhotosFolder(userId: string): string {
+  return `santiago/requests/${userId}`
+}
+
+// Monta a URL de entrega otimizada (f_auto/q_auto) a partir do public_id e da
+// versao. Retorna null se a Cloudinary não estiver configurada.
+export function buildCloudinaryImageUrl(publicId: string, version: number): string | null {
+  if (!cloudinaryConfig) {
+    return null
+  }
+
+  return (
+    `https://res.cloudinary.com/${cloudinaryConfig.cloudName}` +
+    `/image/upload/f_auto,q_auto/v${version}/${publicId}`
+  )
+}
+
 function uploadsDisabled(context: AuthedContext) {
   return context.json(
     { code: "UPLOADS_DISABLED", message: "O envio de imagens está indisponível no momento." },
     503,
   )
+}
+
+// Valida uma lista de fotos enviada pelo cliente e devolve as URLs finais. Cada
+// public_id precisa pertencer à pasta do proprio usuario — assim ninguem anexa
+// uma imagem arbitraria ou de outra pessoa. A URL é sempre montada no servidor.
+export function resolveRequestPhotoUrls(
+  userId: string,
+  photos: { publicId: string; version: number }[],
+): { ok: true; urls: string[] } | { ok: false } {
+  if (!cloudinaryConfig) {
+    return { ok: false }
+  }
+
+  const prefix = `${requestPhotosFolder(userId)}/`
+  const urls: string[] = []
+
+  for (const photo of photos) {
+    if (!photo.publicId.startsWith(prefix)) {
+      return { ok: false }
+    }
+
+    const url = buildCloudinaryImageUrl(photo.publicId, photo.version)
+
+    if (!url) {
+      return { ok: false }
+    }
+
+    urls.push(url)
+  }
+
+  return { ok: true, urls }
 }
 
 // Gera uma assinatura de upload para a Cloudinary. O app usa esta assinatura para
@@ -75,15 +126,36 @@ export async function confirmAvatarHandler(context: AuthedContext) {
     return context.json({ code: "INVALID_DATA", message: "Dados de upload inválidos." }, 400)
   }
 
-  const publicId = avatarPublicId(user.id)
+  const avatarUrl = buildCloudinaryImageUrl(avatarPublicId(user.id), parsed.data.version)
 
-  // f_auto/q_auto: entrega otimizada (formato e qualidade automaticos). A versao
-  // (v<version>) invalida o cache do CDN a cada novo upload.
-  const avatarUrl =
-    `https://res.cloudinary.com/${cloudinaryConfig.cloudName}` +
-    `/image/upload/f_auto,q_auto/v${parsed.data.version}/${publicId}`
+  if (!avatarUrl) {
+    return uploadsDisabled(context)
+  }
 
   await prisma.user.update({ where: { id: user.id }, data: { avatarUrl } })
 
   return context.json({ avatarUrl })
+}
+
+// Assinatura para as fotos de uma solicitacao. Diferente do avatar, cada foto tem
+// um public_id proprio (gerado pela Cloudinary) dentro da pasta do usuario, então
+// assinamos a pasta em vez de um public_id fixo — permitindo varias fotos.
+export async function requestPhotoSignatureHandler(context: AuthedContext) {
+  if (!isCloudinaryEnabled || !cloudinaryConfig) {
+    return uploadsDisabled(context)
+  }
+
+  const user = context.get("user")
+  const timestamp = Math.round(Date.now() / 1000)
+  const folder = requestPhotosFolder(user.id)
+
+  const signature = cloudinary.utils.api_sign_request({ folder, timestamp }, cloudinaryConfig.apiSecret)
+
+  return context.json({
+    cloudName: cloudinaryConfig.cloudName,
+    apiKey: cloudinaryConfig.apiKey,
+    timestamp,
+    signature,
+    folder,
+  })
 }

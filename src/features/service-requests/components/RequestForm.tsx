@@ -3,10 +3,11 @@ import { StyleSheet, Text, TextInput, View } from "react-native"
 
 import { Button } from "@/components/ui/Button"
 import { colors, radius } from "@/features/client-home/theme"
-import { PhotosPlaceholder } from "@/features/service-requests/components/PhotosPlaceholder"
+import { RequestPhotosField } from "@/features/service-requests/components/RequestPhotosField"
 import { SelectField } from "@/features/service-requests/components/SelectField"
 import { UrgencyPicker } from "@/features/service-requests/components/UrgencyPicker"
 import type { Category, City, Urgency } from "@/features/service-requests/types"
+import type { RequestPhotoItem } from "@/features/service-requests/useRequestPhotos"
 
 // Estado e handlers do formulário, compartilhados por criação e edição.
 type FormValues = {
@@ -36,6 +37,12 @@ type Props = {
   submitLabel: string
   submittingLabel: string
   intro?: string
+  photos: RequestPhotoItem[]
+  canAddPhotos: boolean
+  photosUploading: boolean
+  onAddPhotos: () => void
+  onRemovePhoto: (key: string) => void
+  onRetryPhoto: (key: string) => void
   onChange: <K extends keyof FormValues>(key: K, value: FormValues[K]) => void
   onSubmit: () => void
 }
@@ -52,6 +59,12 @@ export function RequestForm({
   submitLabel,
   submittingLabel,
   intro,
+  photos,
+  canAddPhotos,
+  photosUploading,
+  onAddPhotos,
+  onRemovePhoto,
+  onRetryPhoto,
   onChange,
   onSubmit,
 }: Props) {
@@ -229,13 +242,19 @@ export function RequestForm({
         {errors.budgetMax ? <Text style={styles.error}>{errors.budgetMax}</Text> : null}
       </View>
 
-      <PhotosPlaceholder />
+      <RequestPhotosField
+        canAddMore={canAddPhotos}
+        items={photos}
+        onAdd={onAddPhotos}
+        onRemove={onRemovePhoto}
+        onRetry={onRetryPhoto}
+      />
 
       {submitError ? <Text style={styles.submitError}>{submitError}</Text> : null}
 
       <Button
-        disabled={isSubmitting}
-        label={isSubmitting ? submittingLabel : submitLabel}
+        disabled={isSubmitting || photosUploading}
+        label={photosUploading ? "Enviando fotos..." : isSubmitting ? submittingLabel : submitLabel}
         onPress={onSubmit}
         style={styles.submitButton}
       />

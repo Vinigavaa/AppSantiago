@@ -1,5 +1,8 @@
 import { z } from "zod"
 
+// Limite de fotos por solicitacao. Suficiente para ilustrar o servico sem pesar.
+export const MAX_REQUEST_PHOTOS = 6
+
 export const createServiceRequestSchema = z
   .object({
     categoryId: z.uuid({ message: "Selecione uma categoria." }),
@@ -45,6 +48,18 @@ export const createServiceRequestSchema = z
     }),
     budgetMin: z.number().positive("Informe um valor válido.").max(9_999_999).optional(),
     budgetMax: z.number().positive("Informe um valor válido.").max(9_999_999).optional(),
+    // Fotos recém-enviadas à Cloudinary (public_id + versão). O backend valida a
+    // pasta e monta a URL. Na edição, keepPhotoIds diz quais fotos existentes ficam.
+    photos: z
+      .array(
+        z.object({
+          publicId: z.string().min(1).max(300),
+          version: z.coerce.number().int().positive(),
+        }),
+      )
+      .max(MAX_REQUEST_PHOTOS)
+      .optional(),
+    keepPhotoIds: z.array(z.uuid()).max(MAX_REQUEST_PHOTOS).optional(),
   })
   .refine(
     (data) =>

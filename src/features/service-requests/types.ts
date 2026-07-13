@@ -47,6 +47,9 @@ export type ServiceRequest = {
   budgetMax: number | null
   proposalsCount: number
   photosCount: number
+  // Presente no detalhe da oportunidade (visão do profissional). A listagem traz
+  // apenas photosCount.
+  photos?: { id: string; url: string }[]
   createdAt: string
   contract?: RequestContract | null
 }
@@ -107,4 +110,8 @@ export type CreateServiceRequestInput = {
   urgency: Urgency
   budgetMin?: number
   budgetMax?: number
+  // Fotos recém-enviadas (novas). Na edição, keepPhotoIds lista as existentes
+  // que devem permanecer; as demais são removidas.
+  photos?: { publicId: string; version: number }[]
+  keepPhotoIds?: string[]
 }

@@ -1,7 +1,7 @@
 import { Ionicons } from "@expo/vector-icons"
 import { type Href, router } from "expo-router"
 import { useState } from "react"
-import { Alert, Image, Pressable, RefreshControl, ScrollView, StyleSheet, Text, View } from "react-native"
+import { Alert, Pressable, RefreshControl, ScrollView, StyleSheet, Text, View } from "react-native"
 
 import { Button } from "@/components/ui/Button"
 import { LoadingState } from "@/components/ui/LoadingState"
@@ -11,6 +11,7 @@ import { EmptyState } from "@/features/client-home/components/EmptyState"
 import { colors, radius, spacing } from "@/features/client-home/theme"
 import { CancelServiceModal } from "@/features/contracts/CancelServiceModal"
 import { reportNoShow } from "@/features/contracts/service"
+import { PhotoStrip } from "@/features/service-requests/components/PhotoStrip"
 import { ReviewModal } from "@/features/service-requests/components/ReviewModal"
 import {
   formatBudget,
@@ -176,11 +177,7 @@ export function RequestDetailsScreen({ id }: { id: string }) {
 
         {request.photos.length > 0 ? (
           <Section title="Fotos">
-            <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.photos}>
-              {request.photos.map((photo) => (
-                <Image key={photo.id} source={{ uri: photo.url }} style={styles.photo} />
-              ))}
-            </ScrollView>
+            <PhotoStrip photos={request.photos} />
           </Section>
         ) : null}
 
@@ -449,16 +446,6 @@ const styles = StyleSheet.create({
     fontWeight: "600",
     maxWidth: "60%",
     textAlign: "right",
-  },
-  photo: {
-    backgroundColor: colors.iconMutedBg,
-    borderRadius: radius.tag,
-    height: 110,
-    marginRight: 10,
-    width: 140,
-  },
-  photos: {
-    marginTop: 2,
   },
   pressed: {
     opacity: 0.7,

@@ -1,7 +1,8 @@
-import * as FileSystem from "expo-file-system/legacy"
 import * as ImagePicker from "expo-image-picker"
 
 import { appFetch, type ApiResult } from "@/lib/api-client"
+
+import { postToCloudinary } from "./cloudinaryUpload"
 
 type AvatarSignature = {
   cloudName: string
@@ -38,11 +39,8 @@ export async function pickAvatarImage(): Promise<PickResult> {
   return { uri: result.assets[0].uri }
 }
 
-// Fluxo de upload assinado: pede a assinatura à API, envia a imagem direto para
-// a Cloudinary (os bytes não passam pelo servidor) e confirma para persistir a
-// URL do avatar. As mensagens de erro sao distintas por etapa para facilitar o
-// diagnostico. O envio usa FileSystem.uploadAsync (multipart nativo), confiavel
-// no Android release — onde fetch + FormData com arquivo costuma falhar.
+// Fluxo de upload assinado do avatar: pede a assinatura à API, envia a imagem
+// direto para a Cloudinary e confirma para persistir a URL (montada no servidor).
 export async function uploadAvatar(localUri: string): Promise<ApiResult<{ avatarUrl: string }>> {
   const signature = await appFetch<AvatarSignature>("/uploads/avatar/signature", {
     method: "POST",
@@ -55,54 +53,22 @@ export async function uploadAvatar(localUri: string): Promise<ApiResult<{ avatar
   const { cloudName, apiKey, timestamp, signature: sig, publicId, overwrite, invalidate } =
     signature.data
 
-  const endpoint = `https://api.cloudinary.com/v1_1/${cloudName}/image/upload`
+  const uploaded = await postToCloudinary(localUri, cloudName, {
+    api_key: apiKey,
+    timestamp: String(timestamp),
+    signature: sig,
+    public_id: publicId,
+    overwrite: String(overwrite),
+    invalidate: String(invalidate),
+  })
 
-  let upload: FileSystem.FileSystemUploadResult
-
-  try {
-    upload = await FileSystem.uploadAsync(endpoint, localUri, {
-      httpMethod: "POST",
-      uploadType: FileSystem.FileSystemUploadType.MULTIPART,
-      fieldName: "file",
-      // Os valores acompanham exatamente o que foi assinado no servidor.
-      parameters: {
-        api_key: apiKey,
-        timestamp: String(timestamp),
-        signature: sig,
-        public_id: publicId,
-        overwrite: String(overwrite),
-        invalidate: String(invalidate),
-      },
-    })
-  } catch {
-    return {
-      ok: false,
-      error: "Não foi possível enviar a imagem. Verifique sua conexão e tente novamente.",
-    }
-  }
-
-  const payload = safeParse(upload.body) as
-    | { version?: number; error?: { message?: string } }
-    | null
-
-  if (upload.status < 200 || upload.status >= 300 || !payload?.version) {
-    return {
-      ok: false,
-      error: payload?.error?.message ?? `Falha ao enviar a imagem (código ${upload.status}).`,
-    }
+  if (!uploaded.ok) {
+    return uploaded
   }
 
   // Confirma no backend: ele valida e monta a URL final (o cliente não a define).
   return appFetch<{ avatarUrl: string }>("/uploads/avatar/confirm", {
     method: "POST",
-    body: { version: payload.version },
+    body: { version: uploaded.data.version },
   })
-}
-
-function safeParse(body: string): unknown {
-  try {
-    return JSON.parse(body)
-  } catch {
-    return null
-  }
 }

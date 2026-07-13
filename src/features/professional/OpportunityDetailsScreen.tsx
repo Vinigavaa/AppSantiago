@@ -16,6 +16,7 @@ import {
 } from "@/features/proposals/format"
 import { cancelProposal } from "@/features/proposals/service"
 import type { OwnProposal } from "@/features/proposals/types"
+import { PhotoStrip } from "@/features/service-requests/components/PhotoStrip"
 import {
   formatBudget,
   formatRelativeTime,
@@ -212,6 +213,13 @@ function Details({
         <Text style={styles.sectionTitle}>Descrição</Text>
         <Text style={styles.description}>{opportunity.description}</Text>
       </View>
+
+      {opportunity.photos && opportunity.photos.length > 0 ? (
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Fotos</Text>
+          <PhotoStrip photos={opportunity.photos} />
+        </View>
+      ) : null}
 
       <Text style={styles.privacyNote}>
         O endereço completo é liberado apenas após a contratação.

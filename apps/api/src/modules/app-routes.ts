@@ -63,7 +63,11 @@ import {
   updateServiceRequestHandler,
 } from "@/modules/service-requests/handlers"
 import { requireAuth, type AuthenticatedUser } from "@/modules/shared/require-auth"
-import { avatarSignatureHandler, confirmAvatarHandler } from "@/modules/uploads/handlers"
+import {
+  avatarSignatureHandler,
+  confirmAvatarHandler,
+  requestPhotoSignatureHandler,
+} from "@/modules/uploads/handlers"
 
 function ipKey(context: Context) {
   return `ip:${context.req.header("x-forwarded-for")?.split(",")[0]?.trim() ?? "unknown"}`
@@ -195,3 +199,4 @@ appRoutes.delete("/client/account", deleteClientAccountHandler)
 // direto ao CDN e confirma; o servidor grava a URL do avatar do usuario.
 appRoutes.post("/uploads/avatar/signature", avatarSignatureHandler)
 appRoutes.post("/uploads/avatar/confirm", confirmAvatarHandler)
+appRoutes.post("/uploads/request-photo/signature", requestPhotoSignatureHandler)

@@ -14,14 +14,19 @@ import { RequestForm } from "@/features/service-requests/components/RequestForm"
 import { useCatalog } from "@/features/service-requests/hooks"
 import { createServiceRequest } from "@/features/service-requests/service"
 import { useRequestForm } from "@/features/service-requests/useCreateRequestForm"
+import { useRequestPhotos } from "@/features/service-requests/useRequestPhotos"
 
 export default function NewRequest() {
   const insets = useSafeAreaInsets()
   // Quando chega da busca de profissionais, a categoria vem pré-selecionada.
   const { categoryId } = useLocalSearchParams<{ categoryId?: string }>()
   const { categories, cities, isLoading, error: catalogError, reload } = useCatalog()
+  const photos = useRequestPhotos([])
   const { form, errors, submitError, isSubmitting, isSuccess, setField, submit, reset } =
-    useRequestForm({ onSubmit: createServiceRequest })
+    useRequestForm({
+      onSubmit: createServiceRequest,
+      getExtraInput: () => ({ photos: photos.getPayload().photos }),
+    })
 
   // A tela é mantida montada pelo navegador de abas. Ao focar, pré-seleciona a
   // categoria recebida (se houver); ao sair (inclusive após o sucesso), limpa o
@@ -31,10 +36,13 @@ export default function NewRequest() {
       if (categoryId) {
         setField("categoryId", categoryId)
       }
-      return () => reset()
+      return () => {
+        reset()
+        photos.reset()
+      }
       // setField é estável na prática (envolve setState); depende só do parâmetro.
       // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [categoryId, reset]),
+    }, [categoryId, reset, photos.reset]),
   )
 
   // Após o sucesso, mostra a confirmação e segue para a área de solicitações.
@@ -66,14 +74,20 @@ export default function NewRequest() {
           </View>
         ) : (
           <RequestForm
+            canAddPhotos={photos.canAddMore}
             categories={categories}
             cities={cities}
             errors={errors}
             form={form}
             intro="Descreva o serviço que precisa. Profissionais próximos poderão enviar propostas."
             isSubmitting={isSubmitting}
+            onAddPhotos={photos.addPhotos}
             onChange={setField}
+            onRemovePhoto={photos.removePhoto}
+            onRetryPhoto={photos.retryPhoto}
             onSubmit={submit}
+            photos={photos.items}
+            photosUploading={photos.isUploading}
             submitLabel="Publicar solicitação"
             submitError={submitError}
             submittingLabel="Publicando..."

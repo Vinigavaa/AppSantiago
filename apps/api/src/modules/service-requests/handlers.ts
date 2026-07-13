@@ -2,9 +2,10 @@ import { prisma } from "@santiago/database"
 import { z } from "zod"
 
 import type { AuthedContext } from "@/modules/shared/require-auth"
+import { resolveRequestPhotoUrls } from "@/modules/uploads/handlers"
 
 import { getOrCreateClientProfileId } from "./client-profile"
-import { createServiceRequestSchema } from "./schemas"
+import { createServiceRequestSchema, MAX_REQUEST_PHOTOS } from "./schemas"
 import {
   clientServiceRequestInclude,
   serializeClientServiceRequest,
@@ -75,6 +76,22 @@ export async function createServiceRequestHandler(context: AuthedContext) {
 
   const clientId = await getOrCreateClientProfileId(user.id)
 
+  // Fotos (opcional): valida a posse (pasta do usuario) e monta as URLs finais.
+  let photoUrls: string[] = []
+
+  if (input.photos && input.photos.length > 0) {
+    const resolved = resolveRequestPhotoUrls(user.id, input.photos)
+
+    if (!resolved.ok) {
+      return context.json(
+        { code: "INVALID_PHOTOS", message: "Não foi possível anexar as fotos enviadas." },
+        400,
+      )
+    }
+
+    photoUrls = resolved.urls
+  }
+
   const created = await prisma.serviceRequest.create({
     data: {
       clientId,
@@ -90,6 +107,9 @@ export async function createServiceRequestHandler(context: AuthedContext) {
       addressComplement: input.complement ?? null,
       budgetMin: input.budgetMin ?? null,
       budgetMax: input.budgetMax ?? null,
+      ...(photoUrls.length > 0
+        ? { photos: { create: photoUrls.map((url) => ({ url })) } }
+        : {}),
     },
     include: serviceRequestInclude,
   })
@@ -229,7 +249,36 @@ export async function updateServiceRequestHandler(context: AuthedContext) {
     return context.json({ code: "INVALID_CITY", message: "Cidade indisponível." }, 400)
   }
 
-  const updated = await prisma.serviceRequest.update({
+  // Reconciliação de fotos só ocorre quando o cliente gerencia fotos (edição
+  // envia keepPhotoIds). Sem isso, as fotos existentes ficam intactas.
+  let newPhotoUrls: string[] = []
+
+  if (input.photos && input.photos.length > 0) {
+    const resolved = resolveRequestPhotoUrls(user.id, input.photos)
+
+    if (!resolved.ok) {
+      return context.json(
+        { code: "INVALID_PHOTOS", message: "Não foi possível anexar as fotos enviadas." },
+        400,
+      )
+    }
+
+    newPhotoUrls = resolved.urls
+  }
+
+  const keepIds = input.keepPhotoIds
+
+  if (keepIds !== undefined && keepIds.length + newPhotoUrls.length > MAX_REQUEST_PHOTOS) {
+    return context.json(
+      {
+        code: "TOO_MANY_PHOTOS",
+        message: `Você pode anexar no máximo ${MAX_REQUEST_PHOTOS} fotos.`,
+      },
+      400,
+    )
+  }
+
+  await prisma.serviceRequest.update({
     where: { id: existing.id },
     data: {
       categoryId: input.categoryId,
@@ -245,6 +294,29 @@ export async function updateServiceRequestHandler(context: AuthedContext) {
       budgetMin: input.budgetMin ?? null,
       budgetMax: input.budgetMax ?? null,
     },
+  })
+
+  if (keepIds !== undefined) {
+    await prisma.$transaction([
+      // Remove as fotos que não foram mantidas.
+      keepIds.length > 0
+        ? prisma.serviceRequestPhoto.deleteMany({
+            where: { serviceRequestId: existing.id, id: { notIn: keepIds } },
+          })
+        : prisma.serviceRequestPhoto.deleteMany({ where: { serviceRequestId: existing.id } }),
+      // Adiciona as novas.
+      ...(newPhotoUrls.length > 0
+        ? [
+            prisma.serviceRequestPhoto.createMany({
+              data: newPhotoUrls.map((url) => ({ serviceRequestId: existing.id, url })),
+            }),
+          ]
+        : []),
+    ])
+  }
+
+  const updated = await prisma.serviceRequest.findUniqueOrThrow({
+    where: { id: existing.id },
     include: serviceRequestDetailInclude,
   })
 

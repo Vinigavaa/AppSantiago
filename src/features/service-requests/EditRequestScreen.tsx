@@ -12,6 +12,7 @@ import { useCatalog, useServiceRequestDetail } from "@/features/service-requests
 import { updateServiceRequest } from "@/features/service-requests/service"
 import type { CreateServiceRequestInput } from "@/features/service-requests/types"
 import { detailToFormState, useRequestForm } from "@/features/service-requests/useCreateRequestForm"
+import { useRequestPhotos } from "@/features/service-requests/useRequestPhotos"
 
 export function EditRequestScreen({ id }: { id: string }) {
   const { categories, cities, isLoading: catalogLoading, error: catalogError, reload } = useCatalog()
@@ -62,8 +63,14 @@ function EditForm({
     [id],
   )
 
+  const photos = useRequestPhotos(detail.photos)
   const { form, errors, submitError, isSubmitting, isSuccess, setField, submit, reset } =
-    useRequestForm({ onSubmit: submitEdit, initial })
+    useRequestForm({
+      onSubmit: submitEdit,
+      initial,
+      // Na edição enviamos as fotos mantidas (keepPhotoIds) e as novas.
+      getExtraInput: () => photos.getPayload(),
+    })
 
   // Ao salvar com sucesso, volta ao detalhe (que recarrega ao focar e mostra os
   // dados atualizados imediatamente).
@@ -83,13 +90,19 @@ function EditForm({
 
   return (
     <RequestForm
+      canAddPhotos={photos.canAddMore}
       categories={categories}
       cities={cities}
       errors={errors}
       form={form}
       isSubmitting={isSubmitting}
+      onAddPhotos={photos.addPhotos}
       onChange={setField}
+      onRemovePhoto={photos.removePhoto}
+      onRetryPhoto={photos.retryPhoto}
       onSubmit={submit}
+      photos={photos.items}
+      photosUploading={photos.isUploading}
       submitLabel="Salvar alterações"
       submitError={submitError}
       submittingLabel="Salvando..."

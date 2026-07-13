@@ -82,7 +82,11 @@ export async function opportunityDetailHandler(context: AuthedContext) {
 
   const request = await prisma.serviceRequest.findUnique({
     where: { id },
-    include: serviceRequestInclude,
+    include: {
+      ...serviceRequestInclude,
+      // Fotos ajudam o profissional a entender o serviço antes de propor.
+      photos: { select: { id: true, url: true }, orderBy: { createdAt: "asc" } },
+    },
   })
 
   if (!request) {
@@ -134,7 +138,7 @@ export async function opportunityDetailHandler(context: AuthedContext) {
   }
 
   return context.json({
-    opportunity: serializeServiceRequest(request),
+    opportunity: { ...serializeServiceRequest(request), photos: request.photos },
     myProposal: ownProposal ? serializeOwnProposal(ownProposal) : null,
     client: client
       ? {

@@ -74,9 +74,12 @@ type UseRequestFormOptions = {
   // Ação de persistência (criar ou editar). Só precisamos do ok/erro.
   onSubmit: (input: CreateServiceRequestInput) => Promise<ApiResult<unknown>>
   initial?: FormState
+  // Dados extras mesclados ao input no envio (ex.: fotos), lidos no momento do
+  // submit para refletir o estado mais recente.
+  getExtraInput?: () => Partial<CreateServiceRequestInput>
 }
 
-export function useRequestForm({ onSubmit, initial }: UseRequestFormOptions) {
+export function useRequestForm({ onSubmit, initial, getExtraInput }: UseRequestFormOptions) {
   const [form, setForm] = useState<FormState>(initial ?? INITIAL_STATE)
   const [errors, setErrors] = useState<FormErrors>({})
   const [submitError, setSubmitError] = useState<string | null>(null)
@@ -190,7 +193,8 @@ export function useRequestForm({ onSubmit, initial }: UseRequestFormOptions) {
     setIsSubmitting(true)
     setSubmitError(null)
 
-    const result = await onSubmit(validation.input)
+    const input = { ...validation.input, ...(getExtraInput?.() ?? {}) }
+    const result = await onSubmit(input)
 
     if (!result.ok) {
       setIsSubmitting(false)
