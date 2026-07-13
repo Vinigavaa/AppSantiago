@@ -41,3 +41,6 @@ yarn-error.*
 # generated native folders
 /ios
 /android
+
+# Graphify: grafo de conhecimento gerado localmente (nao versionado)
+graphify-out/
