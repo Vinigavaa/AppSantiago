@@ -14,6 +14,7 @@ import { colors, radius, spacing } from "@/features/client-home/theme"
 import { formatRelativeTime } from "@/features/service-requests/format"
 
 import { Stars } from "@/components/ui/Stars"
+import { PortfolioGrid } from "./components/PortfolioGrid"
 import { fetchPublicProfessional } from "./service"
 import type { PublicProfessional } from "./types"
 
@@ -212,6 +213,12 @@ export function PublicProfessionalScreen({ id }: { id: string }) {
         {professional.bio ? (
           <Section title="Sobre">
             <Text style={styles.bio}>{professional.bio}</Text>
+          </Section>
+        ) : null}
+
+        {professional.portfolio.length > 0 ? (
+          <Section title="Portfólio">
+            <PortfolioGrid items={professional.portfolio} />
           </Section>
         ) : null}
 

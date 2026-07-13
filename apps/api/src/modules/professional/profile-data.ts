@@ -27,6 +27,10 @@ export async function getProfessionalProfilePayload(user: AuthenticatedUser) {
           select: { city: { select: { id: true, name: true, state: true } } },
           orderBy: { createdAt: "asc" },
         },
+        portfolioItems: {
+          select: { id: true, title: true, description: true, imageUrl: true },
+          orderBy: { createdAt: "desc" },
+        },
       },
     }),
   ])
@@ -82,5 +86,6 @@ export async function getProfessionalProfilePayload(user: AuthenticatedUser) {
     ratingCount: profile?.ratingCount ?? 0,
     ratingDistribution,
     stats: { servicesCompleted, proposalsSent, hireRate },
+    portfolio: profile?.portfolioItems ?? [],
   }
 }

@@ -4,6 +4,7 @@ import type { ServiceRequest } from "@/features/service-requests/types"
 
 import type {
   OpportunityClient,
+  PortfolioItem,
   ProfessionalDashboard,
   ProfessionalProfileInfo,
   ProfessionalReview,
@@ -126,6 +127,27 @@ export async function setProfessionalCities(
     body: { cityIds },
   })
   return result.ok ? { ok: true, data: result.data.profile } : result
+}
+
+// Adiciona um item ao portfólio (a imagem já foi enviada à Cloudinary).
+export async function createPortfolioItem(input: {
+  title: string
+  description: string | null
+  photo: { publicId: string; version: number }
+}): Promise<ApiResult<PortfolioItem>> {
+  const result = await appFetch<{ item: PortfolioItem }>("/professional/portfolio", {
+    method: "POST",
+    body: input,
+  })
+  return result.ok ? { ok: true, data: result.data.item } : result
+}
+
+// Remove um item do portfólio.
+export async function deletePortfolioItem(id: string): Promise<ApiResult<void>> {
+  const result = await appFetch<{ ok: boolean }>(`/professional/portfolio/${id}`, {
+    method: "DELETE",
+  })
+  return result.ok ? { ok: true, data: undefined } : result
 }
 
 export async function fetchProfessionalReviews(): Promise<ApiResult<ProfessionalReview[]>> {

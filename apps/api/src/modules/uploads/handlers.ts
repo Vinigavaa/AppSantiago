@@ -21,6 +21,11 @@ export function requestPhotosFolder(userId: string): string {
   return `santiago/requests/${userId}`
 }
 
+// Pasta do portfolio do profissional, isolada por usuario.
+export function portfolioFolder(userId: string): string {
+  return `santiago/portfolio/${userId}`
+}
+
 // Monta a URL de entrega otimizada (f_auto/q_auto) a partir do public_id e da
 // versao. Retorna null se a Cloudinary não estiver configurada.
 export function buildCloudinaryImageUrl(publicId: string, version: number): string | null {
@@ -41,26 +46,31 @@ function uploadsDisabled(context: AuthedContext) {
   )
 }
 
-// Valida uma lista de fotos enviada pelo cliente e devolve as URLs finais. Cada
-// public_id precisa pertencer à pasta do proprio usuario — assim ninguem anexa
-// uma imagem arbitraria ou de outra pessoa. A URL é sempre montada no servidor.
+// Valida que um public_id pertence à pasta esperada e monta a URL final. Garante
+// que ninguem anexa uma imagem arbitraria ou de outra pessoa; a URL é sempre
+// montada no servidor. Retorna null quando o public_id ou a config não conferem.
+export function resolveScopedPhotoUrl(
+  folder: string,
+  publicId: string,
+  version: number,
+): string | null {
+  if (!publicId.startsWith(`${folder}/`)) {
+    return null
+  }
+
+  return buildCloudinaryImageUrl(publicId, version)
+}
+
+// Resolve uma lista de fotos de solicitacao (todas na pasta do usuario).
 export function resolveRequestPhotoUrls(
   userId: string,
   photos: { publicId: string; version: number }[],
 ): { ok: true; urls: string[] } | { ok: false } {
-  if (!cloudinaryConfig) {
-    return { ok: false }
-  }
-
-  const prefix = `${requestPhotosFolder(userId)}/`
+  const folder = requestPhotosFolder(userId)
   const urls: string[] = []
 
   for (const photo of photos) {
-    if (!photo.publicId.startsWith(prefix)) {
-      return { ok: false }
-    }
-
-    const url = buildCloudinaryImageUrl(photo.publicId, photo.version)
+    const url = resolveScopedPhotoUrl(folder, photo.publicId, photo.version)
 
     if (!url) {
       return { ok: false }
@@ -148,6 +158,27 @@ export async function requestPhotoSignatureHandler(context: AuthedContext) {
   const user = context.get("user")
   const timestamp = Math.round(Date.now() / 1000)
   const folder = requestPhotosFolder(user.id)
+
+  const signature = cloudinary.utils.api_sign_request({ folder, timestamp }, cloudinaryConfig.apiSecret)
+
+  return context.json({
+    cloudName: cloudinaryConfig.cloudName,
+    apiKey: cloudinaryConfig.apiKey,
+    timestamp,
+    signature,
+    folder,
+  })
+}
+
+// Assinatura para as imagens do portfolio do profissional (pasta por usuario).
+export async function portfolioSignatureHandler(context: AuthedContext) {
+  if (!isCloudinaryEnabled || !cloudinaryConfig) {
+    return uploadsDisabled(context)
+  }
+
+  const user = context.get("user")
+  const timestamp = Math.round(Date.now() / 1000)
+  const folder = portfolioFolder(user.id)
 
   const signature = cloudinary.utils.api_sign_request({ folder, timestamp }, cloudinaryConfig.apiSecret)
 

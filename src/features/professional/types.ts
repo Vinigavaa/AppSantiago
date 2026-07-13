@@ -31,6 +31,14 @@ export type ProfessionalStats = {
   hireRate: number
 }
 
+// Item do portfólio do profissional: uma imagem com título e descrição opcional.
+export type PortfolioItem = {
+  id: string
+  title: string
+  description: string | null
+  imageUrl: string
+}
+
 export type ProfessionalProfileInfo = {
   name: string
   displayName: string | null
@@ -45,6 +53,7 @@ export type ProfessionalProfileInfo = {
   ratingCount: number
   ratingDistribution: RatingDistribution
   stats: ProfessionalStats
+  portfolio: PortfolioItem[]
 }
 
 export type ProfessionalReview = {
@@ -93,6 +102,7 @@ export type PublicProfessional = {
   // troca "Conversar" por "Desbloquear". (Se o profissional tivesse bloqueado o
   // cliente, o perfil nem seria retornado.)
   blockedByMe: boolean
+  portfolio: PortfolioItem[]
   stats: { servicesCompleted: number }
   reviews: PublicReview[]
 }

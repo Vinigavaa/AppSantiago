@@ -39,6 +39,10 @@ import {
   setProfessionalCitiesHandler,
   updateProfessionalProfileHandler,
 } from "@/modules/professional/profile-handlers"
+import {
+  createPortfolioItemHandler,
+  deletePortfolioItemHandler,
+} from "@/modules/professional/portfolio-handlers"
 import { publicProfessionalProfileHandler } from "@/modules/professional/public-profile-handlers"
 import { searchProfessionalsHandler } from "@/modules/professional/search-handlers"
 import {
@@ -66,6 +70,7 @@ import { requireAuth, type AuthenticatedUser } from "@/modules/shared/require-au
 import {
   avatarSignatureHandler,
   confirmAvatarHandler,
+  portfolioSignatureHandler,
   requestPhotoSignatureHandler,
 } from "@/modules/uploads/handlers"
 
@@ -187,6 +192,8 @@ appRoutes.patch("/professional/profile", updateProfessionalProfileHandler)
 appRoutes.put("/professional/categories", setProfessionalCategoriesHandler)
 appRoutes.put("/professional/cities", setProfessionalCitiesHandler)
 appRoutes.get("/professional/reviews", professionalReviewsHandler)
+appRoutes.post("/professional/portfolio", createPortfolioItemHandler)
+appRoutes.delete("/professional/portfolio/:id", deletePortfolioItemHandler)
 
 // Perfil do cliente: leitura (identidade, reputação, estatísticas), edição de
 // dados pessoais, avaliações recebidas e exclusão definitiva da conta.
@@ -200,3 +207,4 @@ appRoutes.delete("/client/account", deleteClientAccountHandler)
 appRoutes.post("/uploads/avatar/signature", avatarSignatureHandler)
 appRoutes.post("/uploads/avatar/confirm", confirmAvatarHandler)
 appRoutes.post("/uploads/request-photo/signature", requestPhotoSignatureHandler)
+appRoutes.post("/uploads/portfolio/signature", portfolioSignatureHandler)

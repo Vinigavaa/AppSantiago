@@ -1,7 +1,7 @@
 import { Ionicons } from "@expo/vector-icons"
 import { router } from "expo-router"
 import { useState } from "react"
-import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native"
+import { Alert, Pressable, ScrollView, StyleSheet, Text, View } from "react-native"
 import { useSafeAreaInsets } from "react-native-safe-area-context"
 
 import { Button } from "@/components/ui/Button"
@@ -11,10 +11,13 @@ import { SectionHeader } from "@/features/client-home/components/SectionHeader"
 import { colors, radius, spacing } from "@/features/client-home/theme"
 import { useAuth } from "@/features/auth/hooks/useAuth"
 import { EditableAvatar } from "@/features/uploads/EditableAvatar"
+import { pickPortfolioImage } from "@/features/uploads/portfolioUpload"
 import { useCatalog } from "@/features/service-requests/hooks"
 
 import { MultiSelectModal } from "./components/MultiSelectModal"
 import { PersonalInfoModal } from "./components/PersonalInfoModal"
+import { PortfolioGrid } from "./components/PortfolioGrid"
+import { PortfolioItemModal } from "./components/PortfolioItemModal"
 import { ProfileSectionCard } from "@/features/client-home/components/ProfileSectionCard"
 import { ReputationCard } from "@/features/client-home/components/ReputationCard"
 import { ReviewsSection } from "./components/ReviewsSection"
@@ -22,11 +25,12 @@ import { Stars } from "@/components/ui/Stars"
 import { StatsSection } from "./components/StatsSection"
 import { useProfessionalProfile, useProfessionalReviews } from "./hooks"
 import {
+  deletePortfolioItem,
   setProfessionalCategories,
   setProfessionalCities,
   updateProfessionalProfile,
 } from "./service"
-import type { ProfessionalProfileInfo, UpdateProfileInput } from "./types"
+import type { PortfolioItem, ProfessionalProfileInfo, UpdateProfileInput } from "./types"
 
 type OpenModal = "none" | "personal" | "categories" | "cities"
 
@@ -39,10 +43,55 @@ export function ProfessionalProfileScreen() {
 
   const [openModal, setOpenModal] = useState<OpenModal>("none")
   const [notice, setNotice] = useState<string | null>(null)
+  // Imagem escolhida aguardando título/descrição no modal de portfólio.
+  const [portfolioDraftUri, setPortfolioDraftUri] = useState<string | null>(null)
 
   function showNotice(message: string) {
     setNotice(message)
     setTimeout(() => setNotice(null), 2500)
+  }
+
+  async function handleAddPortfolio() {
+    const picked = await pickPortfolioImage()
+
+    if (picked === "denied") {
+      Alert.alert("Permissão necessária", "Autorize o acesso às suas fotos para usar o portfólio.")
+      return
+    }
+
+    if (picked === "canceled") {
+      return
+    }
+
+    setPortfolioDraftUri(picked.uri)
+  }
+
+  function handlePortfolioCreated(item: PortfolioItem) {
+    setProfile((prev) => (prev ? { ...prev, portfolio: [item, ...prev.portfolio] } : prev))
+    showNotice("Item adicionado ao portfólio.")
+  }
+
+  function confirmRemovePortfolio(id: string) {
+    Alert.alert("Remover do portfólio?", "Esta ação não pode ser desfeita.", [
+      { text: "Cancelar", style: "cancel" },
+      {
+        text: "Remover",
+        style: "destructive",
+        onPress: async () => {
+          const result = await deletePortfolioItem(id)
+
+          if (!result.ok) {
+            Alert.alert("Não foi possível remover", result.error)
+            return
+          }
+
+          setProfile((prev) =>
+            prev ? { ...prev, portfolio: prev.portfolio.filter((item) => item.id !== id) } : prev,
+          )
+          showNotice("Item removido do portfólio.")
+        },
+      },
+    ])
   }
 
   // Aplica o perfil retornado por uma alteração e dá feedback. Devolve null em
@@ -157,6 +206,18 @@ export function ProfessionalProfileScreen() {
         </ProfileSectionCard>
 
         <View>
+          <SectionHeader title="Portfólio" />
+          <View style={styles.sectionBody}>
+            <PortfolioGrid
+              canAdd={profile.portfolio.length < 12}
+              items={profile.portfolio}
+              onAdd={handleAddPortfolio}
+              onRemove={confirmRemovePortfolio}
+            />
+          </View>
+        </View>
+
+        <View>
           <SectionHeader title="Reputação" />
           <View style={styles.sectionBody}>
             <ReputationCard
@@ -209,6 +270,12 @@ export function ProfessionalProfileScreen() {
           <Text style={styles.noticeText}>{notice}</Text>
         </View>
       ) : null}
+
+      <PortfolioItemModal
+        onClose={() => setPortfolioDraftUri(null)}
+        onCreated={handlePortfolioCreated}
+        uri={portfolioDraftUri}
+      />
 
       <PersonalInfoModal
         onClose={() => setOpenModal("none")}

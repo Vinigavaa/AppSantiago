@@ -39,6 +39,10 @@ export async function publicProfessionalProfileHandler(context: AuthedContext) {
         select: { city: { select: { id: true, name: true, state: true } } },
         orderBy: { createdAt: "asc" },
       },
+      portfolioItems: {
+        select: { id: true, title: true, description: true, imageUrl: true },
+        orderBy: { createdAt: "desc" },
+      },
     },
   })
 
@@ -92,6 +96,7 @@ export async function publicProfessionalProfileHandler(context: AuthedContext) {
       ratingCount: profile.ratingCount,
       // byMe habilita "Desbloquear"; byThem nunca chega aqui (perfil 404 acima).
       blockedByMe: block.byMe,
+      portfolio: profile.portfolioItems,
       stats: { servicesCompleted },
       reviews: reviews.map((review) => ({
         id: review.id,
