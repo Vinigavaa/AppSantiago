@@ -1,5 +1,5 @@
 import { Ionicons } from "@expo/vector-icons"
-import { Pressable, StyleSheet, Text, View } from "react-native"
+import { Image, Pressable, StyleSheet, Text, View } from "react-native"
 
 import { colors, radius } from "@/features/client-home/theme"
 
@@ -24,9 +24,21 @@ export function MessageBubble({
 
   const bubble = (
     <View style={[styles.bubble, mine ? styles.bubbleMine : styles.bubbleTheirs]}>
-      <Text style={[styles.text, mine ? styles.textMine : styles.textTheirs]}>
-        {message.content}
-      </Text>
+      {message.attachmentUrl ? (
+        <Image
+          accessibilityLabel="Foto enviada na conversa"
+          source={{ uri: message.attachmentUrl }}
+          style={styles.attachment}
+        />
+      ) : null}
+
+      {/* Mensagem só de foto vem sem texto: o balão fica apenas com a imagem. */}
+      {message.content ? (
+        <Text style={[styles.text, mine ? styles.textMine : styles.textTheirs]}>
+          {message.content}
+        </Text>
+      ) : null}
+
       <View style={styles.meta}>
         <Text style={[styles.time, mine ? styles.timeMine : styles.timeTheirs]}>
           {formatMessageTime(message.createdAt)}
@@ -79,6 +91,13 @@ function renderReceipt(sending: boolean, read: boolean) {
 }
 
 const styles = StyleSheet.create({
+  attachment: {
+    aspectRatio: 1,
+    backgroundColor: colors.iconMutedBg,
+    borderRadius: radius.tag,
+    marginBottom: 2,
+    width: 200,
+  },
   bubble: {
     borderRadius: radius.card,
     gap: 2,

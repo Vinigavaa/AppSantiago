@@ -118,6 +118,9 @@ export function serializeChatSummary(
     lastMessage: last
       ? {
           content: last.content,
+          // Mensagem só de foto tem `content` vazio: o app decide como exibir a
+          // prévia (o texto em si é apresentação, não regra de negócio).
+          hasAttachment: last.attachmentUrl !== null,
           mine: last.senderId === meUserId,
           createdAt: last.createdAt.toISOString(),
         }

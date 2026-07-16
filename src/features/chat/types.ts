@@ -12,7 +12,13 @@ export type ChatOtherUser = {
 export type ChatSummary = {
   id: string
   otherUser: ChatOtherUser
-  lastMessage: { content: string; mine: boolean; createdAt: string } | null
+  // `hasAttachment` permite a prévia mostrar "Foto" quando a mensagem não tem texto.
+  lastMessage: {
+    content: string
+    hasAttachment: boolean
+    mine: boolean
+    createdAt: string
+  } | null
   unreadCount: number
   updatedAt: string
 }
@@ -22,9 +28,14 @@ export type ChatSummary = {
 // servidor não têm status (ficam implicitamente entregues).
 export type MessageStatus = "sending" | "sent" | "failed"
 
+// Foto já enviada à Cloudinary, aguardando virar mensagem. Fica guardada na
+// mensagem local para que um reenvio não precise subir a imagem de novo.
+export type PendingPhoto = { publicId: string; version: number }
+
 // Uma mensagem na visão de quem lê: `mine` diferencia enviada/recebida e `read`
-// alimenta os recibos (entregue/lida). `attachmentUrl` fica pronto para anexos.
-// `status` só existe em mensagens locais ainda não confirmadas pelo servidor.
+// alimenta os recibos (entregue/lida). `attachmentUrl` é a foto anexada (URL do
+// servidor, ou a local enquanto a mensagem ainda não foi confirmada).
+// `status` e `pendingPhoto` só existem em mensagens locais ainda não confirmadas.
 export type ChatMessage = {
   id: string
   content: string
@@ -33,4 +44,5 @@ export type ChatMessage = {
   read: boolean
   createdAt: string
   status?: MessageStatus
+  pendingPhoto?: PendingPhoto
 }

@@ -360,10 +360,13 @@ model Message {
   id            String    @id @default(uuid()) @db.Uuid
   chatId        String    @db.Uuid
   senderId      String    @db.Uuid
-  content       String    @db.Text
-  // Estrutura preparada para anexos (imagens/arquivos) sem alterar o fluxo de
-  // texto: hoje sempre nulo; o envio de texto continua usando apenas `content`.
-  attachmentUrl String?
+  // Legenda do anexo ou o texto da mensagem. Fica vazio quando a mensagem é só
+  // uma foto — toda mensagem tem conteúdo OU anexo (validado no backend).
+  content            String    @db.Text
+  // Anexo de imagem (opcional). A URL é montada pelo servidor; o public_id é o
+  // que permite apagar o arquivo na Cloudinary quando a mensagem é excluída.
+  attachmentUrl      String?
+  attachmentPublicId String?
   readAt        DateTime?
   createdAt     DateTime  @default(now())
   chat          Chat      @relation(fields: [chatId], references: [id], onDelete: Cascade)

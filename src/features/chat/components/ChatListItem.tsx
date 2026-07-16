@@ -7,11 +7,20 @@ import type { ChatSummary } from "../types"
 import { ChatAvatar } from "./ChatAvatar"
 
 // Uma conversa na lista principal: foto, nome, prévia da última mensagem, horário
+// Prévia da última mensagem. Uma foto sem legenda não tem texto para mostrar,
+// então é anunciada como imagem; com legenda, a legenda fala por si.
+function previewBody(last: NonNullable<ChatSummary["lastMessage"]>): string {
+  if (last.content) {
+    return last.content
+  }
+  return last.hasAttachment ? "📷 Foto" : ""
+}
+
 // e a bolinha de não-lidas quando há mensagens novas.
 export function ChatListItem({ chat, onPress }: { chat: ChatSummary; onPress: () => void }) {
   const hasUnread = chat.unreadCount > 0
   const preview = chat.lastMessage
-    ? `${chat.lastMessage.mine ? "Você: " : ""}${chat.lastMessage.content}`
+    ? `${chat.lastMessage.mine ? "Você: " : ""}${previewBody(chat.lastMessage)}`
     : "Nenhuma mensagem ainda"
 
   return (

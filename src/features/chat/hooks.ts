@@ -5,7 +5,7 @@ import { Alert } from "react-native"
 import { routes } from "@/constants/routes"
 
 import { deleteMessage, fetchChats, fetchMessages, openChat, sendMessage } from "./service"
-import type { ChatMessage, ChatOtherUser, ChatSummary } from "./types"
+import type { ChatMessage, ChatOtherUser, ChatSummary, PendingPhoto } from "./types"
 
 // Enquanto a lista/conversa está em foco, revalidamos em intervalo curto — é o
 // "tempo real" via polling, simples e suficiente para o volume esperado. A
@@ -137,9 +137,9 @@ export function useChat(chatId: string) {
   // confirmar, troca a temporária pela definitiva (id real); só marca "failed"
   // depois de esgotar as tentativas, mantendo o texto na conversa.
   const deliver = useCallback(
-    async (id: string, content: string) => {
+    async (id: string, content: string, photo?: PendingPhoto) => {
       for (let attempt = 1; attempt <= MAX_SEND_ATTEMPTS; attempt += 1) {
-        const result = await sendMessage(chatId, content)
+        const result = await sendMessage(chatId, content, photo)
 
         if (result.ok) {
           setMessages((previous) =>
@@ -169,26 +169,31 @@ export function useChat(chatId: string) {
     [chatId],
   )
 
-  // Toca em enviar: a mensagem aparece imediatamente com status "sending".
+  // Toca em enviar: a mensagem aparece imediatamente com status "sending". A foto
+  // (quando há) já subiu para a Cloudinary antes daqui; enquanto o servidor não
+  // confirma, o balão mostra o arquivo local — a URL definitiva chega na resposta.
   const send = useCallback(
-    (content: string) => {
+    (content: string, attachment?: { photo: PendingPhoto; localUri: string }) => {
       const id = localId()
       const optimistic: ChatMessage = {
         id,
         content,
-        attachmentUrl: null,
+        attachmentUrl: attachment?.localUri ?? null,
         mine: true,
         read: false,
         createdAt: new Date().toISOString(),
         status: "sending",
+        pendingPhoto: attachment?.photo,
       }
       setMessages((previous) => [...previous, optimistic])
-      void deliver(id, content)
+      void deliver(id, content, attachment?.photo)
     },
     [deliver],
   )
 
-  // Reenvia uma mensagem que falhou, sem o usuário reescrever o texto.
+  // Reenvia uma mensagem que falhou, sem o usuário reescrever o texto. A foto é
+  // reaproveitada de `pendingPhoto`: já está na Cloudinary, subir de novo só
+  // criaria um arquivo órfão.
   const retry = useCallback(
     (message: ChatMessage) => {
       setMessages((previous) =>
@@ -196,7 +201,7 @@ export function useChat(chatId: string) {
           item.id === message.id ? { ...item, status: "sending" as const } : item,
         ),
       )
-      void deliver(message.id, message.content)
+      void deliver(message.id, message.content, message.pendingPhoto)
     },
     [deliver],
   )

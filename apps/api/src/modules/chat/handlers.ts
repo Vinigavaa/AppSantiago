@@ -6,6 +6,9 @@ import { sendPushToUser } from "@/modules/notifications/push"
 import { getOrCreateProfessionalProfileId } from "@/modules/professional/professional-context"
 import { getOrCreateClientProfileId } from "@/modules/service-requests/client-profile"
 import type { AuthedContext } from "@/modules/shared/require-auth"
+import { deleteImages } from "@/modules/uploads/cleanup"
+import { chatAttachmentsFolder } from "@/modules/uploads/folders"
+import { resolveScopedPhotoUrl } from "@/modules/uploads/handlers"
 
 import { openChatSchema, sendMessageSchema } from "./schemas"
 import {
@@ -247,16 +250,41 @@ export async function sendMessageHandler(context: AuthedContext) {
     return forbidden(context, "Conversa indisponível.")
   }
 
+  // Anexo (opcional): a URL é montada aqui a partir do public_id, e só se ele
+  // estiver na pasta do remetente — ninguém anexa imagem de outra pessoa.
+  const { content, photo } = parsed.data
+  let attachmentUrl: string | null = null
+
+  if (photo) {
+    attachmentUrl = resolveScopedPhotoUrl(
+      chatAttachmentsFolder(user.id),
+      photo.publicId,
+      photo.version,
+    )
+
+    if (!attachmentUrl) {
+      return invalidData(context, "Não foi possível anexar a imagem enviada.")
+    }
+  }
+
   // Cria a mensagem e "sobe" a conversa (updatedAt) para ordenar a lista.
   const [message] = await prisma.$transaction([
     prisma.message.create({
-      data: { chatId: chat.id, senderId: user.id, content: parsed.data.content },
+      data: {
+        chatId: chat.id,
+        senderId: user.id,
+        content,
+        attachmentUrl,
+        attachmentPublicId: photo?.publicId ?? null,
+      },
       select: messageSelect,
     }),
     prisma.chat.update({ where: { id: chat.id }, data: { updatedAt: new Date() } }),
   ])
 
-  const preview = `${firstName(user.name)}: ${parsed.data.content}`.slice(0, 120)
+  // Mensagem só de foto não tem texto: a prévia avisa que chegou uma imagem.
+  const previewBody = content || "📷 Foto"
+  const preview = `${firstName(user.name)}: ${previewBody}`.slice(0, 120)
 
   await prisma.notification
     .create({
@@ -296,7 +324,9 @@ export async function deleteMessageHandler(context: AuthedContext) {
 
   const message = await prisma.message.findUnique({
     where: { id: messageId },
-    select: { id: true, chatId: true, senderId: true, readAt: true },
+    // attachmentPublicId vem junto: depois do delete a linha não existe mais e
+    // não haveria como apagar o arquivo no CDN.
+    select: { id: true, chatId: true, senderId: true, readAt: true, attachmentPublicId: true },
   })
 
   // Mensagem inexistente, de outra conversa ou de outra pessoa: trata como
@@ -325,6 +355,11 @@ export async function deleteMessageHandler(context: AuthedContext) {
       409,
     )
   }
+
+  // O anexo sai depois do banco confirmar: se apagássemos antes e o delete não
+  // acontecesse (mensagem lida nesse meio-tempo), a imagem sumiria de uma
+  // mensagem que continua na conversa.
+  await deleteImages([message.attachmentPublicId])
 
   return context.json({ deleted: true })
 }

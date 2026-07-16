@@ -1,5 +1,10 @@
 import { cloudinary, isCloudinaryEnabled } from "./cloudinary"
-import { avatarPublicId, portfolioFolder, requestPhotosFolder } from "./folders"
+import {
+  avatarPublicId,
+  chatAttachmentsFolder,
+  portfolioFolder,
+  requestPhotosFolder,
+} from "./folders"
 
 // Remocao das imagens de um usuario na Cloudinary.
 //
@@ -53,7 +58,12 @@ export async function deleteUserImages(userId: string): Promise<void> {
   // Todas as pastas onde um usuario pode ter imagens. A do portfolio fica vazia
   // para clientes, mas entra na lista para que a funcao continue correta quando a
   // exclusao de conta de profissional existir.
-  const prefixes = [avatarPublicId(userId), requestPhotosFolder(userId), portfolioFolder(userId)]
+  const prefixes = [
+    avatarPublicId(userId),
+    requestPhotosFolder(userId),
+    portfolioFolder(userId),
+    chatAttachmentsFolder(userId),
+  ]
 
   for (const prefix of prefixes) {
     try {

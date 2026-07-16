@@ -5,7 +5,12 @@ import { cloudinaryConfig } from "@/config/env"
 import type { AuthedContext } from "@/modules/shared/require-auth"
 
 import { cloudinary, isCloudinaryEnabled } from "./cloudinary"
-import { avatarPublicId, portfolioFolder, requestPhotosFolder } from "./folders"
+import {
+  avatarPublicId,
+  chatAttachmentsFolder,
+  portfolioFolder,
+  requestPhotosFolder,
+} from "./folders"
 
 // Monta a URL de entrega otimizada (f_auto/q_auto) a partir do public_id e da
 // versao. Retorna null se a Cloudinary não estiver configurada.
@@ -164,6 +169,28 @@ export async function portfolioSignatureHandler(context: AuthedContext) {
   const user = context.get("user")
   const timestamp = Math.round(Date.now() / 1000)
   const folder = portfolioFolder(user.id)
+
+  const signature = cloudinary.utils.api_sign_request({ folder, timestamp }, cloudinaryConfig.apiSecret)
+
+  return context.json({
+    cloudName: cloudinaryConfig.cloudName,
+    apiKey: cloudinaryConfig.apiKey,
+    timestamp,
+    signature,
+    folder,
+  })
+}
+
+// Assinatura para os anexos de chat (pasta do remetente). A conversa nao entra na
+// pasta: a validacao de quem pode enviar ali e feita no envio da mensagem.
+export async function chatAttachmentSignatureHandler(context: AuthedContext) {
+  if (!isCloudinaryEnabled || !cloudinaryConfig) {
+    return uploadsDisabled(context)
+  }
+
+  const user = context.get("user")
+  const timestamp = Math.round(Date.now() / 1000)
+  const folder = chatAttachmentsFolder(user.id)
 
   const signature = cloudinary.utils.api_sign_request({ folder, timestamp }, cloudinaryConfig.apiSecret)
 

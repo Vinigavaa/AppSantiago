@@ -1,6 +1,6 @@
 import { appFetch, type ApiResult } from "@/lib/api-client"
 
-import type { ChatMessage, ChatOtherUser, ChatSummary } from "./types"
+import type { ChatMessage, ChatOtherUser, ChatSummary, PendingPhoto } from "./types"
 
 // Abre (ou reutiliza) a conversa com outro usuário, identificado pelo seu id.
 export async function openChat(
@@ -32,10 +32,11 @@ export async function fetchMessages(
 export async function sendMessage(
   chatId: string,
   content: string,
+  photo?: PendingPhoto,
 ): Promise<ApiResult<ChatMessage>> {
   const result = await appFetch<{ message: ChatMessage }>(`/chats/${chatId}/messages`, {
     method: "POST",
-    body: { content },
+    body: photo ? { content, photo } : { content },
   })
   return result.ok ? { ok: true, data: result.data.message } : result
 }

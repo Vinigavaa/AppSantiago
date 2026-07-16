@@ -70,6 +70,7 @@ import { requireAuth, type AuthenticatedUser } from "@/modules/shared/require-au
 import {
   avatarSignatureHandler,
   confirmAvatarHandler,
+  chatAttachmentSignatureHandler,
   portfolioSignatureHandler,
   requestPhotoSignatureHandler,
 } from "@/modules/uploads/handlers"
@@ -208,3 +209,4 @@ appRoutes.post("/uploads/avatar/signature", avatarSignatureHandler)
 appRoutes.post("/uploads/avatar/confirm", confirmAvatarHandler)
 appRoutes.post("/uploads/request-photo/signature", requestPhotoSignatureHandler)
 appRoutes.post("/uploads/portfolio/signature", portfolioSignatureHandler)
+appRoutes.post("/uploads/chat-attachment/signature", chatAttachmentSignatureHandler)

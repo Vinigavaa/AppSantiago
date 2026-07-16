@@ -20,3 +20,9 @@ export function requestPhotosFolder(userId: string): string {
 export function portfolioFolder(userId: string): string {
   return `santiago/portfolio/${userId}`
 }
+
+// Pasta dos anexos de chat, isolada por remetente. Isolar por usuario (e nao por
+// conversa) mantem a limpeza da conta funcionando por prefixo.
+export function chatAttachmentsFolder(userId: string): string {
+  return `santiago/chat/${userId}`
+}
