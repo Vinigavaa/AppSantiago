@@ -264,6 +264,9 @@ model ServiceRequestPhoto {
   id               String         @id @default(uuid()) @db.Uuid
   serviceRequestId String         @db.Uuid
   url              String
+  // public_id na Cloudinary, necessário para apagar o arquivo quando a foto sai.
+  // Opcional: fotos anteriores a esta coluna podem não ter valor derivável da URL.
+  publicId         String?
   createdAt        DateTime       @default(now())
   serviceRequest   ServiceRequest @relation(fields: [serviceRequestId], references: [id], onDelete: Cascade)
 
@@ -420,6 +423,9 @@ model ProfessionalPortfolioItem {
   title          String
   description    String?             @db.Text
   imageUrl       String
+  // public_id na Cloudinary, necessário para apagar o arquivo quando o item sai.
+  // Opcional: itens anteriores a esta coluna podem não ter valor derivável da URL.
+  publicId       String?
   createdAt      DateTime            @default(now())
   updatedAt      DateTime            @updatedAt
   professional   ProfessionalProfile @relation(fields: [professionalId], references: [id], onDelete: Cascade)

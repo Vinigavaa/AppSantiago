@@ -80,6 +80,7 @@ export async function createPortfolioItemHandler(context: AuthedContext) {
       title: parsed.data.title,
       description: parsed.data.description?.trim() || null,
       imageUrl,
+      publicId: parsed.data.photo.publicId,
     },
     select: { id: true, title: true, description: true, imageUrl: true },
   })

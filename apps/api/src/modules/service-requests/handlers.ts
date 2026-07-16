@@ -2,7 +2,7 @@ import { prisma } from "@santiago/database"
 import { z } from "zod"
 
 import type { AuthedContext } from "@/modules/shared/require-auth"
-import { resolveRequestPhotoUrls } from "@/modules/uploads/handlers"
+import { type ResolvedPhoto, resolveRequestPhotos } from "@/modules/uploads/handlers"
 
 import { getOrCreateClientProfileId } from "./client-profile"
 import { createServiceRequestSchema, MAX_REQUEST_PHOTOS } from "./schemas"
@@ -77,10 +77,10 @@ export async function createServiceRequestHandler(context: AuthedContext) {
   const clientId = await getOrCreateClientProfileId(user.id)
 
   // Fotos (opcional): valida a posse (pasta do usuario) e monta as URLs finais.
-  let photoUrls: string[] = []
+  let photos: ResolvedPhoto[] = []
 
   if (input.photos && input.photos.length > 0) {
-    const resolved = resolveRequestPhotoUrls(user.id, input.photos)
+    const resolved = resolveRequestPhotos(user.id, input.photos)
 
     if (!resolved.ok) {
       return context.json(
@@ -89,7 +89,7 @@ export async function createServiceRequestHandler(context: AuthedContext) {
       )
     }
 
-    photoUrls = resolved.urls
+    photos = resolved.photos
   }
 
   const created = await prisma.serviceRequest.create({
@@ -107,8 +107,8 @@ export async function createServiceRequestHandler(context: AuthedContext) {
       addressComplement: input.complement ?? null,
       budgetMin: input.budgetMin ?? null,
       budgetMax: input.budgetMax ?? null,
-      ...(photoUrls.length > 0
-        ? { photos: { create: photoUrls.map((url) => ({ url })) } }
+      ...(photos.length > 0
+        ? { photos: { create: photos.map(({ url, publicId }) => ({ url, publicId })) } }
         : {}),
     },
     include: serviceRequestInclude,
@@ -251,10 +251,10 @@ export async function updateServiceRequestHandler(context: AuthedContext) {
 
   // Reconciliação de fotos só ocorre quando o cliente gerencia fotos (edição
   // envia keepPhotoIds). Sem isso, as fotos existentes ficam intactas.
-  let newPhotoUrls: string[] = []
+  let newPhotos: ResolvedPhoto[] = []
 
   if (input.photos && input.photos.length > 0) {
-    const resolved = resolveRequestPhotoUrls(user.id, input.photos)
+    const resolved = resolveRequestPhotos(user.id, input.photos)
 
     if (!resolved.ok) {
       return context.json(
@@ -263,12 +263,12 @@ export async function updateServiceRequestHandler(context: AuthedContext) {
       )
     }
 
-    newPhotoUrls = resolved.urls
+    newPhotos = resolved.photos
   }
 
   const keepIds = input.keepPhotoIds
 
-  if (keepIds !== undefined && keepIds.length + newPhotoUrls.length > MAX_REQUEST_PHOTOS) {
+  if (keepIds !== undefined && keepIds.length + newPhotos.length > MAX_REQUEST_PHOTOS) {
     return context.json(
       {
         code: "TOO_MANY_PHOTOS",
@@ -305,10 +305,14 @@ export async function updateServiceRequestHandler(context: AuthedContext) {
           })
         : prisma.serviceRequestPhoto.deleteMany({ where: { serviceRequestId: existing.id } }),
       // Adiciona as novas.
-      ...(newPhotoUrls.length > 0
+      ...(newPhotos.length > 0
         ? [
             prisma.serviceRequestPhoto.createMany({
-              data: newPhotoUrls.map((url) => ({ serviceRequestId: existing.id, url })),
+              data: newPhotos.map(({ url, publicId }) => ({
+                serviceRequestId: existing.id,
+                url,
+                publicId,
+              })),
             }),
           ]
         : []),

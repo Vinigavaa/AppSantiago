@@ -42,13 +42,17 @@ export function resolveScopedPhotoUrl(
   return buildCloudinaryImageUrl(publicId, version)
 }
 
+// Foto ja validada: a URL montada pelo servidor e o public_id que a originou. O
+// public_id fica junto porque e o unico jeito de apagar o arquivo no CDN depois.
+export type ResolvedPhoto = { url: string; publicId: string }
+
 // Resolve uma lista de fotos de solicitacao (todas na pasta do usuario).
-export function resolveRequestPhotoUrls(
+export function resolveRequestPhotos(
   userId: string,
   photos: { publicId: string; version: number }[],
-): { ok: true; urls: string[] } | { ok: false } {
+): { ok: true; photos: ResolvedPhoto[] } | { ok: false } {
   const folder = requestPhotosFolder(userId)
-  const urls: string[] = []
+  const resolved: ResolvedPhoto[] = []
 
   for (const photo of photos) {
     const url = resolveScopedPhotoUrl(folder, photo.publicId, photo.version)
@@ -57,10 +61,10 @@ export function resolveRequestPhotoUrls(
       return { ok: false }
     }
 
-    urls.push(url)
+    resolved.push({ url, publicId: photo.publicId })
   }
 
-  return { ok: true, urls }
+  return { ok: true, photos: resolved }
 }
 
 // Gera uma assinatura de upload para a Cloudinary. O app usa esta assinatura para
