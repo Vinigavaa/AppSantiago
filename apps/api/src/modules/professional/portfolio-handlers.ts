@@ -2,6 +2,7 @@ import { prisma } from "@santiago/database"
 import { z } from "zod"
 
 import type { AuthedContext } from "@/modules/shared/require-auth"
+import { deleteImages } from "@/modules/uploads/cleanup"
 import { portfolioFolder } from "@/modules/uploads/folders"
 import { resolveScopedPhotoUrl } from "@/modules/uploads/handlers"
 
@@ -105,13 +106,22 @@ export async function deletePortfolioItemHandler(context: AuthedContext) {
 
   const professionalId = await getOrCreateProfessionalProfileId(user.id)
 
-  const result = await prisma.professionalPortfolioItem.deleteMany({
+  // Busca antes de apagar para ter o publicId da imagem. O filtro por
+  // professionalId continua sendo a autorização: item de outro dono não aparece.
+  const item = await prisma.professionalPortfolioItem.findFirst({
     where: { id, professionalId },
+    select: { id: true, publicId: true },
   })
 
-  if (result.count === 0) {
+  if (!item) {
     return context.json({ code: "NOT_FOUND", message: "Item não encontrado." }, 404)
   }
+
+  await prisma.professionalPortfolioItem.delete({ where: { id: item.id } })
+
+  // A imagem sai depois do banco confirmar: se o CDN falhar, o item já foi
+  // removido e o arquivo órfão fica registrado no log.
+  await deleteImages([item.publicId])
 
   return context.json({ ok: true })
 }

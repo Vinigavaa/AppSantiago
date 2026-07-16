@@ -14,6 +14,32 @@ async function deleteByPrefix(prefix: string): Promise<void> {
   await cloudinary.api.delete_resources_by_prefix(prefix, { invalidate: true })
 }
 
+// Apaga arquivos especificos pelo public_id. Recebe uma lista porque as remocoes
+// vem em lote (as fotos de uma solicitacao, por exemplo) e uma unica chamada e
+// mais barata que uma por imagem.
+//
+// Entradas nulas sao descartadas: `publicId` e opcional no banco, entao fotos
+// anteriores a essa coluna simplesmente nao tem como ser apagadas aqui.
+//
+// Nunca lanca, pela mesma razao de deleteUserImages: a linha ja saiu do banco.
+export async function deleteImages(publicIds: (string | null)[]): Promise<void> {
+  if (!isCloudinaryEnabled) {
+    return
+  }
+
+  const ids = publicIds.filter((id): id is string => id !== null)
+
+  if (ids.length === 0) {
+    return
+  }
+
+  try {
+    await cloudinary.api.delete_resources(ids, { invalidate: true })
+  } catch (error) {
+    console.error(`[uploads] falha ao remover ${ids.length} imagem(ns)`, error)
+  }
+}
+
 // Apaga todas as imagens do usuario (avatar, fotos de solicitacao e portfolio).
 //
 // Nunca lanca: e chamada depois que a conta ja foi excluida do banco, entao uma

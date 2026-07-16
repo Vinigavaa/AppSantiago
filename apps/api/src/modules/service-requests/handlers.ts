@@ -2,6 +2,7 @@ import { prisma } from "@santiago/database"
 import { z } from "zod"
 
 import type { AuthedContext } from "@/modules/shared/require-auth"
+import { deleteImages } from "@/modules/uploads/cleanup"
 import { type ResolvedPhoto, resolveRequestPhotos } from "@/modules/uploads/handlers"
 
 import { getOrCreateClientProfileId } from "./client-profile"
@@ -297,13 +298,21 @@ export async function updateServiceRequestHandler(context: AuthedContext) {
   })
 
   if (keepIds !== undefined) {
+    // Quais fotos vão sair: consultado antes, porque depois da transação as
+    // linhas (e com elas os publicIds) não existem mais.
+    const removedFilter = {
+      serviceRequestId: existing.id,
+      ...(keepIds.length > 0 ? { id: { notIn: keepIds } } : {}),
+    }
+
+    const removed = await prisma.serviceRequestPhoto.findMany({
+      where: removedFilter,
+      select: { publicId: true },
+    })
+
     await prisma.$transaction([
       // Remove as fotos que não foram mantidas.
-      keepIds.length > 0
-        ? prisma.serviceRequestPhoto.deleteMany({
-            where: { serviceRequestId: existing.id, id: { notIn: keepIds } },
-          })
-        : prisma.serviceRequestPhoto.deleteMany({ where: { serviceRequestId: existing.id } }),
+      prisma.serviceRequestPhoto.deleteMany({ where: removedFilter }),
       // Adiciona as novas.
       ...(newPhotos.length > 0
         ? [
@@ -317,6 +326,10 @@ export async function updateServiceRequestHandler(context: AuthedContext) {
           ]
         : []),
     ])
+
+    // Arquivos das fotos removidas saem depois do commit e fora da transação
+    // (chamada de rede): se falhar, a edição já está salva e o órfão vai no log.
+    await deleteImages(removed.map((photo) => photo.publicId))
   }
 
   const updated = await prisma.serviceRequest.findUniqueOrThrow({
@@ -350,7 +363,13 @@ export async function deleteServiceRequestHandler(context: AuthedContext) {
 
   const existing = await prisma.serviceRequest.findFirst({
     where: { id, client: { userId: user.id } },
-    select: { id: true, serviceContracts: { select: { id: true, status: true } } },
+    select: {
+      id: true,
+      serviceContracts: { select: { id: true, status: true } },
+      // As fotos caem em cascata: o publicId precisa vir agora, antes das linhas
+      // sumirem, senão não há como apagar os arquivos no CDN depois.
+      photos: { select: { publicId: true } },
+    },
   })
 
   if (!existing) {
@@ -382,6 +401,10 @@ export async function deleteServiceRequestHandler(context: AuthedContext) {
   } else {
     await prisma.serviceRequest.delete({ where: { id: existing.id } })
   }
+
+  // Arquivos das fotos saem depois do banco confirmar: apagar antes arriscaria
+  // remover imagens de uma solicitação que continuaria existindo.
+  await deleteImages(existing.photos.map((photo) => photo.publicId))
 
   return context.json({ ok: true })
 }
