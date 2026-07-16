@@ -2,7 +2,8 @@ import { prisma } from "@santiago/database"
 import { z } from "zod"
 
 import type { AuthedContext } from "@/modules/shared/require-auth"
-import { portfolioFolder, resolveScopedPhotoUrl } from "@/modules/uploads/handlers"
+import { portfolioFolder } from "@/modules/uploads/folders"
+import { resolveScopedPhotoUrl } from "@/modules/uploads/handlers"
 
 import { getOrCreateProfessionalProfileId } from "./professional-context"
 

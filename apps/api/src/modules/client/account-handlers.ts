@@ -1,6 +1,7 @@
 import { prisma } from "@santiago/database"
 
 import type { AuthedContext } from "@/modules/shared/require-auth"
+import { deleteUserImages } from "@/modules/uploads/cleanup"
 
 function forbidden(context: AuthedContext) {
   return context.json({ code: "FORBIDDEN", message: "Disponível apenas para clientes." }, 403)
@@ -55,10 +56,20 @@ export async function deleteClientAccountHandler(context: AuthedContext) {
       await tx.serviceContract.deleteMany({ where: { clientId: profile.id } })
     }
 
-    // Remove o usuário: o cascade elimina perfil, solicitações, propostas, fotos,
-    // chats, mensagens, bloqueios, notificações, tokens de push, sessões e contas.
+    // Remove o usuário: o cascade elimina perfil, solicitações, propostas, chats,
+    // mensagens, bloqueios, notificações, tokens de push, sessões e contas. As
+    // linhas das fotos também saem aqui — os arquivos na Cloudinary, logo abaixo.
     await tx.user.delete({ where: { id: user.id } })
   })
+
+  // As imagens saem depois do commit e fora da transação: é uma chamada de rede,
+  // que dentro da transação a manteria aberta e faria rollback da exclusão se o
+  // CDN oscilasse. Apagar antes seria pior — a transação poderia falhar e as
+  // imagens sumiriam de uma conta ainda viva. O banco é a fonte da verdade.
+  //
+  // Se a limpeza falhar, a conta continua excluída e a resposta segue de sucesso:
+  // o que ficou pendente é o arquivo no CDN, e isso vai para o log.
+  await deleteUserImages(user.id)
 
   return context.json({ deleted: true })
 }

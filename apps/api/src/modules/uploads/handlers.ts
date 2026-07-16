@@ -5,26 +5,7 @@ import { cloudinaryConfig } from "@/config/env"
 import type { AuthedContext } from "@/modules/shared/require-auth"
 
 import { cloudinary, isCloudinaryEnabled } from "./cloudinary"
-
-// Pasta fixa dos avatares. O public_id inclui o id do usuario, então cada um só
-// pode escrever o proprio avatar e um novo upload sobrescreve o anterior.
-const AVATAR_FOLDER = "santiago/avatars"
-
-function avatarPublicId(userId: string): string {
-  return `${AVATAR_FOLDER}/${userId}`
-}
-
-// Pasta das fotos de solicitacao, isolada por usuario. Os uploads recebem um
-// public_id gerado pela Cloudinary dentro desta pasta; a validacao no backend
-// confere que o public_id pertence a ela (o cliente não aponta para outra coisa).
-export function requestPhotosFolder(userId: string): string {
-  return `santiago/requests/${userId}`
-}
-
-// Pasta do portfolio do profissional, isolada por usuario.
-export function portfolioFolder(userId: string): string {
-  return `santiago/portfolio/${userId}`
-}
+import { avatarPublicId, portfolioFolder, requestPhotosFolder } from "./folders"
 
 // Monta a URL de entrega otimizada (f_auto/q_auto) a partir do public_id e da
 // versao. Retorna null se a Cloudinary não estiver configurada.
