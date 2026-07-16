@@ -63,7 +63,7 @@ export function MessageBubble({
   )
 }
 
-// Recibo do lado de quem enviou: relógio (enviando), duplo-check verde-claro
+// Recibo do lado de quem enviou: relógio (enviando), duplo-check azul-claro
 // (lida) ou check simples (entregue, ainda não lida).
 function renderReceipt(sending: boolean, read: boolean) {
   if (sending) {
@@ -71,7 +71,7 @@ function renderReceipt(sending: boolean, read: boolean) {
   }
   return (
     <Ionicons
-      color={read ? "#DCFCE7" : "rgba(255,255,255,0.6)"}
+      color={read ? "#BFDBFE" : "rgba(255,255,255,0.6)"}
       name={read ? "checkmark-done" : "checkmark"}
       size={14}
     />

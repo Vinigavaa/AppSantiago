@@ -40,6 +40,13 @@ export const authStyles = StyleSheet.create({
     gap: spacing.sm,
     marginBottom: 28,
   },
+  logo: {
+    alignSelf: "center",
+    borderRadius: 22,
+    height: 88,
+    marginBottom: spacing.xl,
+    width: 88,
+  },
   link: {
     color: colors.primary,
     fontWeight: "700",

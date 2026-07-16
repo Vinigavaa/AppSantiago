@@ -88,7 +88,7 @@ const styles = StyleSheet.create({
     textAlign: "center",
   },
   subtitleActive: {
-    color: "#1F7A45",
+    color: colors.primarySoftText,
   },
   title: {
     color: colors.textPrimary,
@@ -96,7 +96,7 @@ const styles = StyleSheet.create({
     fontWeight: "600",
   },
   titleActive: {
-    color: "#1F7A45",
+    color: colors.primarySoftText,
   },
   row: {
     flexDirection: "row",

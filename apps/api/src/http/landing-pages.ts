@@ -36,13 +36,13 @@ function renderPage(input: PageInput) {
     input.variant === "error"
       ? "#B91C1C"
       : input.variant === "info"
-        ? "#0F766E"
+        ? "#05013D"
         : "#15803D"
   const subtleAccent =
     input.variant === "error"
       ? "#FEE2E2"
       : input.variant === "info"
-        ? "#CCFBF1"
+        ? "#EAEAF3"
         : "#DCFCE7"
 
   return `<!doctype html>
@@ -59,7 +59,7 @@ function renderPage(input: PageInput) {
       p { color:#475569; line-height:1.6; margin:0 0 16px; }
       .actions { margin-top:24px; display:flex; flex-direction:column; gap:12px; }
       a.button { display:inline-block; text-align:center; padding:14px 18px; border-radius:10px; text-decoration:none; font-weight:600; }
-      a.primary { background:#0F766E; color:#FFFFFF; }
+      a.primary { background:#05013D; color:#FFFFFF; }
       a.secondary { background:#F1F5F9; color:#0F172A; }
       .token { background:#F8FAFC; border:1px solid #E2E8F0; padding:12px; border-radius:10px; font-family:ui-monospace,SFMono-Regular,Menlo,monospace; word-break:break-all; font-size:13px; color:#0F172A; }
       footer { text-align:center; color:#94A3B8; margin-top:24px; font-size:12px; }
@@ -67,14 +67,14 @@ function renderPage(input: PageInput) {
   </head>
   <body>
     <main class="card">
-      <span class="badge">Santiago</span>
+      <span class="badge">Mãos à Obra</span>
       <h1>${escapeHtml(input.heading)}</h1>
       <p>${input.message}</p>
       <div class="actions">
         ${input.primary ? `<a class="button primary" href="${escapeHtml(input.primary.url)}">${escapeHtml(input.primary.label)}</a>` : ""}
         ${input.secondary ? `<a class="button secondary" href="${escapeHtml(input.secondary.url)}">${escapeHtml(input.secondary.label)}</a>` : ""}
       </div>
-      <footer>Santiago</footer>
+      <footer>Mãos à Obra</footer>
     </main>
   </body>
 </html>`
@@ -92,7 +92,7 @@ landingPages.get(verifyEmailCallbackPath, (context) => {
         title: "Falha na verificacao",
         heading: "Nao foi possivel confirmar seu email",
         message,
-        primary: { label: "Abrir o app Santiago", url: `${deepLinkScheme}://login` },
+        primary: { label: "Abrir o app Mãos à Obra", url: `${deepLinkScheme}://login` },
         variant: "error",
       }),
       400,
@@ -103,8 +103,8 @@ landingPages.get(verifyEmailCallbackPath, (context) => {
     renderPage({
       title: "Email confirmado",
       heading: "Email confirmado com sucesso!",
-      message: "Sua conta esta ativa. Voce ja pode fazer login no app Santiago.",
-      primary: { label: "Abrir o app Santiago", url: `${deepLinkScheme}://login` },
+      message: "Sua conta esta ativa. Voce ja pode fazer login no app Mãos à Obra.",
+      primary: { label: "Abrir o app Mãos à Obra", url: `${deepLinkScheme}://login` },
       variant: "success",
     }),
   )
@@ -131,8 +131,8 @@ landingPages.get(resetPasswordLandingPath, (context) => {
     renderPage({
       title: "Redefinir senha",
       heading: "Redefinir sua senha",
-      message: `Toque no botao abaixo para abrir o app Santiago com o token preenchido. Se voce estiver em um computador, copie o token abaixo e cole na tela <strong>Nova senha</strong> do app.<div class="token" style="margin-top:16px;">${escapeHtml(token)}</div>`,
-      primary: { label: "Abrir no app Santiago", url: deepLink },
+      message: `Toque no botao abaixo para abrir o app Mãos à Obra com o token preenchido. Se voce estiver em um computador, copie o token abaixo e cole na tela <strong>Nova senha</strong> do app.<div class="token" style="margin-top:16px;">${escapeHtml(token)}</div>`,
+      primary: { label: "Abrir no app Mãos à Obra", url: deepLink },
       variant: "info",
     }),
   )

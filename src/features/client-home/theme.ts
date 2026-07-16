@@ -1,43 +1,50 @@
 // Tokens visuais do aplicativo — fonte única de verdade para cor, tipografia,
 // forma e espaçamento. Importado em todo o app; alterar aqui repinta as telas de
-// forma consistente. Identidade: verde esmeralda moderno, visual limpo e sóbrio,
-// com destaque reservado apenas para ações importantes.
+// forma consistente. Identidade: azul marinho como cor da marca (confiança,
+// profissionalismo, tecnologia), sobre branco e cinza claro, com azul royal
+// reservado apenas para destaques (links, indicadores ativos, foco).
 
 export const colors = {
   // Superfícies e fundo
-  screenBg: "#F7F8F7",
+  screenBg: "#F5F7FA",
   surface: "#FFFFFF",
-  cardBorder: "#EAEDEA",
+  cardBorder: "#E2E8F0",
   // Alias semântico de borda (mesmo valor de cardBorder).
-  border: "#EAEDEA",
+  border: "#E2E8F0",
 
   // Texto (hierarquia: primário > secundário > terciário)
-  textPrimary: "#171A17",
-  textSecondary: "#6B726B",
-  textTertiary: "#9AA09A",
+  textPrimary: "#1E293B",
+  textSecondary: "#64748B",
+  textTertiary: "#94A3B8",
 
-  // Primária (identidade única): verde esmeralda moderno.
-  primary: "#059669",
-  primaryPressed: "#047857",
-  primarySoft: "#ECFDF5",
-  primarySoftText: "#047857",
+  // Primária (identidade da marca): azul marinho.
+  primary: "#05013D",
+  primaryPressed: "#0D0A52",
+  primarySoft: "#EAEAF3",
+  primarySoftText: "#05013D",
   onPrimary: "#FFFFFF",
   // Alias histórico mantido para compatibilidade (= primary / primarySoft).
-  accent: "#059669",
-  accentSoftBg: "#ECFDF5",
+  // É o token de marca dominante do app — permanece azul marinho.
+  accent: "#05013D",
+  accentSoftBg: "#EAEAF3",
 
-  // Chips (aba/segmento): ativo escuro neutro, inativo claro com borda.
-  chipActiveBg: "#171A17",
+  // Destaque (azul royal): reservado a links, indicadores ativos, chips
+  // selecionados leves e estados de foco. Uso pontual (não é cor de marca).
+  highlight: "#3B82F6",
+  highlightSoft: "#EAF2FE",
+
+  // Chips (aba/segmento): ativo no azul marinho da marca, inativo claro com borda.
+  chipActiveBg: "#05013D",
   chipActiveText: "#FFFFFF",
   chipInactiveBg: "#FFFFFF",
-  chipInactiveBorder: "#E2E5E2",
+  chipInactiveBorder: "#E2E8F0",
 
-  // Avatares (fallback com iniciais) no tom da primária.
-  avatarBg: "#D1FADF",
-  avatarText: "#047857",
+  // Avatares (fallback com iniciais) no tom da marca.
+  avatarBg: "#DAD9EC",
+  avatarText: "#05013D",
 
   // Fundo neutro de ícones/campos discretos.
-  iconMutedBg: "#EFF1EF",
+  iconMutedBg: "#EEF1F6",
 
   // Feedback
   danger: "#DC2626",
@@ -86,7 +93,7 @@ export const typography = {
 // o app. Cada tom traz cor de texto e fundo suave combinados.
 export const status = {
   success: { color: "#047857", background: "#ECFDF5" },
-  info: { color: "#1D4ED8", background: "#E7EDFD" },
+  info: { color: "#2563EB", background: "#EAF2FE" },
   warning: { color: "#B45309", background: "#FBEFD8" },
   danger: { color: "#DC2626", background: "#FEECEC" },
   neutral: { color: "#6B726B", background: "#EFF1EF" },
@@ -95,14 +102,14 @@ export const status = {
 // Sombra única e suave para cartões elevados; modais usam uma um pouco mais forte.
 export const shadow = {
   card: {
-    shadowColor: "#0B1F14",
+    shadowColor: "#0B1220",
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.06,
     shadowRadius: 8,
     elevation: 2,
   },
   modal: {
-    shadowColor: "#0B1F14",
+    shadowColor: "#0B1220",
     shadowOffset: { width: 0, height: 8 },
     shadowOpacity: 0.16,
     shadowRadius: 24,

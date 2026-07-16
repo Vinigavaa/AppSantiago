@@ -1,4 +1,4 @@
-import { colors } from "@/features/client-home/theme"
+import { status } from "@/features/client-home/theme"
 
 import type { ProfessionalService, ServiceContractStatus } from "./types"
 
@@ -9,10 +9,10 @@ type StatusStyle = {
 }
 
 const STATUS_STYLES: Record<ServiceContractStatus, StatusStyle> = {
-  ACCEPTED: { label: "Contratado", color: "#1D4ED8", background: "#E5EDFD" },
-  IN_PROGRESS: { label: "Em andamento", color: "#92600A", background: "#FBF1DD" },
-  COMPLETED: { label: "Concluído", color: "#1F7A45", background: colors.accentSoftBg },
-  CANCELED: { label: "Cancelado", color: "#B91C1C", background: "#FCE8E8" },
+  ACCEPTED: { label: "Contratado", color: status.info.color, background: status.info.background },
+  IN_PROGRESS: { label: "Em andamento", color: status.warning.color, background: status.warning.background },
+  COMPLETED: { label: "Concluído", color: status.success.color, background: status.success.background },
+  CANCELED: { label: "Cancelado", color: status.danger.color, background: status.danger.background },
 }
 
 export function getContractStatusStyle(status: ServiceContractStatus): StatusStyle {

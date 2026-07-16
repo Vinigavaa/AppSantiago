@@ -19,7 +19,7 @@ const envSchema = z.object({
   BETTER_AUTH_URL: z.url(),
   CORS_ORIGIN: z.string().default("http://localhost:8081"),
   DATABASE_URL: z.string().min(1),
-  EMAIL_FROM: z.string().min(3).default("Santiago <no-reply@santiago.local>"),
+  EMAIL_FROM: z.string().min(3).default("Mãos à Obra <no-reply@santiago.local>"),
   EMAIL_PROVIDER: z.enum(["console", "resend"]).default("console"),
   EMAIL_REPLY_TO: z.email().optional(),
   RESEND_API_KEY: z.string().optional(),

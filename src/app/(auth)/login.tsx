@@ -2,7 +2,7 @@ import { zodResolver } from "@hookform/resolvers/zod"
 import { Link } from "expo-router"
 import { useRef } from "react"
 import { Controller, useForm } from "react-hook-form"
-import { Text, type TextInput, View } from "react-native"
+import { Image, Text, type TextInput, View } from "react-native"
 
 import { Button } from "@/components/ui/Button"
 import { FormScroll } from "@/components/ui/FormScroll"
@@ -31,6 +31,12 @@ export default function Login() {
 
   return (
     <FormScroll contentContainerStyle={styles.content} style={styles.container}>
+      <Image
+        accessibilityRole="image"
+        source={require("../../../assets/images/icon.png")}
+        style={styles.logo}
+      />
+
       <View style={styles.header}>
         <Text style={styles.title}>Entrar</Text>
         <Text style={styles.subtitle}>Acesse sua conta para continuar.</Text>
