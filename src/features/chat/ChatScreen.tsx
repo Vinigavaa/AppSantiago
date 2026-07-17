@@ -148,9 +148,10 @@ export function ChatScreen({ chatId }: { chatId: string }) {
         />
       )}
 
-      <View style={{ paddingBottom: insets.bottom }}>
-        <MessageInput onSend={send} />
-      </View>
+      {/* Sem paddingBottom aqui: esta tela vive dentro das abas, e a barra de
+          abas já reserva a área segura de baixo. Somar o inset de novo abriria
+          uma faixa vazia entre o campo e a barra. */}
+      <MessageInput onSend={send} />
     </KeyboardAvoidingView>
   )
 }
