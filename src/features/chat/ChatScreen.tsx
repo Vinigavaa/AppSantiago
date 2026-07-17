@@ -1,14 +1,6 @@
 import { type Href, router } from "expo-router"
 import { useRef } from "react"
-import {
-  Alert,
-  FlatList,
-  KeyboardAvoidingView,
-  Platform,
-  StyleSheet,
-  Text,
-  View,
-} from "react-native"
+import { Alert, FlatList, KeyboardAvoidingView, StyleSheet, Text, View } from "react-native"
 import { useSafeAreaInsets } from "react-native-safe-area-context"
 
 import { useConfirm } from "@/components/ui/ConfirmDialog"
@@ -99,11 +91,7 @@ export function ChatScreen({ chatId }: { chatId: string }) {
   }
 
   return (
-    <KeyboardAvoidingView
-      behavior={Platform.OS === "ios" ? "padding" : undefined}
-      keyboardVerticalOffset={0}
-      style={styles.screen}
-    >
+    <KeyboardAvoidingView behavior="padding" style={styles.screen}>
       <ChatHeader
         onBack={() => router.back()}
         onBlock={confirmBlock}
