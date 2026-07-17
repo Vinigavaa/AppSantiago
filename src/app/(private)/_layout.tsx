@@ -2,6 +2,7 @@ import { Ionicons } from "@expo/vector-icons"
 import { Redirect, Tabs } from "expo-router"
 import { useRef } from "react"
 import { ActivityIndicator, type ColorValue, StyleSheet, View } from "react-native"
+import { useSafeAreaInsets } from "react-native-safe-area-context"
 
 import { routes } from "@/constants/routes"
 import { colors } from "@/features/client-home/theme"
@@ -18,6 +19,7 @@ function tabIcon(focused: IoniconName, unfocused: IoniconName) {
 
 export default function PrivateLayout() {
   const { data: session, isPending } = authClient.useSession()
+  const insets = useSafeAreaInsets()
 
   // Registra o dispositivo para push assim que há um usuário autenticado.
   usePushRegistration(session?.user.id)
@@ -45,7 +47,7 @@ export default function PrivateLayout() {
   // (Home permanece no centro). Demais telas ficam acessíveis sem aba própria.
   if (session.user.role === "PROFESSIONAL") {
     return (
-      <Tabs screenOptions={screenOptions}>
+      <Tabs screenOptions={buildScreenOptions(insets.bottom)}>
         <Tabs.Screen
           name="profile"
           options={{ tabBarIcon: tabIcon("person", "person-outline"), title: "Perfil" }}
@@ -87,7 +89,7 @@ export default function PrivateLayout() {
   }
 
   return (
-    <Tabs screenOptions={screenOptions}>
+    <Tabs screenOptions={buildScreenOptions(insets.bottom)}>
       <Tabs.Screen
         name="home"
         options={{ tabBarIcon: tabIcon("home", "home-outline"), title: "Início" }}
@@ -141,7 +143,6 @@ const styles = StyleSheet.create({
   tabBar: {
     backgroundColor: colors.surface,
     borderTopColor: colors.cardBorder,
-    paddingTop: 6,
   },
   tabLabel: {
     fontSize: 11,
@@ -149,10 +150,21 @@ const styles = StyleSheet.create({
   },
 })
 
-const screenOptions = {
-  headerShown: false,
-  tabBarActiveTintColor: colors.accent,
-  tabBarInactiveTintColor: colors.textTertiary,
-  tabBarLabelStyle: styles.tabLabel,
-  tabBarStyle: styles.tabBar,
-} as const
+// Altura útil da barra (ícone + rótulo). A biblioteca reserva 49dp fixos, que não
+// acomodam o rótulo quando o usuário aumenta a fonte do sistema — o texto era
+// cortado ao meio.
+const TAB_BAR_CONTENT_HEIGHT = 58
+
+// O inset entra somado na altura de propósito: definir `height` faz a biblioteca
+// usar este valor no lugar do cálculo dela (que já incluía o inset). Sem somar,
+// a barra deixaria de reservar o espaço da navegação do sistema e os botões do
+// Android cobririam as abas.
+function buildScreenOptions(insetsBottom: number) {
+  return {
+    headerShown: false,
+    tabBarActiveTintColor: colors.accent,
+    tabBarInactiveTintColor: colors.textTertiary,
+    tabBarLabelStyle: styles.tabLabel,
+    tabBarStyle: [styles.tabBar, { height: TAB_BAR_CONTENT_HEIGHT + insetsBottom }],
+  }
+}
