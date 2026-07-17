@@ -13,7 +13,10 @@ import { useAuth } from "@/features/auth/hooks/useAuth"
 import { EditableAvatar } from "@/features/uploads/EditableAvatar"
 import { pickPortfolioImage } from "@/features/uploads/portfolioUpload"
 import { useCatalog } from "@/features/service-requests/hooks"
+import { authClient } from "@/lib/auth-client"
 
+import { ChangePasswordModal } from "@/features/client-home/components/ChangePasswordModal"
+import { DeleteAccountModal } from "@/features/client-home/components/DeleteAccountModal"
 import { MultiSelectModal } from "./components/MultiSelectModal"
 import { PersonalInfoModal } from "./components/PersonalInfoModal"
 import { PortfolioGrid } from "./components/PortfolioGrid"
@@ -26,13 +29,22 @@ import { StatsSection } from "./components/StatsSection"
 import { useProfessionalProfile, useProfessionalReviews } from "./hooks"
 import {
   deletePortfolioItem,
+  deleteProfessionalAccount,
   setProfessionalCategories,
   setProfessionalCities,
   updateProfessionalProfile,
 } from "./service"
 import type { PortfolioItem, ProfessionalProfileInfo, UpdateProfileInput } from "./types"
 
-type OpenModal = "none" | "personal" | "categories" | "cities"
+type OpenModal = "none" | "personal" | "categories" | "cities" | "password" | "delete"
+
+// Itens removidos na exclusão, específicos do profissional (o cliente tem outros).
+const PROFESSIONAL_REMOVED_ITEMS = [
+  "Seu perfil e dados pessoais",
+  "Seu portfólio e propostas enviadas",
+  "Suas conversas e mensagens",
+  "Seu histórico de avaliações",
+]
 
 export function ProfessionalProfileScreen() {
   const insets = useSafeAreaInsets()
@@ -119,6 +131,22 @@ export function ProfessionalProfileScreen() {
 
   async function handleSaveCities(ids: string[]) {
     return applyResult(await setProfessionalCities(ids), "Cidades atualizadas.")
+  }
+
+  function handleChangePassword() {
+    showNotice("Senha alterada com sucesso.")
+  }
+
+  // Exclusão: em sucesso, encerra a sessão local e volta ao login. O erro (ex.:
+  // serviço em andamento) é devolvido ao modal, que o exibe e permanece aberto.
+  async function handleDeleteAccount(): Promise<string | null> {
+    const result = await deleteProfessionalAccount()
+    if (!result.ok) {
+      return result.error
+    }
+    await authClient.signOut().catch(() => {})
+    router.replace(routes.login)
+    return null
   }
 
   if (isLoading && !profile) {
@@ -246,22 +274,41 @@ export function ProfessionalProfileScreen() {
           </View>
         </View>
 
-        <Pressable
-          accessibilityRole="button"
-          onPress={() => router.push(routes.blockedUsers)}
-          style={({ pressed }) => [styles.menuItem, pressed && styles.pressed]}
-        >
-          <Ionicons color={colors.textPrimary} name="ban-outline" size={20} />
-          <Text style={styles.menuLabel}>Usuários bloqueados</Text>
-          <Ionicons color={colors.textTertiary} name="chevron-forward" size={18} />
-        </Pressable>
+        <View>
+          <SectionHeader title="Configurações" />
+          <View style={styles.sectionBody}>
+            <View style={styles.menuGroup}>
+              <MenuItem
+                icon="key-outline"
+                label="Alterar senha"
+                onPress={() => setOpenModal("password")}
+              />
+              <View style={styles.divider} />
+              <MenuItem
+                icon="ban-outline"
+                label="Usuários bloqueados"
+                onPress={() => router.push(routes.blockedUsers)}
+              />
+            </View>
+          </View>
+        </View>
 
-        <Button
-          disabled={isSubmitting}
-          label={isSubmitting ? "Saindo..." : "Sair"}
-          onPress={signOut}
-          variant="secondary"
-        />
+        <View style={styles.accountActions}>
+          <Button
+            disabled={isSubmitting}
+            label={isSubmitting ? "Saindo..." : "Sair"}
+            onPress={signOut}
+            variant="secondary"
+          />
+          <Pressable
+            accessibilityRole="button"
+            onPress={() => setOpenModal("delete")}
+            style={({ pressed }) => [styles.deleteLink, pressed && styles.pressed]}
+          >
+            <Ionicons color={colors.danger} name="trash-outline" size={18} />
+            <Text style={styles.deleteLinkText}>Excluir minha conta</Text>
+          </Pressable>
+        </View>
       </ScrollView>
 
       {notice ? (
@@ -302,7 +349,42 @@ export function ProfessionalProfileScreen() {
         title="Cidades atendidas"
         visible={openModal === "cities"}
       />
+
+      <ChangePasswordModal
+        onClose={() => setOpenModal("none")}
+        onSuccess={handleChangePassword}
+        visible={openModal === "password"}
+      />
+
+      <DeleteAccountModal
+        onClose={() => setOpenModal("none")}
+        onConfirm={handleDeleteAccount}
+        removedItems={PROFESSIONAL_REMOVED_ITEMS}
+        visible={openModal === "delete"}
+      />
     </View>
+  )
+}
+
+function MenuItem({
+  icon,
+  label,
+  onPress,
+}: {
+  icon: keyof typeof Ionicons.glyphMap
+  label: string
+  onPress: () => void
+}) {
+  return (
+    <Pressable
+      accessibilityRole="button"
+      onPress={onPress}
+      style={({ pressed }) => [styles.menuItem, pressed && styles.pressed]}
+    >
+      <Ionicons color={colors.textPrimary} name={icon} size={20} />
+      <Text style={styles.menuLabel}>{label}</Text>
+      <Ionicons color={colors.textTertiary} name="chevron-forward" size={18} />
+    </Pressable>
   )
 }
 
@@ -332,6 +414,10 @@ function Chips({ items, emptyText }: { items: string[]; emptyText: string }) {
 }
 
 const styles = StyleSheet.create({
+  accountActions: {
+    gap: 14,
+    marginTop: 4,
+  },
   chip: {
     backgroundColor: colors.accentSoftBg,
     borderRadius: radius.chip,
@@ -372,6 +458,23 @@ const styles = StyleSheet.create({
     flexShrink: 1,
     fontSize: 13,
     lineHeight: 18,
+  },
+  deleteLink: {
+    alignItems: "center",
+    flexDirection: "row",
+    gap: 8,
+    justifyContent: "center",
+    paddingVertical: 6,
+  },
+  deleteLinkText: {
+    color: colors.danger,
+    fontSize: 15,
+    fontWeight: "600",
+  },
+  divider: {
+    backgroundColor: colors.cardBorder,
+    height: 1,
+    marginLeft: 48,
   },
   errorText: {
     color: colors.textSecondary,
@@ -417,12 +520,15 @@ const styles = StyleSheet.create({
     fontSize: 15,
     fontWeight: "600",
   },
-  menuItem: {
-    alignItems: "center",
+  menuGroup: {
     backgroundColor: colors.surface,
     borderColor: colors.cardBorder,
     borderRadius: radius.card,
     borderWidth: 1,
+    overflow: "hidden",
+  },
+  menuItem: {
+    alignItems: "center",
     flexDirection: "row",
     gap: 12,
     paddingHorizontal: 16,

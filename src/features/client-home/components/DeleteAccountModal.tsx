@@ -18,18 +18,25 @@ type Props = {
   onClose: () => void
   // Executa a exclusão. Retorna mensagem de erro (mantém aberto) ou null (sucesso).
   onConfirm: () => Promise<string | null>
+  // Itens removidos, específicos do papel do usuário. Default: perfil de cliente.
+  removedItems?: string[]
 }
 
 const CONFIRM_WORD = "EXCLUIR"
 
-const REMOVED_ITEMS = [
+const CLIENT_REMOVED_ITEMS = [
   "Seu perfil e dados pessoais",
   "Suas solicitações de serviço e propostas recebidas",
   "Suas conversas e mensagens",
   "Seu histórico de avaliações",
 ]
 
-export function DeleteAccountModal({ visible, onClose, onConfirm }: Props) {
+export function DeleteAccountModal({
+  visible,
+  onClose,
+  onConfirm,
+  removedItems = CLIENT_REMOVED_ITEMS,
+}: Props) {
   const [confirmText, setConfirmText] = useState("")
   const [isDeleting, setIsDeleting] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -81,7 +88,7 @@ export function DeleteAccountModal({ visible, onClose, onConfirm }: Props) {
           </Text>
 
           <View style={styles.list}>
-            {REMOVED_ITEMS.map((item) => (
+            {removedItems.map((item) => (
               <View key={item} style={styles.listItem}>
                 <Ionicons color={colors.textTertiary} name="ellipse" size={6} />
                 <Text style={styles.listText}>{item}</Text>

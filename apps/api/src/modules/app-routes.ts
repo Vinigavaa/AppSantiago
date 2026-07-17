@@ -8,6 +8,7 @@ import {
 } from "@/modules/blocks/handlers"
 import { listCategoriesHandler, listCitiesHandler } from "@/modules/catalog/handlers"
 import { deleteClientAccountHandler } from "@/modules/client/account-handlers"
+import { deleteProfessionalAccountHandler } from "@/modules/professional/account-handlers"
 import {
   clientProfileHandler,
   clientReviewsHandler,
@@ -195,6 +196,7 @@ appRoutes.put("/professional/cities", setProfessionalCitiesHandler)
 appRoutes.get("/professional/reviews", professionalReviewsHandler)
 appRoutes.post("/professional/portfolio", createPortfolioItemHandler)
 appRoutes.delete("/professional/portfolio/:id", deletePortfolioItemHandler)
+appRoutes.delete("/professional/account", deleteProfessionalAccountHandler)
 
 // Perfil do cliente: leitura (identidade, reputação, estatísticas), edição de
 // dados pessoais, avaliações recebidas e exclusão definitiva da conta.

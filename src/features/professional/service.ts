@@ -16,6 +16,12 @@ import type {
   UpdateProfileInput,
 } from "./types"
 
+// Exclusão definitiva da conta. O backend bloqueia (409) se houver serviço ativo.
+export async function deleteProfessionalAccount(): Promise<ApiResult<void>> {
+  const result = await appFetch<{ deleted: boolean }>("/professional/account", { method: "DELETE" })
+  return result.ok ? { ok: true, data: undefined } : result
+}
+
 // Perfil público de um profissional (visto pelo cliente ao avaliar uma proposta).
 export async function fetchPublicProfessional(
   id: string,
