@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState } from "react"
 import { ActivityIndicator, Alert, Pressable, ScrollView, StyleSheet, Text, View } from "react-native"
 import { useSafeAreaInsets } from "react-native-safe-area-context"
 
+import { useConfirm } from "@/components/ui/ConfirmDialog"
 import { LoadingState } from "@/components/ui/LoadingState"
 import { ScreenHeader } from "@/components/ui/ScreenHeader"
 import { EmptyState } from "@/features/client-home/components/EmptyState"
@@ -33,6 +34,7 @@ import type { OpportunityClient } from "./types"
 export function OpportunityDetailsScreen() {
   const insets = useSafeAreaInsets()
   const { id } = useLocalSearchParams<{ id: string }>()
+  const confirm = useConfirm()
 
   const [opportunity, setOpportunity] = useState<ServiceRequest | null>(null)
   const [myProposal, setMyProposal] = useState<OwnProposal | null>(null)
@@ -78,29 +80,31 @@ export function OpportunityDetailsScreen() {
     )
   }
 
-  function handleCancel() {
+  async function handleCancel() {
     if (!myProposal) {
       return
     }
 
-    Alert.alert("Cancelar proposta", "Tem certeza que deseja cancelar esta proposta?", [
-      { text: "Voltar", style: "cancel" },
-      {
-        text: "Cancelar proposta",
-        style: "destructive",
-        onPress: async () => {
-          setIsCanceling(true)
-          const result = await cancelProposal(myProposal.id)
-          setIsCanceling(false)
+    const ok = await confirm({
+      title: "Cancelar proposta",
+      message: "Tem certeza que deseja cancelar esta proposta?",
+      confirmLabel: "Cancelar proposta",
+      cancelLabel: "Voltar",
+      destructive: true,
+    })
+    if (!ok) {
+      return
+    }
 
-          if (result.ok) {
-            setMyProposal(result.data)
-          } else {
-            Alert.alert("Não foi possível cancelar", result.error)
-          }
-        },
-      },
-    ])
+    setIsCanceling(true)
+    const result = await cancelProposal(myProposal.id)
+    setIsCanceling(false)
+
+    if (result.ok) {
+      setMyProposal(result.data)
+    } else {
+      Alert.alert("Não foi possível cancelar", result.error)
+    }
   }
 
   return (

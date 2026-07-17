@@ -4,6 +4,7 @@ import { useMemo, useState } from "react"
 import { Alert, RefreshControl, ScrollView, StyleSheet, Text, View } from "react-native"
 import { useSafeAreaInsets } from "react-native-safe-area-context"
 
+import { useConfirm } from "@/components/ui/ConfirmDialog"
 import { LoadingState } from "@/components/ui/LoadingState"
 import { routes } from "@/constants/routes"
 import { EmptyState } from "@/features/client-home/components/EmptyState"
@@ -37,6 +38,7 @@ export function ReceivedProposalsScreen() {
   const insets = useSafeAreaInsets()
   const { proposals, isLoading, isRefreshing, error, refetch, replaceProposal } =
     useReceivedProposals()
+  const confirm = useConfirm()
 
   const [activeTab, setActiveTab] = useState<ProposalTabKey>("pending")
   const [processingId, setProcessingId] = useState<string | null>(null)
@@ -91,29 +93,27 @@ export function ReceivedProposalsScreen() {
     }
   }
 
-  function handleAccept(proposal: ReceivedProposal) {
-    Alert.alert(
-      "Aceitar proposta",
-      `Aceitar a proposta de ${proposal.professional.name}? A solicitação será contratada e não receberá novas propostas.`,
-      [
-        { text: "Cancelar", style: "cancel" },
-        {
-          text: "Aceitar",
-          onPress: () => runAction(proposal, acceptProposal, "Proposta aceita.", "refetch"),
-        },
-      ],
-    )
+  async function handleAccept(proposal: ReceivedProposal) {
+    const ok = await confirm({
+      title: "Aceitar proposta",
+      message: `Aceitar a proposta de ${proposal.professional.name}? A solicitação será contratada e não receberá novas propostas.`,
+      confirmLabel: "Aceitar",
+    })
+    if (ok) {
+      runAction(proposal, acceptProposal, "Proposta aceita.", "refetch")
+    }
   }
 
-  function handleReject(proposal: ReceivedProposal) {
-    Alert.alert("Recusar proposta", `Recusar a proposta de ${proposal.professional.name}?`, [
-      { text: "Cancelar", style: "cancel" },
-      {
-        text: "Recusar",
-        style: "destructive",
-        onPress: () => runAction(proposal, rejectProposal, "Proposta recusada.", "replace"),
-      },
-    ])
+  async function handleReject(proposal: ReceivedProposal) {
+    const ok = await confirm({
+      title: "Recusar proposta",
+      message: `Recusar a proposta de ${proposal.professional.name}?`,
+      confirmLabel: "Recusar",
+      destructive: true,
+    })
+    if (ok) {
+      runAction(proposal, rejectProposal, "Proposta recusada.", "replace")
+    }
   }
 
   // Navegações preservam a aba atual: a tela permanece montada, então ao voltar

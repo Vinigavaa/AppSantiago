@@ -11,6 +11,7 @@ import {
 } from "react-native"
 import { useSafeAreaInsets } from "react-native-safe-area-context"
 
+import { useConfirm } from "@/components/ui/ConfirmDialog"
 import { LoadingState } from "@/components/ui/LoadingState"
 import { routes } from "@/constants/routes"
 import { blockUser } from "@/features/blocks/service"
@@ -33,6 +34,7 @@ function profileHrefFor(otherUser: ChatOtherUser): Href | null {
 
 export function ChatScreen({ chatId }: { chatId: string }) {
   const insets = useSafeAreaInsets()
+  const confirm = useConfirm()
   const { messages, otherUser, isLoading, error, send, retry, remove } = useChat(chatId)
   const listRef = useRef<FlatList>(null)
 
@@ -40,35 +42,33 @@ export function ChatScreen({ chatId }: { chatId: string }) {
 
   // Bloquear a outra pessoa: confirma, bloqueia e sai da conversa (que passa a
   // ficar oculta para os dois lados). O bloqueio é aplicado no backend.
-  function confirmBlock() {
+  async function confirmBlock() {
     if (!otherUser) {
       return
     }
 
-    Alert.alert(
-      `Bloquear ${otherUser.name}?`,
-      "Vocês deixarão de aparecer um para o outro e não poderão mais trocar mensagens. Você pode desfazer em Usuários bloqueados.",
-      [
-        { text: "Cancelar", style: "cancel" },
-        {
-          text: "Bloquear",
-          style: "destructive",
-          onPress: async () => {
-            const result = await blockUser(otherUser.userId)
-            if (result.ok) {
-              router.back()
-            } else {
-              Alert.alert("Não foi possível bloquear", result.error)
-            }
-          },
-        },
-      ],
-    )
+    const ok = await confirm({
+      title: `Bloquear ${otherUser.name}?`,
+      message:
+        "Vocês deixarão de aparecer um para o outro e não poderão mais trocar mensagens. Você pode desfazer em Usuários bloqueados.",
+      confirmLabel: "Bloquear",
+      destructive: true,
+    })
+    if (!ok) {
+      return
+    }
+
+    const result = await blockUser(otherUser.userId)
+    if (result.ok) {
+      router.back()
+    } else {
+      Alert.alert("Não foi possível bloquear", result.error)
+    }
   }
 
   // Pressionar e segurar uma mensagem enviada: só é possível excluir enquanto ela
   // não foi lida. Mensagens ainda em envio/falha não entram nesse fluxo.
-  function handleLongPress(message: ChatMessage) {
+  async function handleLongPress(message: ChatMessage) {
     if (!message.mine || message.status) {
       return
     }
@@ -81,30 +81,21 @@ export function ChatScreen({ chatId }: { chatId: string }) {
       return
     }
 
-    Alert.alert("Mensagem", undefined, [
-      { text: "Cancelar", style: "cancel" },
-      { text: "Excluir mensagem", style: "destructive", onPress: () => confirmDelete(message) },
-    ])
-  }
+    const ok = await confirm({
+      title: "Excluir mensagem?",
+      message:
+        "A mensagem será removida definitivamente para você e para a outra pessoa. Só é possível excluir enquanto ela ainda não foi lida.",
+      confirmLabel: "Excluir",
+      destructive: true,
+    })
+    if (!ok) {
+      return
+    }
 
-  function confirmDelete(message: ChatMessage) {
-    Alert.alert(
-      "Excluir mensagem?",
-      "A mensagem será removida definitivamente para você e para a outra pessoa. Só é possível excluir enquanto ela ainda não foi lida.",
-      [
-        { text: "Cancelar", style: "cancel" },
-        {
-          text: "Excluir",
-          style: "destructive",
-          onPress: async () => {
-            const result = await remove(message)
-            if (!result.ok) {
-              Alert.alert("Não foi possível excluir", result.error ?? "Tente novamente.")
-            }
-          },
-        },
-      ],
-    )
+    const result = await remove(message)
+    if (!result.ok) {
+      Alert.alert("Não foi possível excluir", result.error ?? "Tente novamente.")
+    }
   }
 
   return (

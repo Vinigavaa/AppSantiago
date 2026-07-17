@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState } from "react"
 import { Alert, Image, Pressable, ScrollView, StyleSheet, Text, View } from "react-native"
 
 import { Button } from "@/components/ui/Button"
+import { useConfirm } from "@/components/ui/ConfirmDialog"
 import { LoadingState } from "@/components/ui/LoadingState"
 import { ScreenHeader } from "@/components/ui/ScreenHeader"
 import { routes } from "@/constants/routes"
@@ -47,6 +48,7 @@ function sortReviews(reviews: PublicReview[], sort: ReviewSort): PublicReview[] 
 
 export function PublicProfessionalScreen({ id }: { id: string }) {
   const { start, isStarting } = useStartChat()
+  const confirm = useConfirm()
   const [professional, setProfessional] = useState<PublicProfessional | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const [isUpdatingBlock, setIsUpdatingBlock] = useState(false)
@@ -74,32 +76,30 @@ export function PublicProfessionalScreen({ id }: { id: string }) {
 
   // Bloquear: confirma, bloqueia e volta — o profissional some das listas e
   // conversas do cliente. O bloqueio é aplicado no backend.
-  function confirmBlock() {
+  async function confirmBlock() {
     if (!professional) {
       return
     }
 
-    Alert.alert(
-      `Bloquear ${professional.name}?`,
-      "Ele deixará de aparecer para você e vocês não poderão mais trocar mensagens. Você pode desfazer em Usuários bloqueados.",
-      [
-        { text: "Cancelar", style: "cancel" },
-        {
-          text: "Bloquear",
-          style: "destructive",
-          onPress: async () => {
-            setIsUpdatingBlock(true)
-            const result = await blockUser(professional.userId)
-            setIsUpdatingBlock(false)
-            if (result.ok) {
-              router.back()
-            } else {
-              Alert.alert("Não foi possível bloquear", result.error)
-            }
-          },
-        },
-      ],
-    )
+    const ok = await confirm({
+      title: `Bloquear ${professional.name}?`,
+      message:
+        "Ele deixará de aparecer para você e vocês não poderão mais trocar mensagens. Você pode desfazer em Usuários bloqueados.",
+      confirmLabel: "Bloquear",
+      destructive: true,
+    })
+    if (!ok) {
+      return
+    }
+
+    setIsUpdatingBlock(true)
+    const result = await blockUser(professional.userId)
+    setIsUpdatingBlock(false)
+    if (result.ok) {
+      router.back()
+    } else {
+      Alert.alert("Não foi possível bloquear", result.error)
+    }
   }
 
   // Solicitar serviço: abre a criação de solicitação já com a categoria principal

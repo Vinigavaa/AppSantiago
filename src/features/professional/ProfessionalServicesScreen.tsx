@@ -3,6 +3,7 @@ import { useEffect, useMemo, useState } from "react"
 import { Alert, RefreshControl, ScrollView, StyleSheet, Text, View } from "react-native"
 import { useSafeAreaInsets } from "react-native-safe-area-context"
 
+import { useConfirm } from "@/components/ui/ConfirmDialog"
 import { LoadingState } from "@/components/ui/LoadingState"
 import { EmptyState } from "@/features/client-home/components/EmptyState"
 import { FilterChips } from "@/features/client-home/components/FilterChips"
@@ -40,6 +41,7 @@ const PARAM_TO_LABEL: Record<string, string> = {
 
 export function ProfessionalServicesScreen() {
   const insets = useSafeAreaInsets()
+  const confirm = useConfirm()
   const { services, isLoading, isRefreshing, error, refetch, replaceService } =
     useProfessionalServices()
   const {
@@ -100,18 +102,26 @@ export function ProfessionalServicesScreen() {
     }
   }
 
-  function handleStart(service: ProfessionalService) {
-    Alert.alert("Iniciar atendimento", "Confirmar o início deste serviço?", [
-      { text: "Cancelar", style: "cancel" },
-      { text: "Iniciar", onPress: () => runAction(service, startService) },
-    ])
+  async function handleStart(service: ProfessionalService) {
+    const ok = await confirm({
+      title: "Iniciar atendimento",
+      message: "Confirmar o início deste serviço?",
+      confirmLabel: "Iniciar",
+    })
+    if (ok) {
+      runAction(service, startService)
+    }
   }
 
-  function handleComplete(service: ProfessionalService) {
-    Alert.alert("Concluir serviço", "Confirmar a conclusão deste serviço?", [
-      { text: "Cancelar", style: "cancel" },
-      { text: "Concluir", onPress: () => runAction(service, completeService) },
-    ])
+  async function handleComplete(service: ProfessionalService) {
+    const ok = await confirm({
+      title: "Concluir serviço",
+      message: "Confirmar a conclusão deste serviço?",
+      confirmLabel: "Concluir",
+    })
+    if (ok) {
+      runAction(service, completeService)
+    }
   }
 
   return (

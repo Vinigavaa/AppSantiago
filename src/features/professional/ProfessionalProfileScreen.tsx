@@ -5,6 +5,7 @@ import { Alert, Pressable, ScrollView, StyleSheet, Text, View } from "react-nati
 import { useSafeAreaInsets } from "react-native-safe-area-context"
 
 import { Button } from "@/components/ui/Button"
+import { useConfirm } from "@/components/ui/ConfirmDialog"
 import { LoadingState } from "@/components/ui/LoadingState"
 import { routes } from "@/constants/routes"
 import { SectionHeader } from "@/features/client-home/components/SectionHeader"
@@ -52,6 +53,7 @@ export function ProfessionalProfileScreen() {
   const reviews = useProfessionalReviews()
   const { categories, cities } = useCatalog()
   const { signOut, isSubmitting } = useAuth()
+  const confirm = useConfirm()
 
   const [openModal, setOpenModal] = useState<OpenModal>("none")
   const [notice, setNotice] = useState<string | null>(null)
@@ -83,27 +85,28 @@ export function ProfessionalProfileScreen() {
     showNotice("Item adicionado ao portfólio.")
   }
 
-  function confirmRemovePortfolio(id: string) {
-    Alert.alert("Remover do portfólio?", "Esta ação não pode ser desfeita.", [
-      { text: "Cancelar", style: "cancel" },
-      {
-        text: "Remover",
-        style: "destructive",
-        onPress: async () => {
-          const result = await deletePortfolioItem(id)
+  async function confirmRemovePortfolio(id: string) {
+    const ok = await confirm({
+      title: "Remover do portfólio?",
+      message: "Esta ação não pode ser desfeita.",
+      confirmLabel: "Remover",
+      destructive: true,
+    })
+    if (!ok) {
+      return
+    }
 
-          if (!result.ok) {
-            Alert.alert("Não foi possível remover", result.error)
-            return
-          }
+    const result = await deletePortfolioItem(id)
 
-          setProfile((prev) =>
-            prev ? { ...prev, portfolio: prev.portfolio.filter((item) => item.id !== id) } : prev,
-          )
-          showNotice("Item removido do portfólio.")
-        },
-      },
-    ])
+    if (!result.ok) {
+      Alert.alert("Não foi possível remover", result.error)
+      return
+    }
+
+    setProfile((prev) =>
+      prev ? { ...prev, portfolio: prev.portfolio.filter((item) => item.id !== id) } : prev,
+    )
+    showNotice("Item removido do portfólio.")
   }
 
   // Aplica o perfil retornado por uma alteração e dá feedback. Devolve null em

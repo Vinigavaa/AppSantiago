@@ -4,6 +4,7 @@ import { useState } from "react"
 import { Alert, Pressable, RefreshControl, ScrollView, StyleSheet, Text, View } from "react-native"
 
 import { Button } from "@/components/ui/Button"
+import { useConfirm } from "@/components/ui/ConfirmDialog"
 import { LoadingState } from "@/components/ui/LoadingState"
 import { ScreenHeader } from "@/components/ui/ScreenHeader"
 import { routes } from "@/constants/routes"
@@ -30,6 +31,7 @@ const LOCKED_STATUSES = ["COMPLETED", "CANCELED"] as const
 
 export function RequestDetailsScreen({ id }: { id: string }) {
   const { request, isLoading, isRefreshing, error, refetch } = useServiceRequestDetail(id)
+  const confirm = useConfirm()
 
   const [isDeleting, setIsDeleting] = useState(false)
   const [isReportingNoShow, setIsReportingNoShow] = useState(false)
@@ -40,15 +42,17 @@ export function RequestDetailsScreen({ id }: { id: string }) {
     router.push(`${routes.editRequest}?id=${id}` as Href)
   }
 
-  function confirmDelete() {
-    Alert.alert(
-      "Excluir solicitação",
-      "Esta ação é irreversível. A solicitação e as propostas recebidas serão removidas.",
-      [
-        { text: "Cancelar", style: "cancel" },
-        { text: "Excluir", style: "destructive", onPress: () => void runDelete() },
-      ],
-    )
+  async function confirmDelete() {
+    const ok = await confirm({
+      title: "Excluir solicitação",
+      message:
+        "Esta ação é irreversível. A solicitação e as propostas recebidas serão removidas.",
+      confirmLabel: "Excluir",
+      destructive: true,
+    })
+    if (ok) {
+      void runDelete()
+    }
   }
 
   async function runDelete() {
@@ -69,19 +73,18 @@ export function RequestDetailsScreen({ id }: { id: string }) {
     Alert.alert("Não foi possível excluir", result.error)
   }
 
-  function confirmNoShow(contractId: string) {
-    Alert.alert(
-      "O profissional não compareceu no horário combinado?",
-      "Ao confirmar, esta contratação será cancelada e sua solicitação voltará a receber propostas de outros profissionais.",
-      [
-        { text: "Voltar", style: "cancel" },
-        {
-          text: "Confirmar",
-          style: "destructive",
-          onPress: () => void runNoShow(contractId),
-        },
-      ],
-    )
+  async function confirmNoShow(contractId: string) {
+    const ok = await confirm({
+      title: "O profissional não compareceu no horário combinado?",
+      message:
+        "Ao confirmar, esta contratação será cancelada e sua solicitação voltará a receber propostas de outros profissionais.",
+      confirmLabel: "Confirmar",
+      cancelLabel: "Voltar",
+      destructive: true,
+    })
+    if (ok) {
+      void runNoShow(contractId)
+    }
   }
 
   async function runNoShow(contractId: string) {
