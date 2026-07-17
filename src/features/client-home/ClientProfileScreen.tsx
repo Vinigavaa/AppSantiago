@@ -19,10 +19,9 @@ import { ProfileSectionCard } from "./components/ProfileSectionCard"
 import { ReputationCard } from "./components/ReputationCard"
 import { ReviewList } from "./components/ReviewList"
 import { SectionHeader } from "./components/SectionHeader"
-import { StatCards } from "./components/StatCards"
 import { deleteClientAccount, updateClientProfile } from "./profile-service"
 import { useClientProfile, useClientReviews } from "./profile-hooks"
-import type { ClientProfileInfo, UpdateClientProfileInput } from "./profile-types"
+import type { UpdateClientProfileInput } from "./profile-types"
 import { colors, radius, spacing } from "./theme"
 
 type OpenModal = "none" | "personal" | "password" | "delete"
@@ -172,13 +171,6 @@ export function ClientProfileScreen() {
         </View>
 
         <View>
-          <SectionHeader title="Estatísticas" />
-          <View style={styles.sectionBody}>
-            <ClientStatsCards profile={profile} />
-          </View>
-        </View>
-
-        <View>
           <SectionHeader title="Configurações" />
           <View style={styles.sectionBody}>
             <View style={styles.menuGroup}>
@@ -241,30 +233,6 @@ export function ClientProfileScreen() {
         visible={openModal === "delete"}
       />
     </View>
-  )
-}
-
-function ClientStatsCards({ profile }: { profile: ClientProfileInfo }) {
-  const { requestsCreated, servicesCompleted, professionalsHired } = profile.stats
-
-  if (requestsCreated === 0 && servicesCompleted === 0 && professionalsHired === 0) {
-    return (
-      <View style={styles.statsEmpty}>
-        <Text style={styles.statsEmptyText}>
-          Suas estatísticas aparecerão aqui após criar solicitações e contratar serviços.
-        </Text>
-      </View>
-    )
-  }
-
-  return (
-    <StatCards
-      items={[
-        { label: "Solicitações", value: requestsCreated },
-        { label: "Concluídos", value: servicesCompleted },
-        { label: "Contratados", value: professionalsHired },
-      ]}
-    />
   )
 }
 
@@ -472,20 +440,6 @@ const styles = StyleSheet.create({
   },
   sectionBody: {
     marginTop: 12,
-  },
-  statsEmpty: {
-    backgroundColor: colors.surface,
-    borderColor: colors.cardBorder,
-    borderRadius: radius.card,
-    borderWidth: 1,
-    paddingHorizontal: 20,
-    paddingVertical: 24,
-  },
-  statsEmptyText: {
-    color: colors.textSecondary,
-    fontSize: 14,
-    lineHeight: 20,
-    textAlign: "center",
   },
   title: {
     color: colors.textPrimary,

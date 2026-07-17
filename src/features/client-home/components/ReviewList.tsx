@@ -19,7 +19,11 @@ function formatDate(iso: string): string {
   return Number.isNaN(date.getTime()) ? "" : date.toLocaleDateString("pt-BR")
 }
 
-// Lista cronológica de avaliações. Compartilhada pelo perfil do cliente e do
+// Quantas avaliações o perfil mostra. A lista é uma amostra recente, não o
+// histórico completo: as mais novas são as que importam para dar o recado.
+const MAX_VISIBLE_REVIEWS = 3
+
+// Lista das avaliações mais recentes. Compartilhada pelo perfil do cliente e do
 // profissional; só o texto do estado vazio muda entre os dois.
 export function ReviewList({ reviews, isLoading, error, emptyTitle, emptyDescription }: Props) {
   if (isLoading && reviews.length === 0) {
@@ -34,9 +38,13 @@ export function ReviewList({ reviews, isLoading, error, emptyTitle, emptyDescrip
     return <EmptyState description={emptyDescription} icon="star-outline" title={emptyTitle} />
   }
 
+  // O backend já entrega em ordem decrescente de data, então os primeiros são
+  // exatamente as avaliações mais recentes.
+  const visible = reviews.slice(0, MAX_VISIBLE_REVIEWS)
+
   return (
     <View style={styles.list}>
-      {reviews.map((review) => (
+      {visible.map((review) => (
         <View key={review.id} style={styles.card}>
           <View style={styles.topRow}>
             <Stars rating={review.rating} size={15} />

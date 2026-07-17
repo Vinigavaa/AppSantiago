@@ -14,9 +14,36 @@ import { colors, radius, spacing } from "@/features/client-home/theme"
 import { formatRelativeTime } from "@/features/service-requests/format"
 
 import { Stars } from "@/components/ui/Stars"
+import { SegmentedTabs } from "@/features/client-home/components/SegmentedTabs"
 import { PortfolioGrid } from "./components/PortfolioGrid"
 import { fetchPublicProfessional } from "./service"
-import type { PublicProfessional } from "./types"
+import type { PublicProfessional, PublicReview } from "./types"
+
+// Quantas avaliações a tela mostra por vez, em qualquer ordenação.
+const REVIEWS_SHOWN = 5
+
+type ReviewSort = "recent" | "best" | "worst"
+
+const REVIEW_SORTS: { key: ReviewSort; label: string }[] = [
+  { key: "recent", label: "Recentes" },
+  { key: "best", label: "Melhores" },
+  { key: "worst", label: "Piores" },
+]
+
+// Ordena e corta as avaliações exibidas. A lista chega do servidor da mais nova
+// para a mais antiga; como o sort do JS é estável, notas empatadas preservam essa
+// ordem — "melhores" mostra as maiores notas, e entre elas as mais recentes.
+function sortReviews(reviews: PublicReview[], sort: ReviewSort): PublicReview[] {
+  if (sort === "recent") {
+    return reviews.slice(0, REVIEWS_SHOWN)
+  }
+
+  const ordered = [...reviews].sort((a, b) =>
+    sort === "best" ? b.rating - a.rating : a.rating - b.rating,
+  )
+
+  return ordered.slice(0, REVIEWS_SHOWN)
+}
 
 export function PublicProfessionalScreen({ id }: { id: string }) {
   const { start, isStarting } = useStartChat()
@@ -24,6 +51,7 @@ export function PublicProfessionalScreen({ id }: { id: string }) {
   const [isLoading, setIsLoading] = useState(true)
   const [isUpdatingBlock, setIsUpdatingBlock] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [reviewSort, setReviewSort] = useState<ReviewSort>("recent")
 
   const load = useCallback(async () => {
     setIsLoading(true)
@@ -241,7 +269,16 @@ export function PublicProfessionalScreen({ id }: { id: string }) {
             <Text style={styles.emptyReviews}>Este profissional ainda não recebeu avaliações.</Text>
           ) : (
             <View style={styles.reviews}>
-              {professional.reviews.map((review) => (
+              {/* Com uma única avaliação não há o que ordenar. */}
+              {professional.reviews.length > 1 ? (
+                <SegmentedTabs
+                  active={reviewSort}
+                  onSelect={setReviewSort}
+                  tabs={REVIEW_SORTS}
+                />
+              ) : null}
+
+              {sortReviews(professional.reviews, reviewSort).map((review) => (
                 <View key={review.id} style={styles.reviewItem}>
                   <View style={styles.reviewHeader}>
                     <Text style={styles.reviewName}>{review.reviewerName}</Text>

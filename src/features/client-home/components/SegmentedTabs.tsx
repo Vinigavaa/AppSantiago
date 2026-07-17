@@ -5,7 +5,8 @@ import { colors, radius } from "../theme"
 export type SegmentedTab<K extends string> = {
   key: K
   label: string
-  count: number
+  // Opcional: abas de status mostram o total; abas de ordenação não têm contagem.
+  count?: number
 }
 
 type Props<K extends string> = {
@@ -14,9 +15,9 @@ type Props<K extends string> = {
   onSelect: (key: K) => void
 }
 
-// Abas por status (sem "Todas"): cada uma mostra o total entre parênteses e a
-// ativa recebe destaque. Visual compartilhado entre as telas do app (propostas,
-// solicitações), mantendo consistência.
+// Grupo de abas: a ativa recebe destaque e o total aparece entre parênteses
+// quando informado. Visual compartilhado entre as telas do app (propostas,
+// solicitações, ordenação de avaliações), mantendo consistência.
 export function SegmentedTabs<K extends string>({ tabs, active, onSelect }: Props<K>) {
   return (
     <View style={styles.row}>
@@ -39,7 +40,7 @@ export function SegmentedTabs<K extends string>({ tabs, active, onSelect }: Prop
               numberOfLines={1}
               style={[styles.label, isActive ? styles.labelActive : styles.labelInactive]}
             >
-              {tab.label} ({tab.count})
+              {tab.count === undefined ? tab.label : `${tab.label} (${tab.count})`}
             </Text>
           </Pressable>
         )
