@@ -35,10 +35,11 @@ const envSchema = z.object({
   //  - WEBHOOK_SECRET: valida o Authorization das notificacoes do RevenueCat.
   REVENUECAT_API_KEY: z.string().optional(),
   REVENUECAT_WEBHOOK_SECRET: z.string().optional(),
+  // Project ID do RevenueCat (ex.: proja15db5f8), usado nos endpoints da REST API v2.
+  REVENUECAT_PROJECT_ID: z.string().optional(),
   // Identificadores cadastrados nas lojas/RevenueCat (Grupo 1). Nao sao segredos,
-  // mas ficam em env para configurar sem novo deploy. O entitlement agrupa os dois
-  // planos; os product ids distinguem mensal de anual na hora de gravar o plano.
-  REVENUECAT_ENTITLEMENT_ID: z.string().default("premium"),
+  // mas ficam em env para configurar sem novo deploy. Os product ids distinguem
+  // mensal de anual na hora de gravar o plano (aceitam varios ids por virgula).
   REVENUECAT_PRODUCT_MONTHLY: z.string().optional(),
   REVENUECAT_PRODUCT_ANNUAL: z.string().optional(),
   // Teto mensal de propostas para profissional SEM assinatura. Assinantes nao tem

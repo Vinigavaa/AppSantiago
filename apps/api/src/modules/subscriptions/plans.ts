@@ -7,8 +7,6 @@ import { env } from "@/config/env"
 
 export type Plan = "MONTHLY" | "ANNUAL"
 
-export const ENTITLEMENT_ID = env.REVENUECAT_ENTITLEMENT_ID
-
 // Cada env pode listar VÁRIOS identificadores separados por vírgula (Android, iOS,
 // Test Store, ou o REST API id do RevenueCat) — todos apontando para o mesmo plano.
 // Assim o match funciona independentemente de qual identificador a loja devolve.

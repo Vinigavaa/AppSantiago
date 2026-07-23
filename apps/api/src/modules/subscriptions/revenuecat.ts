@@ -1,16 +1,16 @@
 import { env, revenueCatConfig } from "@/config/env"
 
-import { ENTITLEMENT_ID, planForProductId, type Plan } from "./plans"
+import { planForProductId, type Plan } from "./plans"
 
 // Cliente do RevenueCat (fonte externa de verificacao com as lojas). O servidor
-// nunca confia no dispositivo: ele consulta aqui o estado real do assinante e so
-// entao grava. Sem REVENUECAT_API_KEY o recurso fica inerte (retorna null), do
-// mesmo modo que os uploads sem Cloudinary — a API sobe normalmente.
+// nunca confia no dispositivo: consulta aqui o estado real do assinante e so entao
+// grava. Usa a REST API v2 (a chave secreta atual do RevenueCat so autentica a v2;
+// a v1 responde 403). Sem REVENUECAT_API_KEY/PROJECT_ID o recurso fica inerte.
 
-const API_BASE = "https://api.revenuecat.com/v1"
+const API_BASE = "https://api.revenuecat.com/v2"
 
 // Estado normalizado do assinante, pronto para virar um ProfessionalSubscription.
-// `null` de fetchSubscriberState significa "sem assinatura reconhecida".
+// `null` significa "sem assinatura reconhecida".
 export type SubscriberSnapshot = {
   plan: Plan
   status: "ACTIVE" | "IN_GRACE" | "CANCELED" | "EXPIRED"
@@ -22,22 +22,21 @@ export type SubscriberSnapshot = {
   autoRenew: boolean
 }
 
-type RcSubscription = {
+// Formato (parcial) do objeto de assinatura da API v2. Campos opcionais porque o
+// RevenueCat nem sempre popula todos; tratamos ausencias defensivamente.
+type V2Subscription = {
+  id: string
+  product_id?: string
   store?: string
-  expires_date?: string | null
-  grace_period_expires_date?: string | null
-  unsubscribe_detected_at?: string | null
-  billing_issues_detected_at?: string | null
-  store_transaction_id?: string | null
-  original_purchase_date?: string | null
+  status?: string
+  gives_access?: boolean
+  auto_renewal_status?: string
+  current_period_ends_at?: number | null
+  grace_period_expires_at?: number | null
+  store_subscription_identifier?: string | null
 }
 
-type RcSubscriber = {
-  subscriber?: {
-    entitlements?: Record<string, { expires_date?: string | null; product_identifier?: string }>
-    subscriptions?: Record<string, RcSubscription>
-  }
-}
+type V2SubscriptionList = { items?: V2Subscription[] }
 
 function storeFrom(store: string | undefined): "GOOGLE_PLAY" | "APP_STORE" | "TEST_STORE" {
   if (store === "play_store") return "GOOGLE_PLAY"
@@ -47,57 +46,52 @@ function storeFrom(store: string | undefined): "GOOGLE_PLAY" | "APP_STORE" | "TE
   return "TEST_STORE"
 }
 
-function parseDate(value: string | null | undefined): Date | null {
+// A API v2 usa timestamps em milissegundos. O guard converte caso venha em segundos.
+function toDate(value: number | null | undefined): Date | null {
   if (!value) return null
-  const date = new Date(value)
+  const ms = value < 1e12 ? value * 1000 : value
+  const date = new Date(ms)
   return Number.isNaN(date.getTime()) ? null : date
 }
 
-// Traduz o objeto do RevenueCat para o nosso snapshot. Exportada para ser testada
-// sem rede. Decide o estado a partir dos sinais do RevenueCat:
-//  - sem entitlement premium ou ja expirado → EXPIRED
-//  - problema de cobranca + tolerancia no futuro → IN_GRACE
-//  - renovacao desligada (unsubscribe) mas periodo vigente → CANCELED
+// Traduz a lista de assinaturas da v2 para o nosso snapshot. Exportada para teste
+// sem rede. Escolhe a assinatura que concede acesso agora (`gives_access`); na
+// ausencia, a de expiracao mais recente. O estado deriva de gives_access + status:
+//  - sem acesso → EXPIRED
+//  - em tolerancia/retentativa de cobranca → IN_GRACE
+//  - renovacao desligada mas ainda com acesso → CANCELED
 //  - caso contrario → ACTIVE
-export function normalizeSubscriber(data: RcSubscriber): SubscriberSnapshot | null {
-  const subscriber = data.subscriber
-  const entitlement = subscriber?.entitlements?.[ENTITLEMENT_ID]
-  const productId = entitlement?.product_identifier
+export function normalizeSubscriptions(data: V2SubscriptionList): SubscriberSnapshot | null {
+  const items = data.items ?? []
 
-  if (!productId) {
+  if (items.length === 0) {
     return null
   }
 
-  const plan = planForProductId(productId)
-  const subscription = subscriber?.subscriptions?.[productId]
+  const withAccess = items.filter((item) => item.gives_access)
+  const pool = withAccess.length > 0 ? withAccess : items
+  const sub = pool.reduce((best, current) =>
+    (current.current_period_ends_at ?? 0) > (best.current_period_ends_at ?? 0) ? current : best,
+  )
 
-  if (!plan || !subscription) {
+  const productId = sub.product_id
+  const plan = productId ? planForProductId(productId) : null
+  const currentPeriodEnd = toDate(sub.current_period_ends_at)
+
+  if (!productId || !plan || !currentPeriodEnd) {
     return null
   }
 
-  const store = storeFrom(subscription.store)
-  const currentPeriodEnd = parseDate(subscription.expires_date)
-
-  if (!currentPeriodEnd) {
-    return null
-  }
-
-  // Log do valor bruto de store enquanto testamos com a Test Store — ajuda a
-  // confirmar o identificador real que o RevenueCat envia.
-  if (store === "TEST_STORE") {
-    console.log("[revenuecat] compra de origem nao-padrao (store bruto):", subscription.store)
-  }
-
-  const now = Date.now()
-  const gracePeriodEnd = parseDate(subscription.grace_period_expires_date)
-  const hasBillingIssue = Boolean(subscription.billing_issues_detected_at)
-  const canceled = Boolean(subscription.unsubscribe_detected_at)
+  const store = storeFrom(sub.store)
+  const givesAccess = Boolean(sub.gives_access)
+  const gracePeriodEnd = toDate(sub.grace_period_expires_at)
+  const canceled = sub.auto_renewal_status === "will_not_renew"
 
   let status: SubscriberSnapshot["status"]
 
-  if (currentPeriodEnd.getTime() <= now && !(gracePeriodEnd && gracePeriodEnd.getTime() > now)) {
+  if (!givesAccess) {
     status = "EXPIRED"
-  } else if (hasBillingIssue && gracePeriodEnd && gracePeriodEnd.getTime() > now) {
+  } else if (sub.status === "in_grace_period" || sub.status === "in_billing_retry") {
     status = "IN_GRACE"
   } else if (canceled) {
     status = "CANCELED"
@@ -105,43 +99,56 @@ export function normalizeSubscriber(data: RcSubscriber): SubscriberSnapshot | nu
     status = "ACTIVE"
   }
 
+  if (store === "TEST_STORE") {
+    console.log("[revenuecat] compra de origem nao-padrao (store bruto):", sub.store)
+  }
+
   return {
     plan,
     status,
     store,
     storeProductId: productId,
-    // Preferimos o id de transacao da loja; sem ele, um composto estavel serve de
-    // chave de deduplicacao (o vinculo real e 1:1 pelo perfil profissional).
-    storeTransactionId:
-      subscription.store_transaction_id ??
-      `${store}:${productId}:${subscription.original_purchase_date ?? "unknown"}`,
+    storeTransactionId: sub.store_subscription_identifier ?? sub.id,
     currentPeriodEnd,
     gracePeriodEnd,
-    autoRenew: !canceled,
+    autoRenew: sub.auto_renewal_status === "will_renew",
   }
 }
 
-// Consulta o estado real do assinante no RevenueCat pelo app_user_id (usamos o
-// userId do profissional). Lanca se nao configurado — o chamador decide como
-// responder. Retorna null quando o RevenueCat nao reconhece assinatura.
+// Consulta o estado real do assinante no RevenueCat (v2) pelo customer id, que e o
+// app_user_id (usamos o userId do profissional). Lanca se nao configurado. Retorna
+// null quando o cliente nao existe ou nao tem assinatura reconhecida.
 export async function fetchSubscriberState(appUserId: string): Promise<SubscriberSnapshot | null> {
   if (!revenueCatConfig) {
     throw new Error("RevenueCat nao configurado (REVENUECAT_API_KEY ausente)")
   }
 
-  const response = await fetch(`${API_BASE}/subscribers/${encodeURIComponent(appUserId)}`, {
+  if (!env.REVENUECAT_PROJECT_ID) {
+    throw new Error("RevenueCat nao configurado (REVENUECAT_PROJECT_ID ausente)")
+  }
+
+  const url = `${API_BASE}/projects/${env.REVENUECAT_PROJECT_ID}/customers/${encodeURIComponent(
+    appUserId,
+  )}/subscriptions`
+
+  const response = await fetch(url, {
     headers: {
       Authorization: `Bearer ${revenueCatConfig.apiKey}`,
       "Content-Type": "application/json",
     },
   })
 
-  if (!response.ok) {
-    throw new Error(`RevenueCat respondeu ${response.status} ao consultar assinante`)
+  // Cliente inexistente (nunca comprou/registrou): sem assinatura a reconhecer.
+  if (response.status === 404) {
+    return null
   }
 
-  const data = (await response.json()) as RcSubscriber
-  return normalizeSubscriber(data)
+  if (!response.ok) {
+    throw new Error(`RevenueCat v2 respondeu ${response.status} ao consultar assinaturas`)
+  }
+
+  const data = (await response.json()) as V2SubscriptionList
+  return normalizeSubscriptions(data)
 }
 
 // Valida a autenticidade da notificacao (webhook) do RevenueCat comparando o
