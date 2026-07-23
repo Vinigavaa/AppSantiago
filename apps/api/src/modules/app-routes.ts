@@ -60,6 +60,11 @@ import {
 } from "@/modules/proposals/handlers"
 import { createReviewHandler } from "@/modules/reviews/handlers"
 import {
+  restoreSubscriptionHandler,
+  subscriptionStatusHandler,
+  syncSubscriptionHandler,
+} from "@/modules/subscriptions/handlers"
+import {
   createServiceRequestHandler,
   deleteServiceRequestHandler,
   listServiceRequestsHandler,
@@ -116,6 +121,22 @@ const appRateLimit = createRateLimitMiddleware([
     windowMs: 24 * 60 * 60 * 1000,
     key: ipKey,
     matcher: isPost("/api/app/proposals"),
+  },
+  // Sincronizar/restaurar assinatura é idempotente, mas limitamos por IP para
+  // evitar flood contra o RevenueCat.
+  {
+    id: "app:subscription:sync",
+    limit: 30,
+    windowMs: 60 * 60 * 1000,
+    key: ipKey,
+    matcher: isPost("/api/app/professional/subscription/sync"),
+  },
+  {
+    id: "app:subscription:restore",
+    limit: 30,
+    windowMs: 60 * 60 * 1000,
+    key: ipKey,
+    matcher: isPost("/api/app/professional/subscription/restore"),
   },
 ])
 
@@ -197,6 +218,13 @@ appRoutes.get("/professional/reviews", professionalReviewsHandler)
 appRoutes.post("/professional/portfolio", createPortfolioItemHandler)
 appRoutes.delete("/professional/portfolio/:id", deletePortfolioItemHandler)
 appRoutes.delete("/professional/account", deleteProfessionalAccountHandler)
+
+// Assinatura do profissional (compra via loja). O status é a fonte de verdade do
+// servidor; sync é chamado após a compra e restore reconhece assinatura existente.
+// A liberação de vantagens só ocorre após o servidor confirmar com a loja.
+appRoutes.get("/professional/subscription", subscriptionStatusHandler)
+appRoutes.post("/professional/subscription/sync", syncSubscriptionHandler)
+appRoutes.post("/professional/subscription/restore", restoreSubscriptionHandler)
 
 // Perfil do cliente: leitura (identidade, reputação, estatísticas), edição de
 // dados pessoais, avaliações recebidas e exclusão definitiva da conta.

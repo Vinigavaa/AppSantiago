@@ -29,6 +29,21 @@ const envSchema = z.object({
   CLOUDINARY_CLOUD_NAME: z.string().optional(),
   CLOUDINARY_API_KEY: z.string().optional(),
   CLOUDINARY_API_SECRET: z.string().optional(),
+  // RevenueCat (assinaturas via loja). Opcionais: sem elas a API sobe normal e os
+  // fluxos de compra/webhook ficam inertes. Em producao ficam no Render.
+  //  - API_KEY (secret v2): usada para confirmar/reconciliar assinaturas server-side.
+  //  - WEBHOOK_SECRET: valida o Authorization das notificacoes do RevenueCat.
+  REVENUECAT_API_KEY: z.string().optional(),
+  REVENUECAT_WEBHOOK_SECRET: z.string().optional(),
+  // Identificadores cadastrados nas lojas/RevenueCat (Grupo 1). Nao sao segredos,
+  // mas ficam em env para configurar sem novo deploy. O entitlement agrupa os dois
+  // planos; os product ids distinguem mensal de anual na hora de gravar o plano.
+  REVENUECAT_ENTITLEMENT_ID: z.string().default("premium"),
+  REVENUECAT_PRODUCT_MONTHLY: z.string().optional(),
+  REVENUECAT_PRODUCT_ANNUAL: z.string().optional(),
+  // Teto mensal de propostas para profissional SEM assinatura. Assinantes nao tem
+  // limite. Configuravel para ajustar sem novo deploy.
+  PROPOSAL_MONTHLY_LIMIT_FREE: z.coerce.number().int().positive().default(5),
 })
 
 export const env = envSchema.parse(process.env)
@@ -55,3 +70,9 @@ export const cloudinaryConfig =
         apiSecret: env.CLOUDINARY_API_SECRET,
       }
     : null
+
+// Configuracao do RevenueCat quando a API key existe; caso contrario, null (os
+// fluxos de compra/reconciliacao ficam desativados, sem quebrar a API).
+export const revenueCatConfig = env.REVENUECAT_API_KEY
+  ? { apiKey: env.REVENUECAT_API_KEY }
+  : null

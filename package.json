@@ -32,6 +32,7 @@
     "react-dom": "19.2.3",
     "react-hook-form": "^7.78.0",
     "react-native": "0.85.3",
+    "react-native-purchases": "^10.4.4",
     "react-native-reanimated": "4.3.1",
     "react-native-safe-area-context": "~5.7.0",
     "react-native-screens": "4.25.2",
@@ -65,7 +66,9 @@
     "opportunities:smoke": "tsx --tsconfig apps/api/tsconfig.json scripts/opportunities-smoke.ts",
     "proposals:smoke": "tsx --tsconfig apps/api/tsconfig.json scripts/proposals-smoke.ts",
     "profile:smoke": "tsx --tsconfig apps/api/tsconfig.json scripts/professional-profile-smoke.ts",
-    "pro:coverage": "tsx --tsconfig apps/api/tsconfig.json scripts/grant-professional-coverage.ts"
+    "pro:coverage": "tsx --tsconfig apps/api/tsconfig.json scripts/grant-professional-coverage.ts",
+    "subs:reconcile": "tsx --tsconfig apps/api/tsconfig.json scripts/reconcile-subscriptions.ts",
+    "subs:smoke": "tsx --tsconfig apps/api/tsconfig.json scripts/subscriptions-smoke.ts"
   },
   "private": true
 }

@@ -12,7 +12,10 @@ import {
 } from "react-native"
 import { useSafeAreaInsets } from "react-native-safe-area-context"
 
+import { router } from "expo-router"
+
 import { Button } from "@/components/ui/Button"
+import { routes } from "@/constants/routes"
 import { colors, radius, spacing } from "@/features/client-home/theme"
 import { ESTIMATED_DAYS_OPTIONS } from "@/features/proposals/format"
 import { sendProposal } from "@/features/proposals/service"
@@ -41,6 +44,8 @@ export function ProposalFormModal({ visible, serviceRequestId, onClose, onSent }
   const [estimatedDays, setEstimatedDays] = useState<number | null>(null)
   const [isSaving, setIsSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  // Limite mensal de propostas atingido (não assinante): habilita o CTA de assinar.
+  const [limitReached, setLimitReached] = useState(false)
 
   useEffect(() => {
     if (visible) {
@@ -70,6 +75,7 @@ export function ProposalFormModal({ visible, serviceRequestId, onClose, onSent }
 
     setIsSaving(true)
     setError(null)
+    setLimitReached(false)
 
     const result = await sendProposal({
       serviceRequestId,
@@ -82,6 +88,7 @@ export function ProposalFormModal({ visible, serviceRequestId, onClose, onSent }
 
     if (!result.ok) {
       setError(result.error)
+      setLimitReached(result.code === "PROPOSAL_LIMIT_REACHED")
       return
     }
 
@@ -159,6 +166,19 @@ export function ProposalFormModal({ visible, serviceRequestId, onClose, onSent }
           </View>
 
           {error ? <Text style={styles.error}>{error}</Text> : null}
+
+          {limitReached ? (
+            <Button
+              icon="star"
+              label="Assinar e enviar sem limite"
+              variant="secondary"
+              onPress={() => {
+                onClose()
+                router.push(routes.subscription)
+              }}
+              style={styles.submit}
+            />
+          ) : null}
 
           <Button
             disabled={isSaving}

@@ -278,6 +278,19 @@ export function ProfessionalProfileScreen() {
         </View>
 
         <View>
+          <SectionHeader title="Assinatura" />
+          <View style={styles.sectionBody}>
+            <View style={styles.menuGroup}>
+              <MenuItem
+                icon="star-outline"
+                label="Assine e apareça em destaque"
+                onPress={() => router.push(routes.subscription)}
+              />
+            </View>
+          </View>
+        </View>
+
+        <View>
           <SectionHeader title="Configurações" />
           <View style={styles.sectionBody}>
             <View style={styles.menuGroup}>

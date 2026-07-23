@@ -3,6 +3,7 @@ import { z } from "zod"
 
 import { blockStateBetween } from "@/modules/blocks/service"
 import type { AuthedContext } from "@/modules/shared/require-auth"
+import { getEntitlementByProfessionalId } from "@/modules/subscriptions/entitlement"
 
 const idSchema = z.uuid()
 
@@ -59,7 +60,7 @@ export async function publicProfessionalProfileHandler(context: AuthedContext) {
     return context.json({ code: "NOT_FOUND", message: "Perfil indisponível." }, 404)
   }
 
-  const [servicesCompleted, reviews] = await Promise.all([
+  const [servicesCompleted, reviews, entitlement] = await Promise.all([
     prisma.serviceContract.count({ where: { professionalId: profile.id, status: "COMPLETED" } }),
     prisma.review.findMany({
       where: { reviewedId: profile.user.id },
@@ -76,6 +77,7 @@ export async function publicProfessionalProfileHandler(context: AuthedContext) {
       orderBy: { createdAt: "desc" },
       take: 30,
     }),
+    getEntitlementByProfessionalId(profile.id),
   ])
 
   const categories = profile.categories.map((item) => item.category)
@@ -94,6 +96,8 @@ export async function publicProfessionalProfileHandler(context: AuthedContext) {
       cities,
       ratingAverage: Number(profile.ratingAverage),
       ratingCount: profile.ratingCount,
+      // Selo de destaque: assinante ativo. Decidido no servidor.
+      isFeatured: entitlement.isActive,
       // byMe habilita "Desbloquear"; byThem nunca chega aqui (perfil 404 acima).
       blockedByMe: block.byMe,
       portfolio: profile.portfolioItems,

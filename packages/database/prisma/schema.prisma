@@ -51,6 +51,28 @@ enum NotificationType {
   REVIEW_RECEIVED
 }
 
+enum SubscriptionPlan {
+  MONTHLY
+  ANNUAL
+}
+
+// Estado da assinatura. ACTIVE e IN_GRACE concedem as vantagens; CANCELED mantém
+// as vantagens só até currentPeriodEnd; EXPIRED não concede nada. A regra "tem
+// assinatura ativa" é derivada do estado + datas, nunca de um flag no dispositivo.
+enum SubscriptionStatus {
+  ACTIVE
+  IN_GRACE
+  CANCELED
+  EXPIRED
+}
+
+enum SubscriptionStore {
+  GOOGLE_PLAY
+  APP_STORE
+  // Loja simulada do RevenueCat, usada para testar o fluxo em dev sem Google/Apple.
+  TEST_STORE
+}
+
 model User {
   id                  String               @id @default(uuid()) @db.Uuid
   name                String
@@ -169,6 +191,8 @@ model ProfessionalProfile {
   serviceContracts     ServiceContract[]
   chats                Chat[]
   portfolioItems       ProfessionalPortfolioItem[]
+  subscription         ProfessionalSubscription?
+  certificate          ParticipationCertificate?
 }
 
 model Category {
@@ -434,4 +458,69 @@ model ProfessionalPortfolioItem {
   professional   ProfessionalProfile @relation(fields: [professionalId], references: [id], onDelete: Cascade)
 
   @@index([professionalId])
+}
+
+// Assinatura paga do profissional, comprada pela loja (Google Play / App Store).
+// É a fonte de verdade do servidor sobre "quem tem assinatura ativa": o app nunca
+// decide, só reporta. Os dados de estado/expiração vêm da verificação com a loja
+// (via RevenueCat), nunca de sinal do dispositivo. 1:1 com o perfil profissional.
+model ProfessionalSubscription {
+  id                    String              @id @default(uuid()) @db.Uuid
+  professionalId        String              @unique @db.Uuid
+  plan                  SubscriptionPlan
+  status                SubscriptionStatus  @default(EXPIRED)
+  store                 SubscriptionStore
+  storeProductId        String
+  // Identificador estável da compra na loja: originalTransactionId (Apple) ou
+  // purchaseToken (Google). Usado para reconciliar e restaurar sem duplicar.
+  storeTransactionId    String              @unique
+  // Fim do período pago atual. Enquanto o agora for anterior a esta data e o
+  // estado permitir, as vantagens ficam ativas.
+  currentPeriodEnd      DateTime
+  // Fim do período de tolerância quando a renovação falha (grace period). Nulo
+  // fora de tolerância. O prazo segue o configurado na loja/RevenueCat.
+  gracePeriodEnd        DateTime?
+  autoRenew             Boolean             @default(true)
+  // Última vez que o servidor confirmou o estado com a loja/RevenueCat.
+  lastVerifiedAt        DateTime            @default(now())
+  createdAt             DateTime            @default(now())
+  updatedAt             DateTime            @updatedAt
+  professional          ProfessionalProfile @relation(fields: [professionalId], references: [id], onDelete: Cascade)
+  events                SubscriptionEvent[]
+
+  @@index([status])
+  @@index([currentPeriodEnd])
+}
+
+// Trilha de auditoria append-only das transições da assinatura (compra, renovação,
+// cancelamento, grace period, expiração, reembolso), vindas de webhook, compra ou
+// reconciliação. Guarda apenas um resumo — nunca o recibo cru/sensível.
+model SubscriptionEvent {
+  id             String                   @id @default(uuid()) @db.Uuid
+  subscriptionId String                   @db.Uuid
+  type           String
+  summary        String                   @db.Text
+  createdAt      DateTime                 @default(now())
+  subscription   ProfessionalSubscription @relation(fields: [subscriptionId], references: [id], onDelete: Cascade)
+
+  @@index([subscriptionId])
+}
+
+// Certificado de participação do profissional. É um selo de participação/verificação
+// na plataforma — NÃO uma certificação técnica ou profissional oficial. A validade
+// NÃO é persistida: é derivada do status da assinatura no momento da verificação,
+// para nunca ficar dessincronizada. 1:1 com o perfil profissional.
+model ParticipationCertificate {
+  id                 String              @id @default(uuid()) @db.Uuid
+  professionalId     String              @unique @db.Uuid
+  // Código único, aleatório e não sequencial, usado na verificação pública.
+  code               String              @unique
+  issuedAt           DateTime            @default(now())
+  // Nome do profissional no momento da emissão (snapshot para exibição estável).
+  holderNameSnapshot String
+  createdAt          DateTime            @default(now())
+  updatedAt          DateTime            @updatedAt
+  professional       ProfessionalProfile @relation(fields: [professionalId], references: [id], onDelete: Cascade)
+
+  @@index([code])
 }

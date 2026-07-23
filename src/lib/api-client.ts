@@ -2,7 +2,7 @@ import { authBaseUrl, authClient } from "@/lib/auth-client"
 
 export type ApiResult<T> =
   | { ok: true; data: T }
-  | { ok: false; error: string; status?: number }
+  | { ok: false; error: string; status?: number; code?: string }
 
 type ApiErrorBody = {
   message?: string
@@ -67,6 +67,7 @@ export async function appFetch<T>(
         ok: false,
         error: friendlyError(response.status, payload as ApiErrorBody | null),
         status: response.status,
+        code: (payload as ApiErrorBody | null)?.code,
       }
     }
 

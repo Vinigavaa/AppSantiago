@@ -3,12 +3,14 @@ import { cors } from "hono/cors"
 import { logger } from "hono/logger"
 
 import { corsOrigins } from "@/config/env"
-import { authRateLimit } from "@/http/rate-limit"
+import { authRateLimit, createRateLimitMiddleware } from "@/http/rate-limit"
 import { landingPages } from "@/http/landing-pages"
 import { appRoutes } from "@/modules/app-routes"
 import { emailVerificationGuard } from "@/modules/auth/email-verification-guard"
 import { publicSignUpGuard } from "@/modules/auth/public-sign-up-guard"
 import { authRoutes } from "@/modules/auth/routes"
+import { verifyCertificateHandler } from "@/modules/certificates/handlers"
+import { revenueCatWebhookHandler } from "@/modules/subscriptions/handlers"
 
 export const app = new Hono()
 
@@ -55,4 +57,25 @@ app.use("/api/auth/*", publicSignUpGuard)
 app.use("/api/auth/*", emailVerificationGuard)
 app.route("/api/auth", authRoutes)
 app.route("/api/app", appRoutes)
+
+// Webhook do RevenueCat: público (validado por secret no próprio handler), fora do
+// grupo autenticado do app. As notificações da loja chegam aqui.
+app.post("/api/webhooks/revenuecat", revenueCatWebhookHandler)
+
+// Verificação pública de certificado por código, sem autenticação. Rate limit por
+// IP para evitar varredura de códigos.
+const certificateRateLimit = createRateLimitMiddleware([
+  {
+    id: "public:certificate:verify",
+    limit: 60,
+    windowMs: 15 * 60 * 1000,
+    key: (context) => `ip:${context.req.header("x-forwarded-for")?.split(",")[0]?.trim() ?? "unknown"}`,
+    matcher: (context) =>
+      context.req.method === "GET" &&
+      new URL(context.req.url).pathname.startsWith("/api/certificates/"),
+  },
+])
+app.use("/api/certificates/*", certificateRateLimit)
+app.get("/api/certificates/:code", verifyCertificateHandler)
+
 app.route("/", landingPages)

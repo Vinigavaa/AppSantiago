@@ -2,10 +2,12 @@ import { prisma } from "@santiago/database"
 import { Prisma } from "@prisma/client"
 import { z } from "zod"
 
+import { env } from "@/config/env"
 import { getBlockedUserIds, isBlockedBetween } from "@/modules/blocks/service"
 import { sendPushToUser, sendPushToUsers } from "@/modules/notifications/push"
 import { getProfessionalCoverage } from "@/modules/professional/professional-context"
 import type { AuthedContext } from "@/modules/shared/require-auth"
+import { getEntitlementByProfessionalId } from "@/modules/subscriptions/entitlement"
 
 import { createProposalSchema } from "./schemas"
 import { clientProposalInclude, serializeClientProposal, serializeOwnProposal } from "./serialize"
@@ -22,6 +24,29 @@ function invalidData(context: AuthedContext, message: string) {
 
 function notFound(context: AuthedContext) {
   return context.json({ code: "NOT_FOUND", message: "Proposta não encontrada." }, 404)
+}
+
+// Início do mês corrente em UTC, para contar as propostas do período atual.
+function startOfCurrentMonthUtc(): Date {
+  const now = new Date()
+  return new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1))
+}
+
+// Não assinante tem teto mensal de propostas (configurável). Assinante ativo é
+// ilimitado. A decisão é sempre no servidor, a partir do entitlement autoritativo.
+// Retorna true quando o profissional já atingiu o limite e deve ser bloqueado.
+async function hasReachedMonthlyProposalLimit(professionalId: string): Promise<boolean> {
+  const entitlement = await getEntitlementByProfessionalId(professionalId)
+
+  if (entitlement.isActive) {
+    return false
+  }
+
+  const count = await prisma.proposal.count({
+    where: { professionalId, createdAt: { gte: startOfCurrentMonthUtc() } },
+  })
+
+  return count >= env.PROPOSAL_MONTHLY_LIMIT_FREE
 }
 
 // Profissional envia uma proposta para uma solicitação aberta. Todas as regras
@@ -98,6 +123,17 @@ export async function createProposalHandler(context: AuthedContext) {
     return context.json(
       { code: "ALREADY_PROPOSED", message: "Você já enviou uma proposta para esta solicitação." },
       409,
+    )
+  }
+
+  // Limite mensal para não assinantes. Assinantes ativos passam direto.
+  if (await hasReachedMonthlyProposalLimit(coverage.profileId)) {
+    return context.json(
+      {
+        code: "PROPOSAL_LIMIT_REACHED",
+        message: `Você atingiu o limite de ${env.PROPOSAL_MONTHLY_LIMIT_FREE} propostas este mês. Assine para enviar propostas sem limite.`,
+      },
+      403,
     )
   }
 

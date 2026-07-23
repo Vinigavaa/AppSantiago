@@ -3,6 +3,7 @@ import { z } from "zod"
 
 import { getBlockedUserIds } from "@/modules/blocks/service"
 import type { AuthedContext } from "@/modules/shared/require-auth"
+import { getActiveSubscriberProfileIds } from "@/modules/subscriptions/entitlement"
 
 // Limite de resultados por busca. O marketplace é pequeno; um teto simples evita
 // respostas gigantes sem precisar de paginação nesta fase.
@@ -111,6 +112,9 @@ export async function searchProfessionalsHandler(context: AuthedContext) {
     }
   }
 
+  // Assinantes ativos: recebem o selo (isFeatured) e vão para o topo da lista.
+  const featuredIds = await getActiveSubscriberProfileIds(profiles.map((profile) => profile.id))
+
   const professionals = profiles.map((profile) => {
     const categories = profile.categories.map((item) => item.category)
 
@@ -127,8 +131,16 @@ export async function searchProfessionalsHandler(context: AuthedContext) {
       ratingCount: profile.ratingCount,
       servicesCompleted: completedByProfile.get(profile.id) ?? 0,
       experience: profile.experience,
+      isFeatured: featuredIds.has(profile.id),
     }
   })
 
-  return context.json({ professionals })
+  // Destaque: assinantes primeiro, mantendo a ordenação escolhida dentro de cada
+  // grupo (particionamento estável, preserva a ordem vinda do banco).
+  const ordered = [
+    ...professionals.filter((professional) => professional.isFeatured),
+    ...professionals.filter((professional) => !professional.isFeatured),
+  ]
+
+  return context.json({ professionals: ordered })
 }
