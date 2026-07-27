@@ -195,6 +195,12 @@ export function ProfessionalProfileScreen() {
             <Text style={styles.name}>{profile.name}</Text>
             {profile.isVerified ? <VerifiedBadge size={18} /> : null}
           </View>
+          {profile.isVerified ? (
+            <View style={styles.recommendedRow}>
+              <Ionicons color={colors.highlight} name="sparkles" size={12} />
+              <Text style={styles.recommendedText}>Recomendado pelo app</Text>
+            </View>
+          ) : null}
           <Text style={styles.mainCategory}>{profile.mainCategory ?? "Categoria não definida"}</Text>
           <View style={styles.ratingRow}>
             <Stars rating={profile.ratingCount > 0 ? profile.ratingAverage : 0} size={16} />
@@ -572,6 +578,17 @@ const styles = StyleSheet.create({
     gap: 6,
     justifyContent: "center",
     marginTop: 6,
+  },
+  recommendedRow: {
+    alignItems: "center",
+    flexDirection: "row",
+    gap: 4,
+    marginTop: 2,
+  },
+  recommendedText: {
+    color: colors.highlight,
+    fontSize: 12,
+    fontWeight: "600",
   },
   notice: {
     alignItems: "center",

@@ -194,6 +194,12 @@ export function PublicProfessionalScreen({ id }: { id: string }) {
             <Text style={styles.name}>{professional.name}</Text>
             {professional.isVerified ? <VerifiedBadge size={18} /> : null}
           </View>
+          {professional.isVerified ? (
+            <View style={styles.recommendedRow}>
+              <Ionicons color={colors.highlight} name="sparkles" size={12} />
+              <Text style={styles.recommendedText}>Recomendado pelo app</Text>
+            </View>
+          ) : null}
           <Text style={styles.mainCategory}>
             {professional.mainCategory ?? "Categoria não definida"}
           </Text>
@@ -440,6 +446,17 @@ const styles = StyleSheet.create({
     gap: 6,
     justifyContent: "center",
     marginTop: 6,
+  },
+  recommendedRow: {
+    alignItems: "center",
+    flexDirection: "row",
+    gap: 4,
+    marginTop: 2,
+  },
+  recommendedText: {
+    color: colors.highlight,
+    fontSize: 12,
+    fontWeight: "600",
   },
   pressed: {
     opacity: 0.7,
