@@ -84,6 +84,8 @@ export default function PrivateLayout() {
         <Tabs.Screen name="opportunity-details" options={{ href: null }} />
         <Tabs.Screen name="notifications" options={{ href: null }} />
         <Tabs.Screen name="blocked-users" options={{ href: null }} />
+        {/* Assinatura: alcançável pelo menu do perfil (router.push), nunca como aba. */}
+        <Tabs.Screen name="subscription" options={{ href: null }} />
       </Tabs>
     )
   }
@@ -129,6 +131,8 @@ export default function PrivateLayout() {
       <Tabs.Screen name="opportunity-details" options={{ href: null }} />
       <Tabs.Screen name="notifications" options={{ href: null }} />
       <Tabs.Screen name="blocked-users" options={{ href: null }} />
+      {/* Assinatura: alcançável pelo menu do perfil (router.push), nunca como aba. */}
+      <Tabs.Screen name="subscription" options={{ href: null }} />
     </Tabs>
   )
 }
