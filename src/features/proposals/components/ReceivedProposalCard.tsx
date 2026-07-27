@@ -5,6 +5,7 @@ import { getInitials } from "@/features/client-home/greeting"
 import { colors, radius, spacing } from "@/features/client-home/theme"
 import { formatRelativeTime } from "@/features/service-requests/format"
 import { Stars } from "@/components/ui/Stars"
+import { VerifiedBadge } from "@/components/ui/VerifiedBadge"
 
 import { formatProposalPrice, getEstimatedDaysLabel, getProposalStatusStyle } from "../format"
 import type { ReceivedProposal } from "../types"
@@ -46,6 +47,7 @@ export function ReceivedProposalCard({ proposal, busy, onAccept, onReject, onOpe
           <View style={styles.headerText}>
             <View style={styles.nameRow}>
               <Text style={styles.name}>{professional.name}</Text>
+              {professional.isVerified ? <VerifiedBadge size={15} /> : null}
               <Ionicons color={colors.textTertiary} name="chevron-forward" size={15} />
             </View>
             <View style={styles.ratingRow}>

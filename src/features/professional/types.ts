@@ -54,6 +54,8 @@ export type ProfessionalProfileInfo = {
   ratingDistribution: RatingDistribution
   stats: ProfessionalStats
   portfolio: PortfolioItem[]
+  // Assinante Pro ativo: exibe o selo de verificado ao lado do próprio nome.
+  isVerified: boolean
 }
 
 export type ProfessionalReview = {
@@ -102,6 +104,8 @@ export type PublicProfessional = {
   // troca "Conversar" por "Desbloquear". (Se o profissional tivesse bloqueado o
   // cliente, o perfil nem seria retornado.)
   blockedByMe: boolean
+  // Assinante Pro ativo: exibe o selo de verificado ao lado do nome.
+  isVerified: boolean
   portfolio: PortfolioItem[]
   stats: { servicesCompleted: number }
   reviews: PublicReview[]
@@ -121,6 +125,8 @@ export type ProfessionalSummary = {
   ratingCount: number
   servicesCompleted: number
   experience: number | null
+  // Assinante Pro ativo: exibe o selo de verificado ao lado do nome no cartão.
+  isVerified: boolean
 }
 
 // Critérios de ordenação da busca de profissionais.

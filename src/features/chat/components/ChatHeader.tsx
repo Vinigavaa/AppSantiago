@@ -1,6 +1,7 @@
 import { Ionicons } from "@expo/vector-icons"
 import { Pressable, StyleSheet, Text, View } from "react-native"
 
+import { VerifiedBadge } from "@/components/ui/VerifiedBadge"
 import { colors, spacing } from "@/features/client-home/theme"
 
 import type { ChatOtherUser } from "../types"
@@ -42,9 +43,12 @@ export function ChatHeader({
         >
           <ChatAvatar avatarUrl={otherUser.avatarUrl} name={otherUser.name} size={40} />
           <View style={styles.nameBlock}>
-            <Text numberOfLines={1} style={styles.name}>
-              {otherUser.name}
-            </Text>
+            <View style={styles.nameRow}>
+              <Text numberOfLines={1} style={styles.name}>
+                {otherUser.name}
+              </Text>
+              {otherUser.isVerified ? <VerifiedBadge size={16} /> : null}
+            </View>
             {onOpenProfile ? <Text style={styles.link}>Ver perfil</Text> : null}
           </View>
         </Pressable>
@@ -105,12 +109,18 @@ const styles = StyleSheet.create({
   },
   name: {
     color: colors.textPrimary,
+    flexShrink: 1,
     fontSize: 17,
     fontWeight: "700",
   },
   nameBlock: {
     flex: 1,
     gap: 1,
+  },
+  nameRow: {
+    alignItems: "center",
+    flexDirection: "row",
+    gap: 5,
   },
   pressed: {
     opacity: 0.7,

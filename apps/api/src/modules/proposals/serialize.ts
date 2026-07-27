@@ -40,8 +40,13 @@ function resolveCanceledBy(
   return canceledBy === professionalUserId ? "PROFESSIONAL" : "CLIENT"
 }
 
-// Formato consumido pelo mobile na área do cliente.
-export function serializeClientProposal(proposal: ClientProposalWithRelations) {
+// Formato consumido pelo mobile na área do cliente. `activeProfessionalIds` traz
+// os perfis com assinatura ativa, para marcar o selo Pro do profissional (decisão
+// do servidor).
+export function serializeClientProposal(
+  proposal: ClientProposalWithRelations,
+  activeProfessionalIds: Set<string>,
+) {
   return {
     id: proposal.id,
     price: Number(proposal.price),
@@ -55,6 +60,7 @@ export function serializeClientProposal(proposal: ClientProposalWithRelations) {
       avatarUrl: proposal.professional.user.avatarUrl,
       ratingAverage: Number(proposal.professional.ratingAverage),
       ratingCount: proposal.professional.ratingCount,
+      isVerified: activeProfessionalIds.has(proposal.professionalId),
     },
     serviceRequest: {
       id: proposal.serviceRequest.id,

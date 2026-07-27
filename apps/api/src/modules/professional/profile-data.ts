@@ -1,6 +1,7 @@
 import { prisma } from "@santiago/database"
 
 import type { AuthenticatedUser } from "@/modules/shared/require-auth"
+import { getEntitlementByProfessionalId } from "@/modules/subscriptions/entitlement"
 
 type RatingKey = "1" | "2" | "3" | "4" | "5"
 
@@ -37,7 +38,7 @@ export async function getProfessionalProfilePayload(user: AuthenticatedUser) {
 
   const professionalId = profile?.id ?? null
 
-  const [servicesCompleted, proposalsSent, acceptedProposals, distributionRows] =
+  const [servicesCompleted, proposalsSent, acceptedProposals, distributionRows, entitlement] =
     await Promise.all([
       professionalId
         ? prisma.serviceContract.count({ where: { professionalId, status: "COMPLETED" } })
@@ -51,6 +52,8 @@ export async function getProfessionalProfilePayload(user: AuthenticatedUser) {
         where: { reviewedId: user.id },
         _count: { _all: true },
       }),
+      // Selo Pro do próprio profissional (assinatura ativa). Sem perfil, sem selo.
+      professionalId ? getEntitlementByProfessionalId(professionalId) : Promise.resolve(null),
     ])
 
   const ratingDistribution: Record<RatingKey, number> = {
@@ -87,5 +90,6 @@ export async function getProfessionalProfilePayload(user: AuthenticatedUser) {
     ratingDistribution,
     stats: { servicesCompleted, proposalsSent, hireRate },
     portfolio: profile?.portfolioItems ?? [],
+    isVerified: entitlement?.isActive ?? false,
   }
 }

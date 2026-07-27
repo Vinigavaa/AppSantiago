@@ -6,6 +6,7 @@ import { sendPushToUser } from "@/modules/notifications/push"
 import { getOrCreateProfessionalProfileId } from "@/modules/professional/professional-context"
 import { getOrCreateClientProfileId } from "@/modules/service-requests/client-profile"
 import type { AuthedContext } from "@/modules/shared/require-auth"
+import { getActiveSubscriberProfileIds } from "@/modules/subscriptions/entitlement"
 import { deleteImages } from "@/modules/uploads/cleanup"
 import { chatAttachmentsFolder } from "@/modules/uploads/folders"
 import { resolveScopedPhotoUrl } from "@/modules/uploads/handlers"
@@ -131,7 +132,11 @@ export async function openChatHandler(context: AuthedContext) {
     select: chatParticipantsSelect,
   })
 
-  return context.json({ chat: { id: chat.id, otherUser: otherParticipant(chat, user.id) } })
+  const activeIds = await getActiveSubscriberProfileIds([chat.professional.id])
+
+  return context.json({
+    chat: { id: chat.id, otherUser: otherParticipant(chat, user.id, activeIds) },
+  })
 }
 
 // Lista as conversas do usuário (apenas as que já têm mensagens), com o outro
@@ -185,8 +190,13 @@ export async function listChatsHandler(context: AuthedContext) {
 
   const totalUnread = [...unreadByChat.values()].reduce((sum, count) => sum + count, 0)
 
+  // Selo Pro: assinantes ativos entre os profissionais das conversas (uma query).
+  const activeIds = await getActiveSubscriberProfileIds(chats.map((chat) => chat.professional.id))
+
   return context.json({
-    chats: chats.map((chat) => serializeChatSummary(chat, user.id, unreadByChat.get(chat.id) ?? 0)),
+    chats: chats.map((chat) =>
+      serializeChatSummary(chat, user.id, unreadByChat.get(chat.id) ?? 0, activeIds),
+    ),
     totalUnread,
   })
 }
@@ -219,8 +229,10 @@ export async function listMessagesHandler(context: AuthedContext) {
     select: messageSelect,
   })
 
+  const activeIds = await getActiveSubscriberProfileIds([chat.professional.id])
+
   return context.json({
-    otherUser: otherParticipant(chat, user.id),
+    otherUser: otherParticipant(chat, user.id, activeIds),
     messages: messages.map((message) => serializeMessage(message, user.id)),
   })
 }

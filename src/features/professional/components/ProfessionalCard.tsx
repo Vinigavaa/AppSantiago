@@ -6,6 +6,7 @@ import { colors, radius, spacing } from "@/features/client-home/theme"
 
 import type { ProfessionalSummary } from "../types"
 import { Stars } from "@/components/ui/Stars"
+import { VerifiedBadge } from "@/components/ui/VerifiedBadge"
 
 type IoniconName = keyof typeof Ionicons.glyphMap
 
@@ -59,6 +60,7 @@ export function ProfessionalCard({
             <Text numberOfLines={1} style={styles.name}>
               {professional.name}
             </Text>
+            {professional.isVerified ? <VerifiedBadge size={16} /> : null}
             {badge ? (
               <View style={styles.badge}>
                 <Ionicons color={colors.accent} name={badge.icon} size={12} />

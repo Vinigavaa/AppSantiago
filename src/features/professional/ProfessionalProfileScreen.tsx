@@ -26,6 +26,7 @@ import { ProfileSectionCard } from "@/features/client-home/components/ProfileSec
 import { ReputationCard } from "@/features/client-home/components/ReputationCard"
 import { ReviewsSection } from "./components/ReviewsSection"
 import { Stars } from "@/components/ui/Stars"
+import { VerifiedBadge } from "@/components/ui/VerifiedBadge"
 import { StatsSection } from "./components/StatsSection"
 import { useProfessionalProfile, useProfessionalReviews } from "./hooks"
 import {
@@ -190,7 +191,10 @@ export function ProfessionalProfileScreen() {
             }}
             uri={profile.avatarUrl}
           />
-          <Text style={styles.name}>{profile.name}</Text>
+          <View style={styles.nameRow}>
+            <Text style={styles.name}>{profile.name}</Text>
+            {profile.isVerified ? <VerifiedBadge size={18} /> : null}
+          </View>
           <Text style={styles.mainCategory}>{profile.mainCategory ?? "Categoria não definida"}</Text>
           <View style={styles.ratingRow}>
             <Stars rating={profile.ratingCount > 0 ? profile.ratingAverage : 0} size={16} />
@@ -560,8 +564,14 @@ const styles = StyleSheet.create({
     color: colors.textPrimary,
     fontSize: 22,
     fontWeight: "700",
-    marginTop: 6,
     textAlign: "center",
+  },
+  nameRow: {
+    alignItems: "center",
+    flexDirection: "row",
+    gap: 6,
+    justifyContent: "center",
+    marginTop: 6,
   },
   notice: {
     alignItems: "center",

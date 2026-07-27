@@ -131,15 +131,16 @@ export async function searchProfessionalsHandler(context: AuthedContext) {
       ratingCount: profile.ratingCount,
       servicesCompleted: completedByProfile.get(profile.id) ?? 0,
       experience: profile.experience,
-      isFeatured: featuredIds.has(profile.id),
+      // Selo Pro (assinante ativo): também leva o profissional ao topo da busca.
+      isVerified: featuredIds.has(profile.id),
     }
   })
 
   // Destaque: assinantes primeiro, mantendo a ordenação escolhida dentro de cada
   // grupo (particionamento estável, preserva a ordem vinda do banco).
   const ordered = [
-    ...professionals.filter((professional) => professional.isFeatured),
-    ...professionals.filter((professional) => !professional.isFeatured),
+    ...professionals.filter((professional) => professional.isVerified),
+    ...professionals.filter((professional) => !professional.isVerified),
   ]
 
   return context.json({ professionals: ordered })

@@ -45,11 +45,22 @@ export type OtherParticipant = {
   role: "CLIENT" | "PROFESSIONAL"
   // Id do perfil (profissional ou cliente) para abrir o perfil completo no app.
   profileId: string
+  // Selo de assinante verificado (Pro). Só profissionais com assinatura ativa. A
+  // decisão vem do servidor; o conjunto de ids ativos é passado pelo chamador.
+  isVerified: boolean
 }
 
 // A partir do usuário autenticado, resolve quem é o "outro" lado da conversa.
-export function otherParticipant(chat: ChatParticipants, meUserId: string): OtherParticipant {
+// `activeProfessionalIds` (opcional) traz os perfis com assinatura ativa: quando
+// informado, marca o selo do profissional. Chamadas que só precisam do userId
+// (bloqueio, push) podem omiti-lo — o selo fica false e é ignorado.
+export function otherParticipant(
+  chat: ChatParticipants,
+  meUserId: string,
+  activeProfessionalIds?: Set<string>,
+): OtherParticipant {
   const iAmClient = chat.client.user.id === meUserId
+  const professionalIsVerified = activeProfessionalIds?.has(chat.professional.id) ?? false
 
   if (iAmClient) {
     return {
@@ -58,6 +69,7 @@ export function otherParticipant(chat: ChatParticipants, meUserId: string): Othe
       avatarUrl: chat.professional.user.avatarUrl,
       role: "PROFESSIONAL",
       profileId: chat.professional.id,
+      isVerified: professionalIsVerified,
     }
   }
 
@@ -67,6 +79,8 @@ export function otherParticipant(chat: ChatParticipants, meUserId: string): Othe
     avatarUrl: chat.client.user.avatarUrl,
     role: "CLIENT",
     profileId: chat.client.id,
+    // Cliente nunca recebe selo — a assinatura é exclusiva do profissional.
+    isVerified: false,
   }
 }
 
@@ -109,12 +123,13 @@ export function serializeChatSummary(
   chat: ChatParticipants & { messages: LastMessage[] },
   meUserId: string,
   unreadCount: number,
+  activeProfessionalIds?: Set<string>,
 ) {
   const last = chat.messages[0]
 
   return {
     id: chat.id,
-    otherUser: otherParticipant(chat, meUserId),
+    otherUser: otherParticipant(chat, meUserId, activeProfessionalIds),
     lastMessage: last
       ? {
           content: last.content,

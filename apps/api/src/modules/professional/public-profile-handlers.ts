@@ -96,8 +96,8 @@ export async function publicProfessionalProfileHandler(context: AuthedContext) {
       cities,
       ratingAverage: Number(profile.ratingAverage),
       ratingCount: profile.ratingCount,
-      // Selo de destaque: assinante ativo. Decidido no servidor.
-      isFeatured: entitlement.isActive,
+      // Selo Pro (verificado): assinante ativo. Decidido no servidor.
+      isVerified: entitlement.isActive,
       // byMe habilita "Desbloquear"; byThem nunca chega aqui (perfil 404 acima).
       blockedByMe: block.byMe,
       portfolio: profile.portfolioItems,

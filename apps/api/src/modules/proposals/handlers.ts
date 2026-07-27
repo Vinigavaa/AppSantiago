@@ -7,7 +7,10 @@ import { getBlockedUserIds, isBlockedBetween } from "@/modules/blocks/service"
 import { sendPushToUser, sendPushToUsers } from "@/modules/notifications/push"
 import { getProfessionalCoverage } from "@/modules/professional/professional-context"
 import type { AuthedContext } from "@/modules/shared/require-auth"
-import { getEntitlementByProfessionalId } from "@/modules/subscriptions/entitlement"
+import {
+  getActiveSubscriberProfileIds,
+  getEntitlementByProfessionalId,
+} from "@/modules/subscriptions/entitlement"
 
 import { createProposalSchema } from "./schemas"
 import { clientProposalInclude, serializeClientProposal, serializeOwnProposal } from "./serialize"
@@ -201,7 +204,14 @@ export async function listReceivedProposalsHandler(context: AuthedContext) {
     orderBy: { createdAt: "desc" },
   })
 
-  return context.json({ proposals: proposals.map(serializeClientProposal) })
+  // Selo Pro: assinantes ativos entre os profissionais das propostas (uma query).
+  const activeIds = await getActiveSubscriberProfileIds(
+    proposals.map((proposal) => proposal.professionalId),
+  )
+
+  return context.json({
+    proposals: proposals.map((proposal) => serializeClientProposal(proposal, activeIds)),
+  })
 }
 
 // Carrega uma proposta para gerenciamento pelo cliente, validando a posse e o
@@ -264,7 +274,9 @@ async function respondWithUpdatedProposal(context: AuthedContext, id: string) {
     return notFound(context)
   }
 
-  return context.json({ proposal: serializeClientProposal(updated) })
+  const activeIds = await getActiveSubscriberProfileIds([updated.professionalId])
+
+  return context.json({ proposal: serializeClientProposal(updated, activeIds) })
 }
 
 // Cliente aceita uma proposta: cria o contrato, marca a solicitação como

@@ -1,5 +1,6 @@
 import { Pressable, StyleSheet, Text, View } from "react-native"
 
+import { VerifiedBadge } from "@/components/ui/VerifiedBadge"
 import { colors, radius, spacing } from "@/features/client-home/theme"
 
 import { formatChatListTime } from "../format"
@@ -32,9 +33,12 @@ export function ChatListItem({ chat, onPress }: { chat: ChatSummary; onPress: ()
       <ChatAvatar avatarUrl={chat.otherUser.avatarUrl} name={chat.otherUser.name} size={52} />
 
       <View style={styles.middle}>
-        <Text numberOfLines={1} style={styles.name}>
-          {chat.otherUser.name}
-        </Text>
+        <View style={styles.nameRow}>
+          <Text numberOfLines={1} style={styles.name}>
+            {chat.otherUser.name}
+          </Text>
+          {chat.otherUser.isVerified ? <VerifiedBadge size={15} /> : null}
+        </View>
         <Text
           numberOfLines={1}
           style={[styles.preview, hasUnread && styles.previewUnread]}
@@ -87,8 +91,14 @@ const styles = StyleSheet.create({
   },
   name: {
     color: colors.textPrimary,
+    flexShrink: 1,
     fontSize: 16,
     fontWeight: "600",
+  },
+  nameRow: {
+    alignItems: "center",
+    flexDirection: "row",
+    gap: 5,
   },
   preview: {
     color: colors.textSecondary,

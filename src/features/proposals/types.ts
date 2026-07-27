@@ -19,6 +19,8 @@ export type ReceivedProposal = {
     avatarUrl: string | null
     ratingAverage: number
     ratingCount: number
+    // Assinante Pro ativo: exibe o selo de verificado ao lado do nome.
+    isVerified: boolean
   }
   serviceRequest: { id: string; title: string; category: string }
   // Presente quando a proposta foi aceita (contrato criado). Quando o serviço é

@@ -15,6 +15,7 @@ import { colors, radius, spacing } from "@/features/client-home/theme"
 import { formatRelativeTime } from "@/features/service-requests/format"
 
 import { Stars } from "@/components/ui/Stars"
+import { VerifiedBadge } from "@/components/ui/VerifiedBadge"
 import { SegmentedTabs } from "@/features/client-home/components/SegmentedTabs"
 import { PortfolioGrid } from "./components/PortfolioGrid"
 import { fetchPublicProfessional } from "./service"
@@ -189,7 +190,10 @@ export function PublicProfessionalScreen({ id }: { id: string }) {
               <Text style={styles.avatarText}>{getInitials(professional.name)}</Text>
             </View>
           )}
-          <Text style={styles.name}>{professional.name}</Text>
+          <View style={styles.nameRow}>
+            <Text style={styles.name}>{professional.name}</Text>
+            {professional.isVerified ? <VerifiedBadge size={18} /> : null}
+          </View>
           <Text style={styles.mainCategory}>
             {professional.mainCategory ?? "Categoria não definida"}
           </Text>
@@ -428,8 +432,14 @@ const styles = StyleSheet.create({
     color: colors.textPrimary,
     fontSize: 22,
     fontWeight: "700",
-    marginTop: 6,
     textAlign: "center",
+  },
+  nameRow: {
+    alignItems: "center",
+    flexDirection: "row",
+    gap: 6,
+    justifyContent: "center",
+    marginTop: 6,
   },
   pressed: {
     opacity: 0.7,
