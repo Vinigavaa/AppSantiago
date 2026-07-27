@@ -70,7 +70,14 @@ export function normalizeSubscriptions(data: V2SubscriptionList): SubscriberSnap
 
   const withAccess = items.filter((item) => item.gives_access)
   const pool = withAccess.length > 0 ? withAccess : items
-  const sub = pool.reduce((best, current) =>
+
+  // Entre as candidatas, prefira as que mapeiam para um plano conhecido. Assim um
+  // produto extra que ainda nao esta configurado (comum na Loja de Teste, que gera
+  // ids proprios) nao ofusca uma assinatura valida so por terminar mais tarde.
+  const mappable = pool.filter((item) => item.product_id && planForProductId(item.product_id))
+  const candidates = mappable.length > 0 ? mappable : pool
+
+  const sub = candidates.reduce((best, current) =>
     (current.current_period_ends_at ?? 0) > (best.current_period_ends_at ?? 0) ? current : best,
   )
 
