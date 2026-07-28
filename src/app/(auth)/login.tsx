@@ -51,6 +51,7 @@ export default function Login() {
               autoComplete="username"
               error={errors.username?.message}
               label="Username"
+              maxLength={30}
               onChangeText={onChange}
               onSubmitEditing={() => emailRef.current?.focus()}
               placeholder="seu.username"
@@ -70,6 +71,7 @@ export default function Login() {
               error={errors.email?.message}
               keyboardType="email-address"
               label="Email"
+              maxLength={254}
               onChangeText={onChange}
               onSubmitEditing={() => passwordRef.current?.focus()}
               placeholder="voce@email.com"
@@ -89,6 +91,7 @@ export default function Login() {
               autoComplete="password"
               error={errors.password?.message}
               label="Senha"
+              maxLength={128}
               onChangeText={onChange}
               onSubmitEditing={handleSubmit(signIn)}
               placeholder="Sua senha"

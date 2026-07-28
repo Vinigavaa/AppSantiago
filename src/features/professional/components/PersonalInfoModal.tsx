@@ -14,6 +14,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context"
 
 import { Button } from "@/components/ui/Button"
 import { colors, radius, spacing } from "@/features/client-home/theme"
+import { maskPhone } from "@/lib/masks"
 
 import type { ProfessionalProfileInfo, UpdateProfileInput } from "../types"
 
@@ -32,7 +33,9 @@ export function PersonalInfoModal({ visible, profile, onClose, onSave }: Props) 
   const [name, setName] = useState(profile.name)
   const [displayName, setDisplayName] = useState(profile.displayName ?? "")
   const [profession, setProfession] = useState(profile.profession ?? "")
-  const [phone, setPhone] = useState(profile.phone ?? "")
+  // Telefones salvos antes da máscara podem vir em formato livre: formata na
+  // entrada para o campo abrir sempre consistente.
+  const [phone, setPhone] = useState(maskPhone(profile.phone ?? ""))
   const [bio, setBio] = useState(profile.bio ?? "")
   const [isSaving, setIsSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -42,7 +45,7 @@ export function PersonalInfoModal({ visible, profile, onClose, onSave }: Props) 
       setName(profile.name)
       setDisplayName(profile.displayName ?? "")
       setProfession(profile.profession ?? "")
-      setPhone(profile.phone ?? "")
+      setPhone(maskPhone(profile.phone ?? ""))
       setBio(profile.bio ?? "")
       setError(null)
     }
@@ -143,8 +146,8 @@ export function PersonalInfoModal({ visible, profile, onClose, onSave }: Props) 
           <Field label="Telefone (opcional)">
             <TextInput
               keyboardType="phone-pad"
-              maxLength={20}
-              onChangeText={setPhone}
+              maxLength={15}
+              onChangeText={(value) => setPhone(maskPhone(value))}
               placeholder="(48) 99999-9999"
               placeholderTextColor={colors.textTertiary}
               ref={phoneRef}

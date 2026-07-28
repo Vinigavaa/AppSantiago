@@ -67,6 +67,7 @@ export default function ResetPassword() {
               autoComplete="new-password"
               error={errors.password?.message}
               label="Nova senha"
+              maxLength={128}
               onChangeText={onChange}
               onSubmitEditing={() => confirmRef.current?.focus()}
               ref={passwordRef}
@@ -86,6 +87,7 @@ export default function ResetPassword() {
               autoComplete="new-password"
               error={errors.passwordConfirmation?.message}
               label="Confirmar senha"
+              maxLength={128}
               onChangeText={onChange}
               onSubmitEditing={handleSubmit(resetPassword)}
               ref={confirmRef}

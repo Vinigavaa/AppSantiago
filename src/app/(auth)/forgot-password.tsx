@@ -44,6 +44,7 @@ export default function ForgotPassword() {
               error={errors.email?.message}
               keyboardType="email-address"
               label="Email"
+              maxLength={254}
               onChangeText={onChange}
               onSubmitEditing={handleSubmit(requestPasswordReset)}
               placeholder="voce@email.com"

@@ -102,6 +102,7 @@ export function DeleteAccountModal({
           <TextInput
             autoCapitalize="characters"
             autoCorrect={false}
+            maxLength={CONFIRM_WORD.length}
             onChangeText={setConfirmText}
             placeholder={CONFIRM_WORD}
             placeholderTextColor={colors.textTertiary}

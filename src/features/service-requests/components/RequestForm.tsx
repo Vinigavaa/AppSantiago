@@ -9,6 +9,7 @@ import { SelectField } from "@/features/service-requests/components/SelectField"
 import { UrgencyPicker } from "@/features/service-requests/components/UrgencyPicker"
 import type { Category, City, Urgency } from "@/features/service-requests/types"
 import type { RequestPhotoItem } from "@/features/service-requests/useRequestPhotos"
+import { maskCep, maskCurrency } from "@/lib/masks"
 
 // Estado e handlers do formulário, compartilhados por criação e edição.
 type FormValues = {
@@ -133,7 +134,7 @@ export function RequestForm({
             <TextInput
               keyboardType="number-pad"
               maxLength={9}
-              onChangeText={(value) => onChange("zipCode", value)}
+              onChangeText={(value) => onChange("zipCode", maskCep(value))}
               onSubmitEditing={() => numberRef.current?.focus()}
               placeholder="CEP"
               placeholderTextColor={colors.textTertiary}
@@ -216,7 +217,8 @@ export function RequestForm({
           <View style={styles.budgetField}>
             <TextInput
               keyboardType="decimal-pad"
-              onChangeText={(value) => onChange("budgetMin", value)}
+              maxLength={10}
+              onChangeText={(value) => onChange("budgetMin", maskCurrency(value))}
               placeholder="Mínimo"
               placeholderTextColor={colors.textTertiary}
               style={[styles.input, errors.budgetMin && styles.inputError]}
@@ -226,7 +228,8 @@ export function RequestForm({
           <View style={styles.budgetField}>
             <TextInput
               keyboardType="decimal-pad"
-              onChangeText={(value) => onChange("budgetMax", value)}
+              maxLength={10}
+              onChangeText={(value) => onChange("budgetMax", maskCurrency(value))}
               placeholder="Máximo"
               placeholderTextColor={colors.textTertiary}
               returnKeyType="done"

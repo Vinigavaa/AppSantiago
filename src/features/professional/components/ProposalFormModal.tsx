@@ -20,6 +20,7 @@ import { colors, radius, spacing } from "@/features/client-home/theme"
 import { ESTIMATED_DAYS_OPTIONS } from "@/features/proposals/format"
 import { sendProposal } from "@/features/proposals/service"
 import type { OwnProposal } from "@/features/proposals/types"
+import { maskCurrency } from "@/lib/masks"
 
 type Props = {
   visible: boolean
@@ -117,8 +118,8 @@ export function ProposalFormModal({ visible, serviceRequestId, onClose, onSent }
               <Text style={styles.pricePrefix}>R$</Text>
               <TextInput
                 keyboardType="decimal-pad"
-                maxLength={12}
-                onChangeText={setPrice}
+                maxLength={10}
+                onChangeText={(value) => setPrice(maskCurrency(value))}
                 onSubmitEditing={() => messageRef.current?.focus()}
                 placeholder="500"
                 placeholderTextColor={colors.textTertiary}

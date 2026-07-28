@@ -47,6 +47,7 @@ export default function Register() {
               autoComplete="username"
               error={errors.username?.message}
               label="Username"
+              maxLength={30}
               onChangeText={onChange}
               onSubmitEditing={() => emailRef.current?.focus()}
               placeholder="seu.username"
@@ -66,6 +67,7 @@ export default function Register() {
               error={errors.email?.message}
               keyboardType="email-address"
               label="Email"
+              maxLength={254}
               onChangeText={onChange}
               onSubmitEditing={() => passwordRef.current?.focus()}
               placeholder="voce@email.com"
@@ -85,6 +87,7 @@ export default function Register() {
               autoComplete="new-password"
               error={errors.password?.message}
               label="Senha"
+              maxLength={128}
               onChangeText={onChange}
               placeholder="Mínimo de 8 caracteres"
               ref={passwordRef}

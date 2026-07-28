@@ -95,6 +95,7 @@ export function MessageInput({ onSend }: Props) {
         </Pressable>
 
         <TextInput
+          maxLength={2000}
           multiline
           onChangeText={setValue}
           placeholder={photoUri ? "Legenda (opcional)" : "Mensagem"}

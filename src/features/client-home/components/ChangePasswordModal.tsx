@@ -106,6 +106,7 @@ export function ChangePasswordModal({ visible, onClose, onSuccess }: Props) {
           <Field label="Senha atual">
             <TextInput
               autoCapitalize="none"
+              maxLength={128}
               onChangeText={setCurrent}
               onSubmitEditing={() => newRef.current?.focus()}
               placeholder="Sua senha atual"
@@ -121,6 +122,7 @@ export function ChangePasswordModal({ visible, onClose, onSuccess }: Props) {
           <Field label="Nova senha">
             <TextInput
               autoCapitalize="none"
+              maxLength={128}
               onChangeText={setNext}
               onSubmitEditing={() => confirmRef.current?.focus()}
               placeholder="Mínimo de 8 caracteres"
@@ -137,6 +139,7 @@ export function ChangePasswordModal({ visible, onClose, onSuccess }: Props) {
           <Field label="Confirmar nova senha">
             <TextInput
               autoCapitalize="none"
+              maxLength={128}
               onChangeText={setConfirm}
               onSubmitEditing={handleSave}
               placeholder="Repita a nova senha"

@@ -13,6 +13,7 @@ import {
 import { useSafeAreaInsets } from "react-native-safe-area-context"
 
 import { Button } from "@/components/ui/Button"
+import { maskPhone } from "@/lib/masks"
 
 import type { ClientProfileInfo, UpdateClientProfileInput } from "../profile-types"
 import { colors, radius, spacing } from "../theme"
@@ -28,14 +29,16 @@ type Props = {
 export function ClientPersonalInfoModal({ visible, profile, onClose, onSave }: Props) {
   const insets = useSafeAreaInsets()
   const [name, setName] = useState(profile.name)
-  const [phone, setPhone] = useState(profile.phone ?? "")
+  // Telefones salvos antes da máscara podem vir em formato livre: formata na
+  // entrada para o campo abrir sempre consistente.
+  const [phone, setPhone] = useState(maskPhone(profile.phone ?? ""))
   const [isSaving, setIsSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
     if (visible) {
       setName(profile.name)
-      setPhone(profile.phone ?? "")
+      setPhone(maskPhone(profile.phone ?? ""))
       setError(null)
     }
   }, [visible, profile])
@@ -101,8 +104,8 @@ export function ClientPersonalInfoModal({ visible, profile, onClose, onSave }: P
           <Field label="Telefone (opcional)">
             <TextInput
               keyboardType="phone-pad"
-              maxLength={20}
-              onChangeText={setPhone}
+              maxLength={15}
+              onChangeText={(value) => setPhone(maskPhone(value))}
               placeholder="(48) 99999-9999"
               placeholderTextColor={colors.textTertiary}
               style={styles.input}
