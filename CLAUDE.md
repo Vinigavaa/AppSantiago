@@ -1,728 +1,18 @@
 # CLAUDE.md
+# Responda sempre em pt-br
+## Objetivo
 
-## Visão Geral
+Este projeto é um marketplace de serviços para Android e iOS.
 
-Este projeto é dividido em dois apps separados dentro do mesmo repositório:
+Antes de implementar qualquer funcionalidade, entender o fluxo existente e manter consistência com a arquitetura atual.
 
-```txt
-apps/
-  mobile/
-  api/
-```
-
-- `apps/mobile`: aplicativo Expo + React Native.
-- `apps/api`: backend responsável por autenticação, banco de dados e regras sensíveis.
-
-O projeto usa **npm workspaces**, sem Turborepo.
+Priorizar soluções simples, claras e fáceis de manter.
 
 ---
 
-# Stack
+# Filosofia de Desenvolvimento
 
-## Mobile
-
-- Expo
-- React Native
-- Expo Router
-- TypeScript
-- TanStack Query
-- Zustand
-- React Hook Form
-- Zod
-- expo-secure-store
-- expo-location
-- react-native-maps
-- EAS Build
-
-## API
-
-- Node.js
-- TypeScript
-- Better Auth
-- Prisma
-- Neon PostgreSQL
-- Zod
-- Resend para emails
-- Rate limit nos endpoints sensíveis
-
----
-
-# Regra Principal
-
-O app mobile é apenas cliente.
-
-Ele nunca deve acessar diretamente:
-
-- Prisma
-- Neon PostgreSQL
-- DATABASE_URL
-- Secrets
-- Tokens privados
-- Chaves de API sensíveis
-
-Fluxo correto:
-
-```txt
-Mobile
-  -> API HTTPS
-  -> Better Auth / Services
-  -> Prisma
-  -> Neon PostgreSQL
-```
-
----
-
-# Estrutura do Projeto
-
-```txt
-project-root/
-
-  apps/
-    mobile/
-      src/
-
-    api/
-      src/
-      prisma/
-
-  packages/
-    schemas/
-    utils/
-
-  package.json
-  package-lock.json
-```
-
----
-
-# Gerenciador de Pacotes
-
-Usar apenas:
-
-```bash
-npm
-```
-
-Não usar:
-
-```txt
-pnpm
-yarn
-turbo
-```
-
-Scripts devem ser organizados no `package.json` raiz e nos `package.json` internos de cada app.
-
----
-
-# apps/mobile
-
-Responsável por:
-
-- Telas
-- Navegação
-- Interface
-- Permissões nativas
-- Mapa
-- Localização
-- Estado local/global
-- Consumo da API
-
-Não deve conter:
-
-- Prisma
-- Better Auth server
-- Lógica de banco
-- Secrets
-- Regras críticas de autorização
-
----
-
-# apps/api
-
-Responsável por:
-
-- Autenticação com Better Auth
-- Cadastro
-- Login
-- Sessões
-- Recuperação de senha
-- Verificação de email
-- Rate limit
-- Prisma
-- Neon PostgreSQL
-- Regras de negócio
-- Autorização
-- Validações sensíveis
-- Envio de emails com Resend
-
----
-
-# Estrutura do Mobile
-
-```txt
-apps/mobile/src/
-
-  app/
-    _layout.tsx
-
-    (auth)/
-      sign-in.tsx
-      sign-up.tsx
-      forgot-password.tsx
-
-    (private)/
-      _layout.tsx
-      home.tsx
-      map.tsx
-      profile.tsx
-
-  features/
-    auth/
-    user/
-    location/
-    map/
-    service-request/
-    proposal/
-    chat/
-    review/
-
-  components/
-    ui/
-
-  services/
-    api-client.ts
-    secure-storage.ts
-
-  stores/
-
-  hooks/
-
-  lib/
-
-  constants/
-
-  types/
-```
-
----
-
-# Estrutura da API
-
-```txt
-apps/api/
-
-  prisma/
-    schema.prisma
-    migrations/
-    seed.ts
-
-  src/
-    auth/
-      auth.ts
-
-    modules/
-      users/
-      service-requests/
-      proposals/
-      chats/
-      reviews/
-      notifications/
-      categories/
-      cities/
-
-    lib/
-      prisma.ts
-      env.ts
-      resend.ts
-
-    middlewares/
-      auth-middleware.ts
-      rate-limit.ts
-
-    routes/
-
-    server.ts
-```
-
----
-
-# Autenticação
-
-A autenticação deve ser feita com:
-
-```txt
-Better Auth
-```
-
-O Better Auth deve rodar somente em:
-
-```txt
-apps/api
-```
-
-O mobile deve apenas consumir os endpoints da API.
-
----
-
-# Regras de Cadastro
-
-O cadastro público permite apenas:
-
-```txt
-CLIENT
-PROFESSIONAL
-```
-
-Nunca permitir cadastro público como:
-
-```txt
-ADMIN
-```
-
-Mesmo que o frontend envie `ADMIN`, a API deve ignorar ou bloquear.
-
-Usuário ADMIN só pode ser criado por:
-
-- Seed
-- Script interno
-- Área administrativa protegida futuramente
-
----
-
-# Sessão no Mobile
-
-O mobile deve armazenar sessão/token com:
-
-```txt
-expo-secure-store
-```
-
-Nunca usar AsyncStorage para token ou sessão.
-
-Criar wrapper:
-
-```txt
-apps/mobile/src/services/secure-storage.ts
-```
-
----
-
-# API Client
-
-Toda chamada HTTP do mobile deve passar por:
-
-```txt
-apps/mobile/src/services/api-client.ts
-```
-
-Nunca espalhar `fetch` ou URL da API diretamente nas telas.
-
-A URL da API deve vir de variável de ambiente.
-
-Exemplo:
-
-```txt
-EXPO_PUBLIC_API_URL=https://api.seudominio.com
-```
-
----
-
-# Prisma
-
-O Prisma deve existir apenas em:
-
-```txt
-apps/api/prisma
-```
-
-Nunca instalar ou importar Prisma no app mobile.
-
-O client deve ser centralizado em:
-
-```txt
-apps/api/src/lib/prisma.ts
-```
-
----
-
-# Banco de Dados
-
-Banco utilizado:
-
-```txt
-Neon PostgreSQL
-```
-
-Toda alteração estrutural deve ser feita via migration.
-
-Nunca alterar banco manualmente sem migration.
-
----
-
-# Emails
-
-Usar Resend para:
-
-- Verificação de email
-- Recuperação de senha
-- Notificações futuras
-
-Chaves da Resend devem existir apenas na API.
-
----
-
-# Segurança
-
-Nunca commitar:
-
-- `.env`
-- DATABASE_URL
-- BETTER_AUTH_SECRET
-- RESEND_API_KEY
-- Chaves privadas
-- Tokens
-- Senhas
-
-Manter apenas:
-
-```txt
-.env.example
-```
-
-sem valores reais.
-
----
-
-# Rate Limit
-
-Aplicar rate limit principalmente em:
-
-- Login
-- Cadastro
-- Recuperação de senha
-- Verificação de email
-
-Objetivo:
-
-- Evitar brute force
-- Evitar spam
-- Evitar criação massiva de contas
-
----
-
-# Validação
-
-Usar Zod para validar:
-
-- Formulários no mobile
-- Payloads recebidos na API
-- Parâmetros de rota
-- Dados externos
-
-Nunca confiar em dados vindos do frontend.
-
----
-
-# Organização por Features
-
-Tanto no mobile quanto na API, organizar por domínio.
-
-Exemplos:
-
-```txt
-auth
-users
-service-requests
-proposals
-chat
-reviews
-notifications
-categories
-cities
-map
-location
-```
-
-Evitar pastas gigantes com tudo misturado.
-
----
-
-# Mobile: Responsabilidade das Telas
-
-Telas devem apenas:
-
-- Renderizar interface
-- Chamar hooks
-- Exibir loading
-- Exibir erros
-- Navegar
-
-Telas não devem conter:
-
-- Regra de negócio
-- Lógica complexa
-- Chamada direta à API
-- Validação manual grande
-
----
-
-# TanStack Query
-
-Usar para dados vindos da API:
-
-```txt
-useQuery
-useMutation
-```
-
-Não duplicar dados remotos no Zustand.
-
----
-
-# Zustand
-
-Usar Zustand apenas para:
-
-- Sessão
-- Usuário autenticado
-- Preferências globais
-- Estado global realmente necessário
-
-Não usar Zustand para:
-
-- Inputs
-- Formulários
-- Modais locais
-- Estado temporário de tela
-
----
-
-# Formulários
-
-Usar:
-
-```txt
-React Hook Form + Zod
-```
-
-Evitar formulários grandes controlados apenas com `useState`.
-
----
-
-# Localização
-
-Usar:
-
-```txt
-expo-location
-```
-
-A lógica de localização deve ficar em:
-
-```txt
-features/location
-```
-
-O app deve continuar funcionando mesmo se o usuário negar permissão.
-
----
-
-# Mapa
-
-Usar:
-
-```txt
-react-native-maps
-```
-
-A lógica de mapa deve ficar em:
-
-```txt
-features/map
-```
-
-Evitar lógica complexa de mapa diretamente nas telas.
-
----
-
-# Coordenadas
-
-Sempre usar:
-
-```ts
-type Coordinates = {
-  latitude: number
-  longitude: number
-}
-```
-
-Nunca usar array solto como:
-
-```ts
-[-28.6775, -49.3697]
-```
-
----
-
-# Padrão de Código
-
-Preferir:
-
-```tsx
-export function UserCard() {}
-```
-
-Evitar:
-
-```tsx
-const UserCard = () => {}
-```
-
-Props sempre tipadas.
-
-Nunca usar `any` sem justificativa real.
-
----
-
-# Imports
-
-Ordem recomendada:
-
-```txt
-1. React / React Native
-2. Bibliotecas externas
-3. Pacotes compartilhados
-4. Aliases internos
-5. Imports relativos
-```
-
----
-
-# Nomenclatura
-
-Componentes:
-
-```txt
-UserCard.tsx
-LoginForm.tsx
-MapMarker.tsx
-```
-
-Hooks:
-
-```txt
-useAuth.ts
-useCurrentLocation.ts
-useMapRegion.ts
-```
-
-Services:
-
-```txt
-auth-service.ts
-api-client.ts
-location-service.ts
-```
-
-Stores:
-
-```txt
-auth-store.ts
-user-store.ts
-```
-
-Schemas:
-
-```txt
-sign-in-schema.ts
-sign-up-schema.ts
-service-request-schema.ts
-```
-
----
-
-# Tratamento de Erros
-
-Toda operação assíncrona deve tratar erro.
-
-Mensagens para usuário devem ser claras.
-
-Nunca expor detalhes internos como:
-
-```txt
-DATABASE_URL inválida
-Prisma error
-BETTER_AUTH_SECRET ausente
-Stack trace
-```
-
----
-
-# Antes de Finalizar uma Tarefa
-
-Verificar:
-
-```txt
-- Código compila
-- TypeScript sem erro
-- Sem any desnecessário
-- Sem console.log perdido
-- Sem código morto
-- Sem secrets expostos
-- Mobile não acessa banco direto
-- API centraliza autenticação e Prisma
-- Dados externos são validados
-- Erros são tratados
-```
-
----
-
-# Deploy e Ambiente (Render)
-
-A API (`apps/api`) está hospedada no **Render**:
-
-```txt
-https://appsantiago.onrender.com
-```
-
-- Deploy é **automático a partir do branch `main`** (push no GitHub dispara build/deploy).
-- Em produção o Render roda com `NODE_ENV=production`.
-- O mobile aponta para a API via `EXPO_PUBLIC_AUTH_BASE_URL` (no `.env` da raiz).
-
-## Variáveis de ambiente na API (Render)
-
-Configuradas no painel do Render, não no repositório:
-
-```txt
-BETTER_AUTH_URL      = https://appsantiago.onrender.com
-BETTER_AUTH_SECRET   = (secret)
-DATABASE_URL         = (Neon PostgreSQL)
-CORS_ORIGIN          = https://appsantiago.onrender.com,http://localhost:8081
-EMAIL_PROVIDER       = resend (console é bloqueado em produção)
-RESEND_API_KEY       = (secret)
-APP_DEEP_LINK_SCHEME = santiago
-```
-
-`CORS_ORIGIN` é lido em `apps/api/src/config/env.ts` e **alimenta também o `trustedOrigins`** do Better Auth em `apps/api/src/modules/auth/auth.ts`.
-
-## Diagnóstico rápido de problemas comuns
-
-Sintoma no app: **"Não foi possível concluir a autenticação. Tente novamente."** (mensagem genérica). Sempre olhar o **status HTTP real** (console web / logs do Render) antes de assumir bug de código:
-
-- **Primeira requisição ~50s / timeout:** cold start do Render (plano free derruba o serviço após ~15 min ocioso). A API está OK, só precisa "acordar". Solução durável: keep-warm pingando `/health`, ou upgrade de plano.
-- **HTTP 429:** rate limit em `apps/api/src/http/rate-limit.ts`. Cadastro = 20/10min por IP; login e reset têm regras próprias. O bucket reseta sozinho dentro da janela.
-- **HTTP 403 no celular (Expo Go), mas web funciona:** a origem do Expo Go é `exp://<ip>:8081`, que **não está em `trustedOrigins`** porque `exp://**` só entra quando `NODE_ENV === "development"` (e no Render é `production`). Solução: adicionar `exp://**` ao `CORS_ORIGIN` no Render (dev), ou gerar build standalone EAS com scheme `santiago://` (já é confiável). Origens que dão **200**: `santiago://`, `http://localhost:8081`.
-- **HTTP 503 (`AUTH_PROTECTION_UNAVAILABLE`):** falha ao validar rate limit (ex.: banco indisponível).
-- Login só funciona após **verificar o email** (`requireEmailVerification: true`).
-
-O mapeamento de erros do mobile fica em `src/features/auth/services/auth-service.ts` (`getFriendlyAuthError`), e considera `status` HTTP + `code` retornado pela API.
-
----
-
-# Regra Final
-
-Priorizar:
+Sempre priorizar:
 
 ```txt
 Clareza > esperteza
@@ -731,3 +21,376 @@ Segurança > facilidade
 Organização > velocidade improvisada
 Manutenção > gambiarra
 ```
+
+Evitar engenharia excessiva.
+
+O sistema ainda está em fase inicial e deve atender bem dezenas ou poucas centenas de usuários.
+
+Não criar complexidade antecipada para problemas que ainda não existem.
+
+---
+
+# Regra de Simplicidade
+
+Antes de implementar qualquer solução, perguntar:
+
+```txt
+Existe uma forma mais simples de resolver isso?
+```
+
+Preferir:
+
+* Código simples
+* Poucas abstrações
+* Fluxos explícitos
+* Estruturas previsíveis
+* Fácil depuração
+
+Evitar:
+
+* Padrões complexos sem necessidade
+* Arquiteturas excessivamente genéricas
+* Camadas artificiais
+* Abstrações criadas apenas para "escalar no futuro"
+
+---
+
+# Código Morto
+
+Não manter código morto.
+
+Remover:
+
+* Funções não utilizadas
+* Componentes não utilizados
+* Hooks não utilizados
+* Imports não utilizados
+* Variáveis não utilizadas
+* Arquivos abandonados
+* Comentários obsoletos
+* Código legado sem uso
+
+Se algo não possui utilidade real no projeto, deve ser removido.
+
+---
+
+# Código Duplicado
+
+Evitar duplicação.
+
+Antes de criar algo novo:
+
+* Procurar implementação existente.
+* Reutilizar quando fizer sentido.
+* Extrair apenas quando houver repetição real.
+
+Não abstrair prematuramente.
+
+---
+
+# Responsabilidade das Camadas
+
+O backend e o mobile são sistemas distintos.
+
+Nunca misturar responsabilidades.
+
+## Mobile
+
+Responsável por:
+
+* Interface
+* Navegação
+* Estado da aplicação
+* Experiência do usuário
+* Consumo da API
+
+Não é responsável por:
+
+* Banco de dados
+* Autorização
+* Regras críticas
+* Segurança
+* Lógica de autenticação do servidor
+
+---
+
+## Backend
+
+Responsável por:
+
+* Autenticação
+* Autorização
+* Banco de dados
+* Regras de negócio
+* Emails
+* Segurança
+* Validações críticas
+
+Toda regra importante deve existir no backend.
+
+Nunca confiar em validações do mobile.
+
+---
+
+# Estrutura do Projeto
+
+```txt
+apps/
+  mobile/
+  api/
+```
+
+O backend é hospedado separadamente e deve continuar independente do aplicativo mobile.
+
+Toda comunicação ocorre através da API pública.
+
+---
+
+# Deploy e Ambiente (Render)
+
+A API (`apps/api`) está hospedada em:
+
+```txt
+https://appsantiago.onrender.com
+```
+
+Regras:
+
+* Deploy automático pelo branch `main`.
+* Todo código enviado para `main` deve estar pronto para produção.
+* Nunca assumir ambiente local.
+* Nunca deixar URLs hardcoded.
+* Sempre utilizar variáveis de ambiente.
+
+---
+
+# Variáveis de Ambiente
+
+Produção utiliza:
+
+```txt
+BETTER_AUTH_URL
+BETTER_AUTH_SECRET
+DATABASE_URL
+CORS_ORIGIN
+EMAIL_PROVIDER
+RESEND_API_KEY
+APP_DEEP_LINK_SCHEME
+```
+
+Nunca expor secrets.
+
+Nunca commitar:
+
+```txt
+.env
+tokens
+api keys
+credenciais
+```
+
+Apenas `.env.example`.
+
+---
+
+# Resend
+
+O domínio já está validado na Resend.
+
+Assumir ambiente preparado para envio real de emails.
+
+Fluxos obrigatórios:
+
+* Verificação de email
+* Recuperação de senha
+* Redefinição de senha
+
+Toda implementação deve ser pensada para envio real em produção.
+
+Não utilizar soluções temporárias ou de sandbox.
+
+---
+
+# Homologação
+
+As validações devem considerar:
+
+```txt
+Android Studio
+Web
+```
+
+Toda entrega deve ser testável nesses ambientes.
+
+---
+
+# Tratamento de Erros
+
+Tratamento de erros é obrigatório.
+
+Toda operação assíncrona deve:
+
+* Tratar falhas
+* Retornar mensagens adequadas
+* Registrar contexto suficiente para diagnóstico
+
+Evitar erros genéricos.
+
+Sempre que possível incluir:
+
+```txt
+O que falhou
+Onde falhou
+Motivo provável
+Próximo passo recomendado
+```
+
+Sem expor informações sensíveis ao usuário.
+
+---
+
+# Logs
+
+Logs devem ajudar na investigação.
+
+Registrar:
+
+* Fluxo executado
+* Contexto relevante
+* Erros inesperados
+
+Não registrar:
+
+* Senhas
+* Tokens
+* Secrets
+* Dados sensíveis
+
+---
+
+# Banco de Dados
+
+Toda alteração estrutural deve ocorrer através de migration.
+
+Nunca depender de alterações manuais no banco.
+
+Manter schema limpo e consistente.
+
+---
+
+# Segurança
+
+Nunca confiar em dados vindos do cliente.
+
+Toda informação recebida deve ser validada no backend.
+
+Toda autorização deve ser feita no backend.
+
+Toda regra de acesso deve ser validada no backend.
+
+---
+
+# Armadilhas Conhecidas (Mobile)
+
+## Navegação resetada por refetch de sessão (better-auth + expo-router)
+
+### Sintoma
+
+Após uma ação de auth (ex: cadastro), o `router.replace` leva para a tela
+correta, mas o app cai na tela âncora do grupo (geralmente o login).
+Curiosamente, ao reabrir/rebuildar o app a tela correta aparece — porque aí
+quem decide a rota é o `index.tsx`, de forma determinística.
+
+### Causa
+
+Operações do better-auth (`signUp`, `signIn`, `signOut`) disparam um refetch
+da sessão. Isso faz `isPending` voltar a `true` por um instante, **mesmo com
+`autoSignIn: false`**.
+
+Se um layout de grupo (`_layout.tsx`) renderiza um spinner sempre que
+`isPending` é `true`, ele **desmonta o `<Stack>` durante o refetch**. Isso
+descarta a navegação em andamento e remonta a pilha na rota inicial do grupo.
+
+```tsx
+// ERRADO: desmonta a pilha a cada refetch de sessão
+if (isPending) {
+  return <Spinner />
+}
+return <Stack />
+```
+
+### Correção
+
+Bloquear apenas no carregamento inicial. Refetches devem manter o `<Stack>`
+montado para preservar a navegação.
+
+```tsx
+const hasLoadedOnce = useRef(false)
+
+if (isPending && !hasLoadedOnce.current) {
+  return <Spinner />
+}
+hasLoadedOnce.current = true
+
+if (session) return <Redirect href={routes.home} />
+return <Stack />
+```
+
+### Como identificar rápido
+
+* A navegação funciona no rebuild (via `index.tsx`) mas falha logo após a ação.
+* O destino errado é sempre a rota âncora do grupo de navegação.
+* O problema some ao remover o `useSession` do layout — confirma o refetch
+  como gatilho.
+
+Regra geral: **um `_layout.tsx` não deve desmontar a pilha de navegação por
+causa de um `isPending` transitório.** Distinguir "carregamento inicial" de
+"revalidação".
+
+---
+
+# Qualidade de Código
+
+Todo código novo deve ser:
+
+* Legível
+* Coeso
+* Tipado corretamente
+* Fácil de entender
+* Fácil de manter
+
+Evitar:
+
+* Arquivos gigantes
+* Funções gigantes
+* Condicionais excessivas
+* Complexidade desnecessária
+
+---
+
+# Antes de Finalizar Qualquer Tarefa
+
+Verificar:
+
+```txt
+O código está realmente sendo usado?
+Existe duplicação?
+Existe uma solução mais simples?
+Existe código morto?
+Os erros estão tratados?
+Está pronto para produção?
+O backend continua independente do mobile?
+As responsabilidades estão corretas?
+```
+
+Se alguma resposta for negativa, corrigir antes de concluir a implementação.
+
+## graphify
+
+This project has a knowledge graph at graphify-out/ with god nodes, community structure, and cross-file relationships.
+
+Rules:
+- For codebase questions, first run `graphify query "<question>"` when graphify-out/graph.json exists. Use `graphify path "<A>" "<B>"` for relationships and `graphify explain "<concept>"` for focused concepts. These return a scoped subgraph, usually much smaller than GRAPH_REPORT.md or raw grep output.
+- If graphify-out/wiki/index.md exists, use it for broad navigation instead of raw source browsing.
+- Read graphify-out/GRAPH_REPORT.md only for broad architecture review or when query/path/explain do not surface enough context.
+- After modifying code, run `graphify update .` to keep the graph current (AST-only, no API cost).
