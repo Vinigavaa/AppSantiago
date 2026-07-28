@@ -13,6 +13,7 @@ import {
 
 import { Button } from "@/components/ui/Button"
 import { colors, radius } from "@/features/client-home/theme"
+import { normalizeText } from "@/lib/normalize-text"
 
 export type MultiSelectOption = {
   id: string
@@ -30,6 +31,9 @@ type Props = {
   // Persiste a seleção. Retorna uma mensagem de erro quando falha (modal segue
   // aberto), ou null em caso de sucesso (modal fecha).
   onSave: (ids: string[]) => Promise<string | null>
+  // Opcional: habilita "Sugerir nova categoria". Recebe o nome digitado e retorna
+  // mensagem de erro ou null em sucesso. Sem esta prop, a ação não aparece.
+  onSuggest?: (name: string) => Promise<string | null>
 }
 
 export function MultiSelectModal({
@@ -40,11 +44,15 @@ export function MultiSelectModal({
   searchable = false,
   onClose,
   onSave,
+  onSuggest,
 }: Props) {
   const [selected, setSelected] = useState<string[]>(selectedIds)
   const [query, setQuery] = useState("")
   const [isSaving, setIsSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  // Fluxo de sugestão de nova categoria (só quando onSuggest é fornecido).
+  const [isSuggesting, setIsSuggesting] = useState(false)
+  const [suggestNotice, setSuggestNotice] = useState<string | null>(null)
 
   // Sincroniza a seleção local sempre que o modal abre com novos valores.
   useEffect(() => {
@@ -52,18 +60,47 @@ export function MultiSelectModal({
       setSelected(selectedIds)
       setQuery("")
       setError(null)
+      setSuggestNotice(null)
     }
   }, [visible, selectedIds])
 
   const visibleOptions = useMemo(() => {
-    const term = query.trim().toLowerCase()
+    const term = normalizeText(query)
 
     if (!term) {
       return options
     }
 
-    return options.filter((option) => option.label.toLowerCase().includes(term))
+    return options.filter((option) => normalizeText(option.label).includes(term))
   }, [options, query])
+
+  async function handleSuggest() {
+    if (!onSuggest || isSuggesting) {
+      return
+    }
+
+    const name = query.trim()
+
+    if (name.length < 2) {
+      setError("Digite o nome da categoria para sugerir.")
+      return
+    }
+
+    setIsSuggesting(true)
+    setError(null)
+
+    const result = await onSuggest(name)
+
+    setIsSuggesting(false)
+
+    if (result) {
+      setError(result)
+      return
+    }
+
+    setQuery("")
+    setSuggestNotice("Sugestão enviada para análise. Obrigado!")
+  }
 
   function toggle(id: string) {
     setError(null)
@@ -118,7 +155,24 @@ export function MultiSelectModal({
           data={visibleOptions}
           keyboardShouldPersistTaps="handled"
           keyExtractor={(item) => item.id}
-          ListEmptyComponent={<Text style={styles.empty}>Nenhuma opção encontrada.</Text>}
+          ListEmptyComponent={
+            <View>
+              <Text style={styles.empty}>Nenhuma opção encontrada.</Text>
+              {onSuggest && query.trim().length >= 2 ? (
+                <Pressable
+                  accessibilityRole="button"
+                  disabled={isSuggesting}
+                  onPress={handleSuggest}
+                  style={({ pressed }) => [styles.suggest, pressed && styles.optionPressed]}
+                >
+                  <Ionicons color={colors.accent} name="add-circle-outline" size={18} />
+                  <Text style={styles.suggestText}>
+                    {isSuggesting ? "Enviando..." : `Sugerir "${query.trim()}"`}
+                  </Text>
+                </Pressable>
+              ) : null}
+            </View>
+          }
           renderItem={({ item }) => {
             const isSelected = selected.includes(item.id)
 
@@ -145,6 +199,7 @@ export function MultiSelectModal({
         />
 
         <View style={styles.footer}>
+          {suggestNotice ? <Text style={styles.notice}>{suggestNotice}</Text> : null}
           {error ? <Text style={styles.error}>{error}</Text> : null}
           <Button
             disabled={isSaving}
@@ -185,6 +240,24 @@ const styles = StyleSheet.create({
     color: colors.textSecondary,
     paddingVertical: 24,
     textAlign: "center",
+  },
+  notice: {
+    color: colors.accent,
+    fontSize: 13,
+    marginBottom: 10,
+    textAlign: "center",
+  },
+  suggest: {
+    alignItems: "center",
+    alignSelf: "center",
+    flexDirection: "row",
+    gap: 6,
+    paddingVertical: 8,
+  },
+  suggestText: {
+    color: colors.accent,
+    fontSize: 14,
+    fontWeight: "600",
   },
   error: {
     color: colors.danger,

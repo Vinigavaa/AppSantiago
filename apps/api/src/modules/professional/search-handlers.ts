@@ -69,6 +69,9 @@ export async function searchProfessionalsHandler(context: AuthedContext) {
             { user: { name: { contains: q, mode: "insensitive" } } },
             { user: { displayUsername: { contains: q, mode: "insensitive" } } },
             { bio: { contains: q, mode: "insensitive" } },
+            // Profissão livre entra apenas no texto livre — nunca como filtro
+            // estruturado. O matching por área continua sendo só as categorias.
+            { profession: { contains: q, mode: "insensitive" } },
             { categories: { some: { category: { name: { contains: q, mode: "insensitive" } } } } },
           ],
         }
@@ -82,6 +85,7 @@ export async function searchProfessionalsHandler(context: AuthedContext) {
     select: {
       id: true,
       bio: true,
+      profession: true,
       experience: true,
       ratingAverage: true,
       ratingCount: true,
@@ -124,6 +128,7 @@ export async function searchProfessionalsHandler(context: AuthedContext) {
       name: profile.user.displayUsername ?? profile.user.name,
       avatarUrl: profile.user.avatarUrl,
       bio: profile.bio,
+      profession: profile.profession,
       mainCategory: categories[0]?.name ?? null,
       categories,
       cities: profile.cities.map((item) => item.city),

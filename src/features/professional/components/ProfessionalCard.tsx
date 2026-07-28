@@ -5,6 +5,7 @@ import { ChatAvatar } from "@/features/chat/components/ChatAvatar"
 import { colors, radius, spacing } from "@/features/client-home/theme"
 
 import type { ProfessionalSummary } from "../types"
+import { presentationLabel } from "../presentation"
 import { Stars } from "@/components/ui/Stars"
 import { VerifiedBadge } from "@/components/ui/VerifiedBadge"
 
@@ -69,7 +70,8 @@ export function ProfessionalCard({
             ) : null}
           </View>
           <Text numberOfLines={1} style={styles.mainCategory}>
-            {professional.mainCategory ?? "Categoria não definida"}
+            {presentationLabel(professional.profession, professional.mainCategory) ??
+              "Categoria não definida"}
           </Text>
           <View style={styles.ratingRow}>
             <Stars rating={professional.ratingCount > 0 ? professional.ratingAverage : 0} size={13} />

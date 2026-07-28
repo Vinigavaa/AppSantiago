@@ -29,6 +29,7 @@ export async function publicProfessionalProfileHandler(context: AuthedContext) {
     select: {
       id: true,
       bio: true,
+      profession: true,
       ratingAverage: true,
       ratingCount: true,
       user: { select: { id: true, name: true, displayUsername: true, avatarUrl: true } },
@@ -91,6 +92,7 @@ export async function publicProfessionalProfileHandler(context: AuthedContext) {
       name: profile.user.displayUsername ?? profile.user.name,
       avatarUrl: profile.user.avatarUrl,
       bio: profile.bio,
+      profession: profile.profession,
       mainCategory: categories[0]?.name ?? null,
       categories,
       cities,

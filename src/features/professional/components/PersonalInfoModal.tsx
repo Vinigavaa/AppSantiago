@@ -31,6 +31,7 @@ export function PersonalInfoModal({ visible, profile, onClose, onSave }: Props) 
   const phoneRef = useRef<TextInput>(null)
   const [name, setName] = useState(profile.name)
   const [displayName, setDisplayName] = useState(profile.displayName ?? "")
+  const [profession, setProfession] = useState(profile.profession ?? "")
   const [phone, setPhone] = useState(profile.phone ?? "")
   const [bio, setBio] = useState(profile.bio ?? "")
   const [isSaving, setIsSaving] = useState(false)
@@ -40,6 +41,7 @@ export function PersonalInfoModal({ visible, profile, onClose, onSave }: Props) 
     if (visible) {
       setName(profile.name)
       setDisplayName(profile.displayName ?? "")
+      setProfession(profile.profession ?? "")
       setPhone(profile.phone ?? "")
       setBio(profile.bio ?? "")
       setError(null)
@@ -62,6 +64,7 @@ export function PersonalInfoModal({ visible, profile, onClose, onSave }: Props) 
     const result = await onSave({
       name: name.trim(),
       displayName: displayName.trim() || null,
+      profession: profession.trim() || null,
       phone: phone.trim() || null,
       bio: bio.trim() || null,
     })
@@ -120,6 +123,21 @@ export function PersonalInfoModal({ visible, profile, onClose, onSave }: Props) 
               submitBehavior="submit"
               value={displayName}
             />
+          </Field>
+
+          <Field label="Profissão (opcional)">
+            <TextInput
+              autoCapitalize="words"
+              maxLength={80}
+              onChangeText={setProfession}
+              placeholder="Ex: Especialista em Energia Solar"
+              placeholderTextColor={colors.textTertiary}
+              style={styles.input}
+              value={profession}
+            />
+            <Text style={styles.helper}>
+              Como você quer ser apresentado. Aparece no seu perfil, na busca e no chat.
+            </Text>
           </Field>
 
           <Field label="Telefone (opcional)">

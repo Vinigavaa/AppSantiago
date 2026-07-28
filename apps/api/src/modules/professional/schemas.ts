@@ -7,6 +7,8 @@ export const updateProfileSchema = z.object({
   displayName: z.string().trim().max(60).nullable().optional(),
   phone: z.string().trim().max(20).nullable().optional(),
   bio: z.string().trim().max(600).nullable().optional(),
+  // Profissão livre (apresentação). Opcional; vazio limpa o campo.
+  profession: z.string().trim().max(80).nullable().optional(),
 })
 
 export const setCategoriesSchema = z.object({
@@ -15,4 +17,12 @@ export const setCategoriesSchema = z.object({
 
 export const setCitiesSchema = z.object({
   cityIds: z.array(z.uuid()).max(50),
+})
+
+export const categorySuggestionSchema = z.object({
+  name: z
+    .string()
+    .trim()
+    .min(2, "Informe um nome com ao menos 2 caracteres.")
+    .max(60, "O nome pode ter no máximo 60 caracteres."),
 })

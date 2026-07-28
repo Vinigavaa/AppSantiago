@@ -135,6 +135,15 @@ export async function setProfessionalCities(
   return result.ok ? { ok: true, data: result.data.profile } : result
 }
 
+// Sugere uma nova categoria. Fica pendente para análise administrativa manual
+// (não vira categoria ativa nem aparece para outros usuários).
+export async function createCategorySuggestion(name: string): Promise<ApiResult<{ ok: true }>> {
+  return appFetch<{ ok: true }>("/professional/category-suggestions", {
+    method: "POST",
+    body: { name },
+  })
+}
+
 // Adiciona um item ao portfólio (a imagem já foi enviada à Cloudinary).
 export async function createPortfolioItem(input: {
   title: string

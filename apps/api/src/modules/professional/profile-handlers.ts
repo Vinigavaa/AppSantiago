@@ -4,7 +4,12 @@ import type { AuthedContext } from "@/modules/shared/require-auth"
 
 import { getProfessionalProfilePayload } from "./profile-data"
 import { getOrCreateProfessionalProfileId } from "./professional-context"
-import { setCategoriesSchema, setCitiesSchema, updateProfileSchema } from "./schemas"
+import {
+  categorySuggestionSchema,
+  setCategoriesSchema,
+  setCitiesSchema,
+  updateProfileSchema,
+} from "./schemas"
 
 function forbidden(context: AuthedContext) {
   return context.json(
@@ -52,6 +57,7 @@ export async function updateProfessionalProfileHandler(context: AuthedContext) {
   const { name } = parsed.data
   const displayName = normalizeOptional(parsed.data.displayName)
   const bio = normalizeOptional(parsed.data.bio)
+  const profession = normalizeOptional(parsed.data.profession)
 
   let phone: string | null = null
   const rawPhone = normalizeOptional(parsed.data.phone)
@@ -73,7 +79,7 @@ export async function updateProfessionalProfileHandler(context: AuthedContext) {
       where: { id: user.id },
       data: { name: name.trim(), displayUsername: displayName, phone },
     }),
-    prisma.professionalProfile.update({ where: { id: professionalId }, data: { bio } }),
+    prisma.professionalProfile.update({ where: { id: professionalId }, data: { bio, profession } }),
   ])
 
   return context.json({ profile: await getProfessionalProfilePayload(user) })
@@ -165,6 +171,32 @@ export async function setProfessionalCitiesHandler(context: AuthedContext) {
   ])
 
   return context.json({ profile: await getProfessionalProfilePayload(user) })
+}
+
+// Sugestão de nova categoria: o profissional propõe um nome quando não encontra
+// categoria adequada. Fica pendente para análise administrativa manual — não vira
+// categoria ativa nem aparece para outros usuários.
+export async function createCategorySuggestionHandler(context: AuthedContext) {
+  const user = context.get("user")
+
+  if (user.role !== "PROFESSIONAL") {
+    return forbidden(context)
+  }
+
+  const body = await context.req.json().catch(() => null)
+  const parsed = categorySuggestionSchema.safeParse(body)
+
+  if (!parsed.success) {
+    return invalidData(context, parsed.error.issues[0]?.message ?? "Sugestão inválida.")
+  }
+
+  const professionalId = await getOrCreateProfessionalProfileId(user.id)
+
+  await prisma.categorySuggestion.create({
+    data: { professionalId, name: parsed.data.name },
+  })
+
+  return context.json({ ok: true })
 }
 
 export async function professionalReviewsHandler(context: AuthedContext) {

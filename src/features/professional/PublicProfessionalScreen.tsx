@@ -18,6 +18,7 @@ import { Stars } from "@/components/ui/Stars"
 import { VerifiedBadge } from "@/components/ui/VerifiedBadge"
 import { SegmentedTabs } from "@/features/client-home/components/SegmentedTabs"
 import { PortfolioGrid } from "./components/PortfolioGrid"
+import { presentationLabel } from "./presentation"
 import { fetchPublicProfessional } from "./service"
 import type { PublicProfessional, PublicReview } from "./types"
 
@@ -198,7 +199,8 @@ export function PublicProfessionalScreen({ id }: { id: string }) {
             <Text style={styles.recommendedText}>Recomendado pelo app</Text>
           ) : null}
           <Text style={styles.mainCategory}>
-            {professional.mainCategory ?? "Categoria não definida"}
+            {presentationLabel(professional.profession, professional.mainCategory) ??
+              "Categoria não definida"}
           </Text>
           <View style={styles.ratingRow}>
             <Stars rating={professional.ratingCount > 0 ? professional.ratingAverage : 0} size={16} />

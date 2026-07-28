@@ -2,11 +2,13 @@ import { useCallback, useState } from "react"
 
 import type { ApiResult } from "@/lib/api-client"
 
-import type { CreateServiceRequestInput, ServiceRequestDetail, Urgency } from "./types"
+import type { City, CreateServiceRequestInput, ServiceRequestDetail, Urgency } from "./types"
 
 type FormState = {
   categoryId: string | null
-  cityId: string | null
+  // Guardamos o objeto da cidade (não só o id) para exibir "Nome - UF" sem
+  // depender de baixar a lista completa de municípios.
+  city: City | null
   title: string
   description: string
   zipCode: string
@@ -23,7 +25,7 @@ type FormErrors = Partial<Record<keyof FormState, string>>
 
 const INITIAL_STATE: FormState = {
   categoryId: null,
-  cityId: null,
+  city: null,
   title: "",
   description: "",
   zipCode: "",
@@ -40,7 +42,7 @@ const INITIAL_STATE: FormState = {
 export function detailToFormState(detail: ServiceRequestDetail): FormState {
   return {
     categoryId: detail.category.id,
-    cityId: detail.city.id,
+    city: detail.city,
     title: detail.title,
     description: detail.description,
     zipCode: detail.address.zipCode ?? "",
@@ -100,8 +102,8 @@ export function useRequestForm({ onSubmit, initial, getExtraInput }: UseRequestF
       nextErrors.categoryId = "Selecione uma categoria."
     }
 
-    if (!form.cityId) {
-      nextErrors.cityId = "Selecione uma cidade."
+    if (!form.city) {
+      nextErrors.city = "Selecione uma cidade."
     }
 
     const title = form.title.trim()
@@ -163,7 +165,7 @@ export function useRequestForm({ onSubmit, initial, getExtraInput }: UseRequestF
       valid: true,
       input: {
         categoryId: form.categoryId as string,
-        cityId: form.cityId as string,
+        cityId: (form.city as City).id,
         title,
         description,
         zipCode: form.zipCode.trim(),

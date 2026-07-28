@@ -3,6 +3,7 @@ import { StyleSheet, Text, TextInput, View } from "react-native"
 
 import { Button } from "@/components/ui/Button"
 import { colors, radius } from "@/features/client-home/theme"
+import { CitySearchPicker } from "@/features/service-requests/components/CitySearchPicker"
 import { RequestPhotosField } from "@/features/service-requests/components/RequestPhotosField"
 import { SelectField } from "@/features/service-requests/components/SelectField"
 import { UrgencyPicker } from "@/features/service-requests/components/UrgencyPicker"
@@ -12,7 +13,7 @@ import type { RequestPhotoItem } from "@/features/service-requests/useRequestPho
 // Estado e handlers do formulário, compartilhados por criação e edição.
 type FormValues = {
   categoryId: string | null
-  cityId: string | null
+  city: City | null
   title: string
   description: string
   zipCode: string
@@ -29,7 +30,6 @@ type FormErrors = Partial<Record<keyof FormValues, string>>
 
 type Props = {
   categories: Category[]
-  cities: City[]
   form: FormValues
   errors: FormErrors
   submitError: string | null
@@ -51,7 +51,6 @@ type Props = {
 // cabeçalho, do carregamento do catálogo e da navegação pós-sucesso.
 export function RequestForm({
   categories,
-  cities,
   form,
   errors,
   submitError,
@@ -114,14 +113,12 @@ export function RequestForm({
         {errors.description ? <Text style={styles.error}>{errors.description}</Text> : null}
       </View>
 
-      <SelectField
-        error={errors.cityId}
+      <CitySearchPicker
+        error={errors.city}
         label="Cidade"
-        onSelect={(id) => onChange("cityId", id)}
-        options={cities.map((city) => ({ id: city.id, label: `${city.name}, ${city.state}` }))}
-        placeholder="Selecione a cidade"
-        searchable
-        value={form.cityId}
+        onSelect={(city) => onChange("city", city)}
+        placeholder="Busque a cidade do serviço"
+        value={form.city}
       />
 
       <View style={styles.field}>

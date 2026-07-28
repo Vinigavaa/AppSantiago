@@ -14,8 +14,12 @@ export async function fetchCategories(): Promise<ApiResult<Category[]>> {
   return result.ok ? { ok: true, data: result.data.categories } : result
 }
 
-export async function fetchCities(): Promise<ApiResult<City[]>> {
-  const result = await appFetch<{ cities: City[] }>("/cities")
+// Busca dinâmica de cidades (typeahead). O servidor faz a correspondência sem
+// acento/caixa sobre a base completa; o app envia o termo e mostra os resultados.
+export async function fetchCitySearch(query: string): Promise<ApiResult<City[]>> {
+  const result = await appFetch<{ cities: City[] }>(
+    `/cities/search?q=${encodeURIComponent(query)}`,
+  )
   return result.ok ? { ok: true, data: result.data.cities } : result
 }
 

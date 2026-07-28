@@ -5,6 +5,8 @@ export type ChatOtherUser = {
   name: string
   avatarUrl: string | null
   role: "CLIENT" | "PROFESSIONAL"
+  // Profissão livre do profissional (subtítulo). Null para cliente.
+  profession: string | null
   profileId: string
   // Assinante Pro ativo (só profissionais): exibe o selo ao lado do nome.
   isVerified: boolean

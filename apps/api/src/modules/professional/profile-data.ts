@@ -18,6 +18,7 @@ export async function getProfessionalProfilePayload(user: AuthenticatedUser) {
       select: {
         id: true,
         bio: true,
+        profession: true,
         ratingAverage: true,
         ratingCount: true,
         categories: {
@@ -81,6 +82,7 @@ export async function getProfessionalProfilePayload(user: AuthenticatedUser) {
     email: account?.email ?? user.email,
     phone: account?.phone ?? null,
     bio: profile?.bio ?? null,
+    profession: profile?.profession ?? null,
     avatarUrl: account?.avatarUrl ?? null,
     mainCategory: categories[0]?.name ?? null,
     categories,

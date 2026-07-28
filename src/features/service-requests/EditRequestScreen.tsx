@@ -15,7 +15,7 @@ import { detailToFormState, useRequestForm } from "@/features/service-requests/u
 import { useRequestPhotos } from "@/features/service-requests/useRequestPhotos"
 
 export function EditRequestScreen({ id }: { id: string }) {
-  const { categories, cities, isLoading: catalogLoading, error: catalogError, reload } = useCatalog()
+  const { categories, isLoading: catalogLoading, error: catalogError, reload } = useCatalog()
   const { request, isLoading: detailLoading, error: detailError } = useServiceRequestDetail(id)
 
   const isLoading = catalogLoading || (detailLoading && !request)
@@ -36,7 +36,7 @@ export function EditRequestScreen({ id }: { id: string }) {
             title="Não foi possível carregar"
           />
         ) : (
-          <EditForm categories={categories} cities={cities} detail={request} id={id} key={id} />
+          <EditForm categories={categories} detail={request} id={id} key={id} />
         )}
       </FormScroll>
     </View>
@@ -47,12 +47,10 @@ export function EditRequestScreen({ id }: { id: string }) {
 // com os valores atuais uma única vez.
 function EditForm({
   categories,
-  cities,
   id,
   detail,
 }: {
   categories: ReturnType<typeof useCatalog>["categories"]
-  cities: ReturnType<typeof useCatalog>["cities"]
   id: string
   detail: NonNullable<ReturnType<typeof useServiceRequestDetail>["request"]>
 }) {
@@ -92,7 +90,6 @@ function EditForm({
     <RequestForm
       canAddPhotos={photos.canAddMore}
       categories={categories}
-      cities={cities}
       errors={errors}
       form={form}
       isSubmitting={isSubmitting}

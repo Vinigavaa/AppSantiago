@@ -17,6 +17,7 @@ export const chatParticipantsSelect = {
   professional: {
     select: {
       id: true,
+      profession: true,
       user: { select: { id: true, name: true, displayUsername: true, avatarUrl: true } },
     },
   },
@@ -28,7 +29,7 @@ type ChatParticipants = {
   professionalId: string
   updatedAt: Date
   client: { id: string; user: ChatUser }
-  professional: { id: string; user: ChatUser }
+  professional: { id: string; profession: string | null; user: ChatUser }
 }
 
 type ChatUser = {
@@ -43,6 +44,9 @@ export type OtherParticipant = {
   name: string
   avatarUrl: string | null
   role: "CLIENT" | "PROFESSIONAL"
+  // Profissão livre do profissional (apresentação). Null para o cliente. O app a
+  // exibe como subtítulo no cabeçalho/lista da conversa.
+  profession: string | null
   // Id do perfil (profissional ou cliente) para abrir o perfil completo no app.
   profileId: string
   // Selo de assinante verificado (Pro). Só profissionais com assinatura ativa. A
@@ -68,6 +72,7 @@ export function otherParticipant(
       name: chat.professional.user.displayUsername ?? chat.professional.user.name,
       avatarUrl: chat.professional.user.avatarUrl,
       role: "PROFESSIONAL",
+      profession: chat.professional.profession,
       profileId: chat.professional.id,
       isVerified: professionalIsVerified,
     }
@@ -78,6 +83,8 @@ export function otherParticipant(
     name: chat.client.user.displayUsername ?? chat.client.user.name,
     avatarUrl: chat.client.user.avatarUrl,
     role: "CLIENT",
+    // Cliente não tem profissão.
+    profession: null,
     profileId: chat.client.id,
     // Cliente nunca recebe selo — a assinatura é exclusiva do profissional.
     isVerified: false,

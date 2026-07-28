@@ -6,7 +6,11 @@ import {
   listBlockedUsersHandler,
   unblockUserHandler,
 } from "@/modules/blocks/handlers"
-import { listCategoriesHandler, listCitiesHandler } from "@/modules/catalog/handlers"
+import {
+  listCategoriesHandler,
+  listCitiesHandler,
+  listCitiesSearchHandler,
+} from "@/modules/catalog/handlers"
 import { deleteClientAccountHandler } from "@/modules/client/account-handlers"
 import { deleteProfessionalAccountHandler } from "@/modules/professional/account-handlers"
 import {
@@ -34,6 +38,7 @@ import {
   professionalRejectedProposalsHandler,
 } from "@/modules/professional/handlers"
 import {
+  createCategorySuggestionHandler,
   professionalProfileHandler,
   professionalReviewsHandler,
   setProfessionalCategoriesHandler,
@@ -147,6 +152,9 @@ appRoutes.use("*", requireAuth)
 
 appRoutes.get("/categories", listCategoriesHandler)
 appRoutes.get("/cities", listCitiesHandler)
+// Busca dinâmica de cidades (typeahead). Rota estática separada; /cities segue
+// intacto para não quebrar a APK instalada.
+appRoutes.get("/cities/search", listCitiesSearchHandler)
 
 appRoutes.post("/service-requests", createServiceRequestHandler)
 appRoutes.get("/service-requests", listServiceRequestsHandler)
@@ -214,6 +222,8 @@ appRoutes.get("/professional/profile", professionalProfileHandler)
 appRoutes.patch("/professional/profile", updateProfessionalProfileHandler)
 appRoutes.put("/professional/categories", setProfessionalCategoriesHandler)
 appRoutes.put("/professional/cities", setProfessionalCitiesHandler)
+// Sugerir nova categoria: registra pendente para análise administrativa manual.
+appRoutes.post("/professional/category-suggestions", createCategorySuggestionHandler)
 appRoutes.get("/professional/reviews", professionalReviewsHandler)
 appRoutes.post("/professional/portfolio", createPortfolioItemHandler)
 appRoutes.delete("/professional/portfolio/:id", deletePortfolioItemHandler)

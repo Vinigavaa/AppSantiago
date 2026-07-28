@@ -27,6 +27,10 @@ const adapter = new PrismaPg({ connectionString })
 // Reexporta o namespace Prisma para os handlers tiparem where/orderBy/etc.
 export { Prisma }
 
+// Util de normalização de nomes de cidade (busca sem acento/caixa), compartilhado
+// entre a carga (seed) e os handlers de busca da API.
+export { normalizeCityName } from "./normalize"
+
 export const prisma = globalForPrisma.prisma ?? new PrismaClient({ adapter })
 
 if (process.env.NODE_ENV !== "production") {

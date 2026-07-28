@@ -45,6 +45,8 @@ export type ProfessionalProfileInfo = {
   email: string
   phone: string | null
   bio: string | null
+  // Profissão livre (apresentação). Editável pelo profissional.
+  profession: string | null
   avatarUrl: string | null
   mainCategory: string | null
   categories: { id: string; name: string }[]
@@ -95,6 +97,7 @@ export type PublicProfessional = {
   name: string
   avatarUrl: string | null
   bio: string | null
+  profession: string | null
   mainCategory: string | null
   categories: { id: string; name: string }[]
   cities: { id: string; name: string; state: string }[]
@@ -118,6 +121,7 @@ export type ProfessionalSummary = {
   name: string
   avatarUrl: string | null
   bio: string | null
+  profession: string | null
   mainCategory: string | null
   categories: { id: string; name: string }[]
   cities: { id: string; name: string; state: string }[]
@@ -146,6 +150,7 @@ export type UpdateProfileInput = {
   displayName: string | null
   phone: string | null
   bio: string | null
+  profession: string | null
 }
 
 export type ServiceContractStatus = "ACCEPTED" | "IN_PROGRESS" | "COMPLETED" | "CANCELED"

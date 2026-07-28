@@ -3,18 +3,11 @@ import { useCallback, useEffect, useRef, useState } from "react"
 
 import {
   fetchCategories,
-  fetchCities,
   fetchClientSummary,
   fetchServiceRequestDetail,
   fetchServiceRequests,
 } from "./service"
-import type {
-  Category,
-  City,
-  ClientSummary,
-  ServiceRequest,
-  ServiceRequestDetail,
-} from "./types"
+import type { Category, ClientSummary, ServiceRequest, ServiceRequestDetail } from "./types"
 
 // Lista de solicitações do cliente + resumo. Recarrega ao focar a tela, então a
 // solicitação recém-criada aparece imediatamente ao voltar para a Home.
@@ -111,10 +104,10 @@ export function useServiceRequestDetail(id: string) {
   return { request, isLoading, isRefreshing, error, refetch }
 }
 
-// Categorias e cidades para os seletores do formulário.
+// Categorias para o seletor do formulário. As cidades não são mais carregadas
+// em massa: o seletor de cidade busca sob demanda no servidor (CitySearchPicker).
 export function useCatalog() {
   const [categories, setCategories] = useState<Category[]>([])
-  const [cities, setCities] = useState<City[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
@@ -122,21 +115,12 @@ export function useCatalog() {
     setIsLoading(true)
     setError(null)
 
-    const [categoriesResult, citiesResult] = await Promise.all([
-      fetchCategories(),
-      fetchCities(),
-    ])
+    const result = await fetchCategories()
 
-    if (categoriesResult.ok) {
-      setCategories(categoriesResult.data)
+    if (result.ok) {
+      setCategories(result.data)
     } else {
-      setError(categoriesResult.error)
-    }
-
-    if (citiesResult.ok) {
-      setCities(citiesResult.data)
-    } else if (categoriesResult.ok) {
-      setError(citiesResult.error)
+      setError(result.error)
     }
 
     setIsLoading(false)
@@ -146,5 +130,5 @@ export function useCatalog() {
     void load()
   }, [load])
 
-  return { categories, cities, isLoading, error, reload: load }
+  return { categories, isLoading, error, reload: load }
 }

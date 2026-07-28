@@ -73,6 +73,12 @@ enum SubscriptionStore {
   TEST_STORE
 }
 
+enum CategorySuggestionStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
 model User {
   id                  String               @id @default(uuid()) @db.Uuid
   name                String
@@ -177,6 +183,9 @@ model ProfessionalProfile {
   userId               String                      @unique @db.Uuid
   document             String?                     @unique
   bio                  String?                     @db.Text
+  // Profissão em texto livre: como o profissional se apresenta (ex.: "Especialista
+  // em Energia Solar"). Apenas descritiva — a lógica da plataforma usa as categorias.
+  profession           String?
   experience           Int?
   portfolioDescription String?                     @db.Text
   isAvailable          Boolean                     @default(true)
@@ -193,6 +202,7 @@ model ProfessionalProfile {
   portfolioItems       ProfessionalPortfolioItem[]
   subscription         ProfessionalSubscription?
   certificate          ParticipationCertificate?
+  categorySuggestions  CategorySuggestion[]
 }
 
 model Category {
@@ -222,16 +232,35 @@ model ProfessionalCategory {
   @@index([categoryId])
 }
 
+// Sugestão de nova categoria enviada pelo profissional. Fica pendente até uma
+// análise administrativa manual (não vira categoria ativa automaticamente, nem
+// aparece para outros usuários).
+model CategorySuggestion {
+  id             String                   @id @default(uuid()) @db.Uuid
+  professionalId String                   @db.Uuid
+  name           String
+  status         CategorySuggestionStatus @default(PENDING)
+  createdAt      DateTime                 @default(now())
+  professional   ProfessionalProfile      @relation(fields: [professionalId], references: [id], onDelete: Cascade)
+
+  @@index([professionalId])
+  @@index([status])
+}
+
 model City {
   id            String             @id @default(uuid()) @db.Uuid
   name          String
   state         String
+  // Nome normalizado (sem acento, minúsculo) para busca insensível a acento/caixa.
+  // Preenchido na carga; indexado para busca rápida sobre a base completa (IBGE).
+  searchName    String?
   createdAt     DateTime           @default(now())
   updatedAt     DateTime           @updatedAt
   professionals ProfessionalCity[]
   requests      ServiceRequest[]
 
   @@unique([name, state])
+  @@index([searchName])
 }
 
 model ProfessionalCity {

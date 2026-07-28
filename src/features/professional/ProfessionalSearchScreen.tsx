@@ -9,8 +9,10 @@ import { routes } from "@/constants/routes"
 import { EmptyState } from "@/features/client-home/components/EmptyState"
 import { SearchBar } from "@/features/client-home/components/SearchBar"
 import { colors, spacing } from "@/features/client-home/theme"
+import { CitySearchPicker } from "@/features/service-requests/components/CitySearchPicker"
 import { SelectField } from "@/features/service-requests/components/SelectField"
 import { useCatalog } from "@/features/service-requests/hooks"
+import type { City } from "@/features/service-requests/types"
 
 import { ProfessionalCard } from "./components/ProfessionalCard"
 import { useProfessionalSearch } from "./hooks"
@@ -33,9 +35,27 @@ const SORT_OPTIONS: { id: ProfessionalSort; label: string }[] = [
 
 export function ProfessionalSearchScreen() {
   const insets = useSafeAreaInsets()
-  const { categories, cities } = useCatalog()
+  const { categories } = useCatalog()
   const { filters, setField, resetFilters, results, isLoading, error } = useProfessionalSearch()
   const [showFilters, setShowFilters] = useState(false)
+  // A cidade selecionada é guardada aqui (objeto completo) só para exibir o
+  // rótulo no filtro; a busca em si usa filters.cityId.
+  const [selectedCity, setSelectedCity] = useState<City | null>(null)
+
+  function selectCity(city: City) {
+    setSelectedCity(city)
+    setField("cityId", city.id)
+  }
+
+  function clearCity() {
+    setSelectedCity(null)
+    setField("cityId", null)
+  }
+
+  function handleReset() {
+    setSelectedCity(null)
+    resetFilters()
+  }
 
   // Filtros ativos (a ordenação conta quando difere do padrão). Alimenta o
   // contador no botão "Filtros" e a exibição do "Limpar".
@@ -51,10 +71,6 @@ export function ProfessionalSearchScreen() {
   const categoryOptions = [
     { id: "all", label: "Todas as categorias" },
     ...categories.map((category) => ({ id: category.id, label: category.name })),
-  ]
-  const cityOptions = [
-    { id: "all", label: "Todas as cidades" },
-    ...cities.map((city) => ({ id: city.id, label: `${city.name}, ${city.state}` })),
   ]
 
   return (
@@ -92,7 +108,7 @@ export function ProfessionalSearchScreen() {
               </Pressable>
 
               {activeCount > 0 ? (
-                <Pressable accessibilityRole="button" hitSlop={8} onPress={resetFilters}>
+                <Pressable accessibilityRole="button" hitSlop={8} onPress={handleReset}>
                   <Text style={styles.clearText}>Limpar</Text>
                 </Pressable>
               ) : null}
@@ -108,13 +124,12 @@ export function ProfessionalSearchScreen() {
                   searchable
                   value={filters.categoryId}
                 />
-                <SelectField
+                <CitySearchPicker
                   label="Cidade"
-                  onSelect={(id) => setField("cityId", id === "all" ? null : id)}
-                  options={cityOptions}
+                  onClear={clearCity}
+                  onSelect={selectCity}
                   placeholder="Todas as cidades"
-                  searchable
-                  value={filters.cityId}
+                  value={selectedCity}
                 />
                 <SelectField
                   label="Avaliação mínima"

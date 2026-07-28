@@ -18,6 +18,7 @@ import { authClient } from "@/lib/auth-client"
 
 import { ChangePasswordModal } from "@/features/client-home/components/ChangePasswordModal"
 import { DeleteAccountModal } from "@/features/client-home/components/DeleteAccountModal"
+import { CityMultiSelectModal } from "./components/CityMultiSelectModal"
 import { MultiSelectModal } from "./components/MultiSelectModal"
 import { PersonalInfoModal } from "./components/PersonalInfoModal"
 import { PortfolioGrid } from "./components/PortfolioGrid"
@@ -27,9 +28,11 @@ import { ReputationCard } from "@/features/client-home/components/ReputationCard
 import { ReviewsSection } from "./components/ReviewsSection"
 import { Stars } from "@/components/ui/Stars"
 import { VerifiedBadge } from "@/components/ui/VerifiedBadge"
+import { presentationLabel } from "./presentation"
 import { StatsSection } from "./components/StatsSection"
 import { useProfessionalProfile, useProfessionalReviews } from "./hooks"
 import {
+  createCategorySuggestion,
   deletePortfolioItem,
   deleteProfessionalAccount,
   setProfessionalCategories,
@@ -52,7 +55,7 @@ export function ProfessionalProfileScreen() {
   const insets = useSafeAreaInsets()
   const { profile, isLoading, error, reload, setProfile } = useProfessionalProfile()
   const reviews = useProfessionalReviews()
-  const { categories, cities } = useCatalog()
+  const { categories } = useCatalog()
   const { signOut, isSubmitting } = useAuth()
   const confirm = useConfirm()
 
@@ -133,6 +136,13 @@ export function ProfessionalProfileScreen() {
     return applyResult(await setProfessionalCategories(ids), "Categorias atualizadas.")
   }
 
+  // Sugere uma nova categoria. Retorna a mensagem de erro (o modal a exibe) ou
+  // null em sucesso. Não altera o perfil — a sugestão fica pendente de análise.
+  async function handleSuggestCategory(name: string): Promise<string | null> {
+    const result = await createCategorySuggestion(name)
+    return result.ok ? null : result.error
+  }
+
   async function handleSaveCities(ids: string[]) {
     return applyResult(await setProfessionalCities(ids), "Cidades atualizadas.")
   }
@@ -198,7 +208,9 @@ export function ProfessionalProfileScreen() {
           {profile.isVerified ? (
             <Text style={styles.recommendedText}>Recomendado pelo app</Text>
           ) : null}
-          <Text style={styles.mainCategory}>{profile.mainCategory ?? "Categoria não definida"}</Text>
+          <Text style={styles.mainCategory}>
+            {presentationLabel(profile.profession, profile.mainCategory) ?? "Categoria não definida"}
+          </Text>
           <View style={styles.ratingRow}>
             <Stars rating={profile.ratingCount > 0 ? profile.ratingAverage : 0} size={16} />
             <Text style={styles.ratingLabel}>{ratingLabel}</Text>
@@ -357,18 +369,18 @@ export function ProfessionalProfileScreen() {
       <MultiSelectModal
         onClose={() => setOpenModal("none")}
         onSave={handleSaveCategories}
+        onSuggest={handleSuggestCategory}
         options={categories.map((category) => ({ id: category.id, label: category.name }))}
+        searchable
         selectedIds={profile.categories.map((category) => category.id)}
         title="Categorias atendidas"
         visible={openModal === "categories"}
       />
 
-      <MultiSelectModal
+      <CityMultiSelectModal
         onClose={() => setOpenModal("none")}
         onSave={handleSaveCities}
-        options={cities.map((city) => ({ id: city.id, label: `${city.name}, ${city.state}` }))}
-        searchable
-        selectedIds={profile.cities.map((city) => city.id)}
+        selected={profile.cities}
         title="Cidades atendidas"
         visible={openModal === "cities"}
       />

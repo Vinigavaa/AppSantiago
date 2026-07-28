@@ -20,7 +20,7 @@ export default function NewRequest() {
   const insets = useSafeAreaInsets()
   // Quando chega da busca de profissionais, a categoria vem pré-selecionada.
   const { categoryId } = useLocalSearchParams<{ categoryId?: string }>()
-  const { categories, cities, isLoading, error: catalogError, reload } = useCatalog()
+  const { categories, isLoading, error: catalogError, reload } = useCatalog()
   const photos = useRequestPhotos([])
   const { form, errors, submitError, isSubmitting, isSuccess, setField, submit, reset } =
     useRequestForm({
@@ -76,7 +76,6 @@ export default function NewRequest() {
           <RequestForm
             canAddPhotos={photos.canAddMore}
             categories={categories}
-            cities={cities}
             errors={errors}
             form={form}
             intro="Descreva o serviço que precisa. Profissionais próximos poderão enviar propostas."

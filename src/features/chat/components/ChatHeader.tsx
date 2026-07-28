@@ -49,6 +49,11 @@ export function ChatHeader({
               </Text>
               {otherUser.isVerified ? <VerifiedBadge size={16} /> : null}
             </View>
+            {otherUser.profession ? (
+              <Text numberOfLines={1} style={styles.profession}>
+                {otherUser.profession}
+              </Text>
+            ) : null}
             {onOpenProfile ? <Text style={styles.link}>Ver perfil</Text> : null}
           </View>
         </Pressable>
@@ -124,5 +129,9 @@ const styles = StyleSheet.create({
   },
   pressed: {
     opacity: 0.7,
+  },
+  profession: {
+    color: colors.textSecondary,
+    fontSize: 12,
   },
 })
