@@ -35,6 +35,7 @@ import {
   listOpportunitiesHandler,
   opportunityDetailHandler,
   professionalDashboardHandler,
+  professionalPendingProposalsHandler,
   professionalRejectedProposalsHandler,
 } from "@/modules/professional/handlers"
 import {
@@ -211,6 +212,7 @@ appRoutes.post("/contracts/:id/no-show", reportNoShowHandler)
 appRoutes.get("/opportunities", listOpportunitiesHandler)
 appRoutes.get("/opportunities/:id", opportunityDetailHandler)
 appRoutes.get("/professional/dashboard", professionalDashboardHandler)
+appRoutes.get("/professional/proposals/pending", professionalPendingProposalsHandler)
 appRoutes.get("/professional/proposals/rejected", professionalRejectedProposalsHandler)
 appRoutes.get("/professional/services", professionalServicesHandler)
 appRoutes.post("/professional/services/:id/start", startServiceHandler)

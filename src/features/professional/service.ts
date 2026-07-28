@@ -12,7 +12,7 @@ import type {
   ProfessionalService,
   ProfessionalSummary,
   PublicProfessional,
-  RejectedProposal,
+  ProfessionalProposal,
   UpdateProfileInput,
 } from "./types"
 
@@ -93,8 +93,19 @@ export async function fetchProfessionalDashboard(): Promise<ApiResult<Profession
   return appFetch<ProfessionalDashboard>("/professional/dashboard")
 }
 
-export async function fetchProfessionalRejectedProposals(): Promise<ApiResult<RejectedProposal[]>> {
-  const result = await appFetch<{ proposals: RejectedProposal[] }>(
+export async function fetchProfessionalPendingProposals(): Promise<
+  ApiResult<ProfessionalProposal[]>
+> {
+  const result = await appFetch<{ proposals: ProfessionalProposal[] }>(
+    "/professional/proposals/pending",
+  )
+  return result.ok ? { ok: true, data: result.data.proposals } : result
+}
+
+export async function fetchProfessionalRejectedProposals(): Promise<
+  ApiResult<ProfessionalProposal[]>
+> {
+  const result = await appFetch<{ proposals: ProfessionalProposal[] }>(
     "/professional/proposals/rejected",
   )
   return result.ok ? { ok: true, data: result.data.proposals } : result

@@ -9,18 +9,26 @@ import type { RatingDistribution } from "@/features/client-home/reputation-types
 export type ProfessionalDashboard = {
   servicesToStart: number
   servicesInProgress: number
+  pendingProposals: number
   rejectedProposals: number
   totalEarned: number
 }
 
-// Proposta recusada pelo cliente, exibida no filtro "Propostas recusadas".
-export type RejectedProposal = {
+// Proposta enviada pelo profissional, exibida nos filtros "Propostas em aberto"
+// e "Propostas recusadas" da tela de serviços. O cliente vem só com o primeiro
+// nome, como nas oportunidades.
+export type ProfessionalProposal = {
   id: string
   price: number
   message: string
   estimatedDays: number | null
   createdAt: string
-  serviceRequest: { title: string; category: string; city: { name: string; state: string } }
+  serviceRequest: {
+    title: string
+    category: string
+    city: { name: string; state: string }
+    client: { name: string }
+  }
 }
 
 export type { RatingDistribution }

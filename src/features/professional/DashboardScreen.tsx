@@ -11,7 +11,7 @@ import { DashboardCard } from "./components/DashboardCard"
 import { useProfessionalDashboard } from "./hooks"
 
 // Abre a tela de serviços já no filtro correspondente ao cartão tocado.
-function goToServices(filter: "accepted" | "in_progress" | "rejected") {
+function goToServices(filter: "accepted" | "in_progress" | "pending" | "rejected") {
   router.push(`${routes.services}?filter=${filter}` as Href)
 }
 
@@ -54,11 +54,19 @@ export function DashboardScreen() {
           </View>
           <View style={styles.row}>
             <DashboardCard
+              icon="hourglass-outline"
+              label="Propostas em aberto"
+              onPress={() => goToServices("pending")}
+              value={dashboard?.pendingProposals ?? 0}
+            />
+            <DashboardCard
               icon="close-circle-outline"
               label="Propostas recusadas"
               onPress={() => goToServices("rejected")}
               value={dashboard?.rejectedProposals ?? 0}
             />
+          </View>
+          <View style={styles.row}>
             <DashboardCard
               icon="cash-outline"
               label="Total arrecadado"

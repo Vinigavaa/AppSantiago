@@ -1,26 +1,48 @@
 import { Ionicons } from "@expo/vector-icons"
 import { StyleSheet, Text, View } from "react-native"
 
-import { colors, radius, spacing } from "@/features/client-home/theme"
+import { colors, radius, spacing, status as statusPalette } from "@/features/client-home/theme"
 import { formatProposalPrice } from "@/features/proposals/format"
 import { formatRelativeTime } from "@/features/service-requests/format"
 
-import type { RejectedProposal } from "../types"
+import type { ProfessionalProposal } from "../types"
+
+type ProposalStatus = "pending" | "rejected"
 
 type Props = {
-  proposal: RejectedProposal
+  proposal: ProfessionalProposal
+  status: ProposalStatus
 }
 
-// Histórico somente leitura de uma proposta que o cliente não aceitou. Exibida
-// no filtro "Propostas recusadas" da tela de serviços.
-export function RejectedProposalCard({ proposal }: Props) {
+// Aparência de cada situação, usando a paleta semântica do app: âmbar para o que
+// ainda depende do cliente, vermelho para a oportunidade perdida.
+const APPEARANCE = {
+  pending: {
+    icon: "hourglass-outline",
+    label: "Aguardando resposta",
+    tone: statusPalette.warning,
+  },
+  rejected: {
+    icon: "close-circle-outline",
+    label: "Recusada",
+    tone: statusPalette.danger,
+  },
+} as const satisfies Record<
+  ProposalStatus,
+  { icon: keyof typeof Ionicons.glyphMap; label: string; tone: { color: string; background: string } }
+>
+
+// Cartão somente leitura de uma proposta enviada pelo profissional. Exibido nos
+// filtros "Propostas em aberto" e "Propostas recusadas" da tela de serviços.
+export function ProposalStatusCard({ proposal, status }: Props) {
   const { serviceRequest } = proposal
+  const appearance = APPEARANCE[status]
 
   return (
-    <View style={styles.card}>
+    <View style={[styles.card, status === "rejected" && styles.cardMuted]}>
       <View style={styles.header}>
-        <View style={styles.iconWrap}>
-          <Ionicons color={colors.danger} name="close-circle-outline" size={20} />
+        <View style={[styles.iconWrap, { backgroundColor: appearance.tone.background }]}>
+          <Ionicons color={appearance.tone.color} name={appearance.icon} size={20} />
         </View>
 
         <View style={styles.headerText}>
@@ -30,10 +52,15 @@ export function RejectedProposalCard({ proposal }: Props) {
           <Text numberOfLines={1} style={styles.subtitle}>
             {serviceRequest.category} · {serviceRequest.city.name}
           </Text>
+          <Text numberOfLines={1} style={styles.client}>
+            Cliente: {serviceRequest.client.name}
+          </Text>
         </View>
 
-        <View style={styles.pill}>
-          <Text style={styles.pillText}>Recusada</Text>
+        <View style={[styles.pill, { backgroundColor: appearance.tone.background }]}>
+          <Text style={[styles.pillText, { color: appearance.tone.color }]}>
+            {appearance.label}
+          </Text>
         </View>
       </View>
 
@@ -52,8 +79,14 @@ const styles = StyleSheet.create({
     borderRadius: radius.card,
     borderWidth: 1,
     gap: 10,
-    opacity: 0.9,
     padding: spacing.card,
+  },
+  cardMuted: {
+    opacity: 0.9,
+  },
+  client: {
+    color: colors.textTertiary,
+    fontSize: 13,
   },
   date: {
     color: colors.textTertiary,
@@ -75,20 +108,17 @@ const styles = StyleSheet.create({
   },
   iconWrap: {
     alignItems: "center",
-    backgroundColor: "#FCE8E8",
     borderRadius: radius.avatar,
     height: 40,
     justifyContent: "center",
     width: 40,
   },
   pill: {
-    backgroundColor: "#FCE8E8",
     borderRadius: radius.tag,
     paddingHorizontal: 10,
     paddingVertical: 4,
   },
   pillText: {
-    color: colors.danger,
     fontSize: 12,
     fontWeight: "600",
   },

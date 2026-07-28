@@ -11,21 +11,22 @@ import { colors, spacing } from "@/features/client-home/theme"
 import { CancelServiceModal } from "@/features/contracts/CancelServiceModal"
 import { ReviewModal } from "@/features/service-requests/components/ReviewModal"
 
-import { RejectedProposalCard } from "./components/RejectedProposalCard"
+import { ProposalStatusCard } from "./components/ProposalStatusCard"
 import { ServiceCard } from "./components/ServiceCard"
-import { useProfessionalServices, useRejectedProposals } from "./hooks"
+import { usePendingProposals, useProfessionalServices, useRejectedProposals } from "./hooks"
 import { completeService, startService } from "./service"
 import type { ProfessionalService, ServiceContractStatus } from "./types"
 
-// "Propostas recusadas" não é um status de contrato: mostra propostas que o
-// cliente não aceitou. Os demais filtros mapeiam para status de contrato.
-type FilterKey = ServiceContractStatus | "ALL" | "REJECTED"
+// Os filtros de proposta ("em aberto" e "recusadas") não são status de contrato:
+// mostram propostas enviadas. Os demais mapeiam para status de contrato.
+type FilterKey = ServiceContractStatus | "ALL" | "PENDING" | "REJECTED"
 
 const FILTERS: { key: FilterKey; label: string }[] = [
   { key: "ALL", label: "Todos" },
   { key: "ACCEPTED", label: "Contratados" },
   { key: "IN_PROGRESS", label: "Em andamento" },
   { key: "COMPLETED", label: "Concluídos" },
+  { key: "PENDING", label: "Propostas em aberto" },
   { key: "REJECTED", label: "Propostas recusadas" },
 ]
 
@@ -36,6 +37,7 @@ const PARAM_TO_LABEL: Record<string, string> = {
   accepted: "Contratados",
   in_progress: "Em andamento",
   completed: "Concluídos",
+  pending: "Propostas em aberto",
   rejected: "Propostas recusadas",
 }
 
@@ -44,6 +46,13 @@ export function ProfessionalServicesScreen() {
   const confirm = useConfirm()
   const { services, isLoading, isRefreshing, error, refetch, replaceService } =
     useProfessionalServices()
+  const {
+    proposals: pendingProposals,
+    isLoading: pendingLoading,
+    isRefreshing: pendingRefreshing,
+    error: pendingError,
+    refetch: refetchPending,
+  } = usePendingProposals()
   const {
     proposals: rejectedProposals,
     isLoading: rejectedLoading,
@@ -67,17 +76,32 @@ export function ProfessionalServicesScreen() {
   }, [filter])
 
   const activeKey = FILTERS.find((item) => item.label === activeFilter)?.key ?? "ALL"
+  const showingPending = activeKey === "PENDING"
   const showingRejected = activeKey === "REJECTED"
+  const showingProposals = showingPending || showingRejected
 
   const visibleServices = useMemo(() => {
-    if (activeKey === "ALL" || activeKey === "REJECTED") {
+    if (activeKey === "ALL" || activeKey === "PENDING" || activeKey === "REJECTED") {
       return services
     }
     return services.filter((service) => service.status === activeKey)
   }, [services, activeKey])
 
-  // Só há filtros a exibir quando existe algum conteúdo (serviços ou recusadas).
-  const hasAnyContent = services.length > 0 || rejectedProposals.length > 0
+  // Só há filtros a exibir quando existe algum conteúdo (serviços ou propostas).
+  const hasAnyContent =
+    services.length > 0 || pendingProposals.length > 0 || rejectedProposals.length > 0
+
+  // O "puxar para atualizar" recarrega apenas a lista que está à vista.
+  const refreshActiveList = showingPending
+    ? refetchPending
+    : showingRejected
+      ? refetchRejected
+      : refetch
+  const isActiveListRefreshing = showingPending
+    ? pendingRefreshing
+    : showingRejected
+      ? rejectedRefreshing
+      : isRefreshing
 
   async function runAction(
     service: ProfessionalService,
@@ -130,8 +154,8 @@ export function ProfessionalServicesScreen() {
         contentContainerStyle={[styles.content, { paddingTop: insets.top + 12 }]}
         refreshControl={
           <RefreshControl
-            onRefresh={showingRejected ? refetchRejected : refetch}
-            refreshing={showingRejected ? rejectedRefreshing : isRefreshing}
+            onRefresh={refreshActiveList}
+            refreshing={isActiveListRefreshing}
             tintColor={colors.accent}
           />
         }
@@ -174,31 +198,43 @@ export function ProfessionalServicesScreen() {
   )
 
   function renderBody() {
-    if (showingRejected) {
-      return renderRejected()
+    if (showingProposals) {
+      return renderProposals()
     }
     return renderServices()
   }
 
-  function renderRejected() {
-    if (rejectedLoading) {
+  // Lista de propostas do filtro ativo. Os dois filtros compartilham a estrutura;
+  // muda o conjunto de dados e o texto do estado vazio.
+  function renderProposals() {
+    const proposals = showingPending ? pendingProposals : rejectedProposals
+    const isLoadingProposals = showingPending ? pendingLoading : rejectedLoading
+    const proposalsError = showingPending ? pendingError : rejectedError
+
+    if (isLoadingProposals) {
       return <LoadingState />
     }
 
-    if (rejectedError && rejectedProposals.length === 0) {
+    if (proposalsError && proposals.length === 0) {
       return (
         <EmptyState
           actionLabel="Tentar novamente"
-          description={rejectedError}
+          description={proposalsError}
           icon="cloud-offline-outline"
-          onPressAction={refetchRejected}
+          onPressAction={refreshActiveList}
           title="Não foi possível carregar"
         />
       )
     }
 
-    if (rejectedProposals.length === 0) {
-      return (
+    if (proposals.length === 0) {
+      return showingPending ? (
+        <EmptyState
+          description="As propostas que você enviar aparecerão aqui enquanto aguardam a decisão do cliente."
+          icon="hourglass-outline"
+          title="Nenhuma proposta em aberto"
+        />
+      ) : (
         <EmptyState
           description="Quando um cliente não aceitar uma de suas propostas, ela aparecerá aqui como histórico."
           icon="close-circle-outline"
@@ -209,8 +245,12 @@ export function ProfessionalServicesScreen() {
 
     return (
       <View style={styles.list}>
-        {rejectedProposals.map((proposal) => (
-          <RejectedProposalCard key={proposal.id} proposal={proposal} />
+        {proposals.map((proposal) => (
+          <ProposalStatusCard
+            key={proposal.id}
+            proposal={proposal}
+            status={showingPending ? "pending" : "rejected"}
+          />
         ))}
       </View>
     )

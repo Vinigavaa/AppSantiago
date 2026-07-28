@@ -1,4 +1,5 @@
 import { prisma } from "@santiago/database"
+import type { Prisma } from "@prisma/client"
 import { z } from "zod"
 
 import { getBlockedUserIds, isBlockedBetween } from "@/modules/blocks/service"
@@ -157,6 +158,7 @@ export async function opportunityDetailHandler(context: AuthedContext) {
 //
 // - servicesToStart: contratados aguardando início (ACCEPTED)
 // - servicesInProgress: em atendimento (IN_PROGRESS)
+// - pendingProposals: propostas enviadas aguardando resposta do cliente (PENDING)
 // - rejectedProposals: propostas recusadas pelos clientes (REJECTED)
 // - totalEarned: valor recebido, somando apenas serviços concluídos (COMPLETED)
 export async function professionalDashboardHandler(context: AuthedContext) {
@@ -168,28 +170,75 @@ export async function professionalDashboardHandler(context: AuthedContext) {
 
   const professionalId = await getOrCreateProfessionalProfileId(user.id)
 
-  const [servicesToStart, servicesInProgress, rejectedProposals, earned] = await Promise.all([
-    prisma.serviceContract.count({ where: { professionalId, status: "ACCEPTED" } }),
-    prisma.serviceContract.count({ where: { professionalId, status: "IN_PROGRESS" } }),
-    prisma.proposal.count({ where: { professionalId, status: "REJECTED" } }),
-    // O valor recebido vem do preço da proposta cujo contrato foi concluído.
-    prisma.proposal.aggregate({
-      _sum: { price: true },
-      where: { professionalId, serviceContract: { status: "COMPLETED" } },
-    }),
-  ])
+  const [servicesToStart, servicesInProgress, pendingProposals, rejectedProposals, earned] =
+    await Promise.all([
+      prisma.serviceContract.count({ where: { professionalId, status: "ACCEPTED" } }),
+      prisma.serviceContract.count({ where: { professionalId, status: "IN_PROGRESS" } }),
+      // PENDING já significa "aguardando decisão": aceitar uma proposta recusa as
+      // demais, cancelar o contrato marca CANCELED e excluir a solicitação apaga
+      // em cascata. Por isso não é preciso cruzar com o status da solicitação.
+      prisma.proposal.count({ where: { professionalId, status: "PENDING" } }),
+      prisma.proposal.count({ where: { professionalId, status: "REJECTED" } }),
+      // O valor recebido vem do preço da proposta cujo contrato foi concluído.
+      prisma.proposal.aggregate({
+        _sum: { price: true },
+        where: { professionalId, serviceContract: { status: "COMPLETED" } },
+      }),
+    ])
 
   return context.json({
     servicesToStart,
     servicesInProgress,
+    pendingProposals,
     rejectedProposals,
     totalEarned: Number(earned._sum.price ?? 0),
   })
 }
 
-// Propostas do profissional recusadas pelos clientes. Histórico somente leitura,
-// acessível pelo filtro "Propostas recusadas" da tela de serviços.
-export async function professionalRejectedProposalsHandler(context: AuthedContext) {
+// Campos exibidos nos cartões de proposta da tela de serviços, tanto no filtro
+// "em aberto" quanto no "recusadas".
+const proposalListSelect = {
+  id: true,
+  price: true,
+  description: true,
+  estimatedDays: true,
+  createdAt: true,
+  serviceRequest: {
+    select: {
+      title: true,
+      category: { select: { name: true } },
+      city: { select: { name: true, state: true } },
+      client: { select: { user: { select: { name: true } } } },
+    },
+  },
+} satisfies Prisma.ProposalSelect
+
+type ProposalListItem = Prisma.ProposalGetPayload<{ select: typeof proposalListSelect }>
+
+function serializeProposalListItem(proposal: ProposalListItem) {
+  return {
+    id: proposal.id,
+    price: Number(proposal.price),
+    message: proposal.description,
+    estimatedDays: proposal.estimatedDays,
+    createdAt: proposal.createdAt.toISOString(),
+    serviceRequest: {
+      title: proposal.serviceRequest.title,
+      category: proposal.serviceRequest.category.name,
+      city: {
+        name: proposal.serviceRequest.city.name,
+        state: proposal.serviceRequest.city.state,
+      },
+      // Só o primeiro nome: o cliente não contratou este profissional, então
+      // vale a mesma privacidade das oportunidades.
+      client: { name: firstName(proposal.serviceRequest.client.user.name) },
+    },
+  }
+}
+
+// Lista as propostas do profissional em um status, da mais recente para a mais
+// antiga. Usada pelos filtros "Propostas em aberto" e "Propostas recusadas".
+async function listProposalsByStatus(context: AuthedContext, status: "PENDING" | "REJECTED") {
   const user = context.get("user")
 
   if (user.role !== "PROFESSIONAL") {
@@ -199,39 +248,22 @@ export async function professionalRejectedProposalsHandler(context: AuthedContex
   const professionalId = await getOrCreateProfessionalProfileId(user.id)
 
   const proposals = await prisma.proposal.findMany({
-    where: { professionalId, status: "REJECTED" },
+    where: { professionalId, status },
     orderBy: { createdAt: "desc" },
-    select: {
-      id: true,
-      price: true,
-      description: true,
-      estimatedDays: true,
-      createdAt: true,
-      serviceRequest: {
-        select: {
-          title: true,
-          category: { select: { name: true } },
-          city: { select: { name: true, state: true } },
-        },
-      },
-    },
+    select: proposalListSelect,
   })
 
-  return context.json({
-    proposals: proposals.map((proposal) => ({
-      id: proposal.id,
-      price: Number(proposal.price),
-      message: proposal.description,
-      estimatedDays: proposal.estimatedDays,
-      createdAt: proposal.createdAt.toISOString(),
-      serviceRequest: {
-        title: proposal.serviceRequest.title,
-        category: proposal.serviceRequest.category.name,
-        city: {
-          name: proposal.serviceRequest.city.name,
-          state: proposal.serviceRequest.city.state,
-        },
-      },
-    })),
-  })
+  return context.json({ proposals: proposals.map(serializeProposalListItem) })
+}
+
+// Propostas aguardando resposta do cliente, acessíveis pelo filtro
+// "Propostas em aberto" da tela de serviços.
+export async function professionalPendingProposalsHandler(context: AuthedContext) {
+  return listProposalsByStatus(context, "PENDING")
+}
+
+// Propostas do profissional recusadas pelos clientes. Histórico somente leitura,
+// acessível pelo filtro "Propostas recusadas" da tela de serviços.
+export async function professionalRejectedProposalsHandler(context: AuthedContext) {
+  return listProposalsByStatus(context, "REJECTED")
 }
