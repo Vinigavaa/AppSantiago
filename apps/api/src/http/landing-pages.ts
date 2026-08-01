@@ -2,6 +2,7 @@ import { Hono } from "hono"
 
 import { env } from "@/config/env"
 import {
+  getPasswordResetUrl,
   resetPasswordLandingPath,
   verifyEmailCallbackPath,
 } from "@/modules/auth/auth-urls"
@@ -125,7 +126,7 @@ landingPages.get(resetPasswordLandingPath, (context) => {
     )
   }
 
-  const deepLink = `${deepLinkScheme}://reset-password?token=${encodeURIComponent(token)}`
+  const deepLink = getPasswordResetUrl(token)
 
   return context.html(
     renderPage({

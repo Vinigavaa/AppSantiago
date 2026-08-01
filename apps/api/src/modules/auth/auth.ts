@@ -10,7 +10,7 @@ import { sendPasswordResetEmail, sendVerificationEmail } from "@/services/email-
 
 import {
   getEmailVerificationUrl,
-  getPasswordResetUrl,
+  getPasswordResetWebFallbackUrl,
   getTrustedRedirectOrigins,
 } from "./auth-urls"
 import {
@@ -62,7 +62,7 @@ export const auth = betterAuth({
     sendResetPassword: async ({ user, token }) => {
       await sendPasswordResetEmail({
         to: user.email,
-        url: getPasswordResetUrl(token),
+        url: getPasswordResetWebFallbackUrl(token),
         userName: user.name,
       })
     },
