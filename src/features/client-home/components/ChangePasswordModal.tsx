@@ -1,18 +1,10 @@
 import { Ionicons } from "@expo/vector-icons"
 import { useEffect, useRef, useState } from "react"
-import {
-  KeyboardAvoidingView,
-  Modal,
-  Pressable,
-  ScrollView,
-  StyleSheet,
-  Text,
-  TextInput,
-  View,
-} from "react-native"
+import { Modal, Pressable, StyleSheet, Text, TextInput, View } from "react-native"
 import { useSafeAreaInsets } from "react-native-safe-area-context"
 
 import { Button } from "@/components/ui/Button"
+import { FormScroll } from "@/components/ui/FormScroll"
 import { authClient } from "@/lib/auth-client"
 
 import { colors, radius, spacing } from "../theme"
@@ -85,7 +77,7 @@ export function ChangePasswordModal({ visible, onClose, onSuccess }: Props) {
 
   return (
     <Modal animationType="slide" onRequestClose={onClose} visible={visible}>
-      <KeyboardAvoidingView behavior="padding" style={styles.screen}>
+      <View style={styles.screen}>
         <View style={[styles.header, { paddingTop: insets.top + 12 }]}>
           <Pressable
             accessibilityLabel="Fechar"
@@ -98,11 +90,7 @@ export function ChangePasswordModal({ visible, onClose, onSuccess }: Props) {
           <Text style={styles.headerTitle}>Alterar senha</Text>
         </View>
 
-        <ScrollView
-          contentContainerStyle={styles.content}
-          keyboardShouldPersistTaps="handled"
-          showsVerticalScrollIndicator={false}
-        >
+        <FormScroll contentContainerStyle={styles.content} inModal>
           <Field label="Senha atual">
             <TextInput
               autoCapitalize="none"
@@ -160,8 +148,8 @@ export function ChangePasswordModal({ visible, onClose, onSuccess }: Props) {
             onPress={handleSave}
             style={styles.save}
           />
-        </ScrollView>
-      </KeyboardAvoidingView>
+        </FormScroll>
+      </View>
     </Modal>
   )
 }

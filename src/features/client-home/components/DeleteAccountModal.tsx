@@ -2,7 +2,6 @@ import { Ionicons } from "@expo/vector-icons"
 import { useEffect, useState } from "react"
 import {
   ActivityIndicator,
-  KeyboardAvoidingView,
   Modal,
   Pressable,
   StyleSheet,
@@ -10,6 +9,8 @@ import {
   TextInput,
   View,
 } from "react-native"
+
+import { useKeyboardHeight } from "@/lib/use-keyboard-height"
 
 import { colors, radius } from "../theme"
 
@@ -37,6 +38,7 @@ export function DeleteAccountModal({
   onConfirm,
   removedItems = CLIENT_REMOVED_ITEMS,
 }: Props) {
+  const keyboardHeight = useKeyboardHeight()
   const [confirmText, setConfirmText] = useState("")
   const [isDeleting, setIsDeleting] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -71,7 +73,7 @@ export function DeleteAccountModal({
 
   return (
     <Modal animationType="slide" onRequestClose={onClose} transparent visible={visible}>
-      <KeyboardAvoidingView behavior="padding" style={styles.backdrop}>
+      <View style={[styles.backdrop, { paddingBottom: keyboardHeight }]}>
         <View style={styles.sheet}>
           <View style={styles.header}>
             <View style={styles.iconCircle}>
@@ -132,7 +134,7 @@ export function DeleteAccountModal({
             <Text style={styles.cancelText}>Cancelar</Text>
           </Pressable>
         </View>
-      </KeyboardAvoidingView>
+      </View>
     </Modal>
   )
 }

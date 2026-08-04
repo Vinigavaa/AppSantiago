@@ -1,16 +1,8 @@
 import { Ionicons } from "@expo/vector-icons"
 import { useEffect, useState } from "react"
-import {
-  ActivityIndicator,
-  FlatList,
-  Modal,
-  Pressable,
-  StyleSheet,
-  Text,
-  TextInput,
-  View,
-} from "react-native"
+import { ActivityIndicator, FlatList, Pressable, StyleSheet, Text, TextInput, View } from "react-native"
 
+import { FormSheet } from "@/components/ui/FormSheet"
 import { colors, radius } from "@/features/client-home/theme"
 import { fetchCitySearch } from "@/features/service-requests/service"
 import type { City } from "@/features/service-requests/types"
@@ -119,53 +111,41 @@ export function CitySearchPicker({ label, placeholder, value, onSelect, error, o
 
       {error ? <Text style={styles.error}>{error}</Text> : null}
 
-      <Modal animationType="slide" onRequestClose={() => setOpen(false)} transparent visible={open}>
-        <Pressable onPress={() => setOpen(false)} style={styles.backdrop} />
-        <View style={styles.sheet}>
-          <View style={styles.sheetHeader}>
-            <Text style={styles.sheetTitle}>{label}</Text>
-            <Pressable accessibilityRole="button" hitSlop={8} onPress={() => setOpen(false)}>
-              <Ionicons color={colors.textSecondary} name="close" size={24} />
-            </Pressable>
-          </View>
+      <FormSheet onClose={() => setOpen(false)} title={label} visible={open}>
+        <TextInput
+          autoCorrect={false}
+          autoFocus
+          onChangeText={setQuery}
+          placeholder="Digite o nome da cidade..."
+          placeholderTextColor={colors.textTertiary}
+          style={styles.search}
+          value={query}
+        />
 
-          <TextInput
-            autoCorrect={false}
-            autoFocus
-            onChangeText={setQuery}
-            placeholder="Digite o nome da cidade..."
-            placeholderTextColor={colors.textTertiary}
-            style={styles.search}
-            value={query}
-          />
+        <FlatList
+          data={results}
+          keyboardShouldPersistTaps="handled"
+          keyExtractor={(item) => item.id}
+          ListEmptyComponent={<CityListEmpty error={searchError} loading={isLoading} query={query} />}
+          renderItem={({ item }) => {
+            const isSelected = item.id === value?.id
 
-          <FlatList
-            data={results}
-            keyboardShouldPersistTaps="handled"
-            keyExtractor={(item) => item.id}
-            ListEmptyComponent={<CityListEmpty error={searchError} loading={isLoading} query={query} />}
-            renderItem={({ item }) => {
-              const isSelected = item.id === value?.id
-
-              return (
-                <Pressable
-                  accessibilityRole="button"
-                  onPress={() => handleSelect(item)}
-                  style={({ pressed }) => [styles.option, pressed && styles.optionPressed]}
-                >
-                  <Text style={styles.optionLabel}>
-                    {item.name} - {item.state}
-                  </Text>
-                  {isSelected ? (
-                    <Ionicons color={colors.accent} name="checkmark" size={20} />
-                  ) : null}
-                </Pressable>
-              )
-            }}
-            style={styles.list}
-          />
-        </View>
-      </Modal>
+            return (
+              <Pressable
+                accessibilityRole="button"
+                onPress={() => handleSelect(item)}
+                style={({ pressed }) => [styles.option, pressed && styles.optionPressed]}
+              >
+                <Text style={styles.optionLabel}>
+                  {item.name} - {item.state}
+                </Text>
+                {isSelected ? <Ionicons color={colors.accent} name="checkmark" size={20} /> : null}
+              </Pressable>
+            )
+          }}
+          style={styles.list}
+        />
+      </FormSheet>
     </View>
   )
 }
@@ -199,10 +179,6 @@ function CityListEmpty({
 }
 
 const styles = StyleSheet.create({
-  backdrop: {
-    backgroundColor: "rgba(0,0,0,0.35)",
-    flex: 1,
-  },
   clear: {
     color: colors.accent,
     fontSize: 13,
@@ -234,6 +210,9 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
   },
   list: {
+    // Encolhe quando o sheet atinge a altura máxima (teclado aberto), em vez de
+    // estourar o container e ficar atrás do teclado.
+    flexShrink: 1,
     paddingHorizontal: 20,
   },
   option: {
@@ -269,26 +248,6 @@ const styles = StyleSheet.create({
     marginVertical: 12,
     paddingHorizontal: 14,
     paddingVertical: 12,
-  },
-  sheet: {
-    backgroundColor: colors.surface,
-    borderTopLeftRadius: 20,
-    borderTopRightRadius: 20,
-    maxHeight: "75%",
-    paddingBottom: 24,
-    paddingTop: 8,
-  },
-  sheetHeader: {
-    alignItems: "center",
-    flexDirection: "row",
-    justifyContent: "space-between",
-    paddingHorizontal: 20,
-    paddingVertical: 14,
-  },
-  sheetTitle: {
-    color: colors.textPrimary,
-    fontSize: 18,
-    fontWeight: "700",
   },
   trigger: {
     alignItems: "center",

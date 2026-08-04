@@ -1,6 +1,6 @@
 import { type Href, router } from "expo-router"
 import { useRef } from "react"
-import { Alert, FlatList, KeyboardAvoidingView, StyleSheet, Text, View } from "react-native"
+import { Alert, FlatList, Platform, StyleSheet, Text, View } from "react-native"
 import { useSafeAreaInsets } from "react-native-safe-area-context"
 
 import { useConfirm } from "@/components/ui/ConfirmDialog"
@@ -8,6 +8,7 @@ import { LoadingState } from "@/components/ui/LoadingState"
 import { routes } from "@/constants/routes"
 import { blockUser } from "@/features/blocks/service"
 import { colors, spacing } from "@/features/client-home/theme"
+import { useKeyboardHeight } from "@/lib/use-keyboard-height"
 
 import { ChatHeader } from "./components/ChatHeader"
 import { MessageBubble } from "./components/MessageBubble"
@@ -29,6 +30,12 @@ export function ChatScreen({ chatId }: { chatId: string }) {
   const confirm = useConfirm()
   const { messages, otherUser, isLoading, error, send, retry, remove } = useChat(chatId)
   const listRef = useRef<FlatList>(null)
+  const keyboardHeight = useKeyboardHeight()
+
+  // No Android o `softwareKeyboardLayoutMode: "resize"` já encolhe a janela: somar
+  // padding aqui abriria uma faixa vazia entre o campo e o teclado. No iOS a
+  // janela não muda, então o deslocamento precisa ser explícito.
+  const keyboardInset = Platform.OS === "ios" ? keyboardHeight : 0
 
   const profileHref = otherUser ? profileHrefFor(otherUser) : null
 
@@ -91,7 +98,7 @@ export function ChatScreen({ chatId }: { chatId: string }) {
   }
 
   return (
-    <KeyboardAvoidingView behavior="padding" style={styles.screen}>
+    <View style={[styles.screen, { paddingBottom: keyboardInset }]}>
       <ChatHeader
         onBack={() => router.back()}
         onBlock={confirmBlock}
@@ -131,7 +138,7 @@ export function ChatScreen({ chatId }: { chatId: string }) {
           abas já reserva a área segura de baixo. Somar o inset de novo abriria
           uma faixa vazia entre o campo e a barra. */}
       <MessageInput onSend={send} />
-    </KeyboardAvoidingView>
+    </View>
   )
 }
 

@@ -1,8 +1,9 @@
 import { type Href, router } from "expo-router"
 import { useMemo, useState } from "react"
-import { RefreshControl, ScrollView, StyleSheet, View } from "react-native"
+import { RefreshControl, StyleSheet, View } from "react-native"
 import { useSafeAreaInsets } from "react-native-safe-area-context"
 
+import { FormScroll } from "@/components/ui/FormScroll"
 import { LoadingState } from "@/components/ui/LoadingState"
 import { routes } from "@/constants/routes"
 import { CreateRequestButton } from "@/features/client-home/components/CreateRequestButton"
@@ -89,12 +90,11 @@ export function ClientHome() {
   }
 
   return (
-    <ScrollView
+    <FormScroll
       contentContainerStyle={[styles.content, { paddingTop: insets.top + 12 }]}
       refreshControl={
         <RefreshControl onRefresh={refetch} refreshing={isRefreshing} tintColor={colors.accent} />
       }
-      showsVerticalScrollIndicator={false}
       style={styles.screen}
     >
       <HomeHeader
@@ -149,7 +149,7 @@ export function ClientHome() {
           onClose={() => setCancelContractId(null)}
         />
       ) : null}
-    </ScrollView>
+    </FormScroll>
   )
 
   function renderRequests() {

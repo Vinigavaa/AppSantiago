@@ -1,20 +1,12 @@
 import { Ionicons } from "@expo/vector-icons"
 import { useEffect, useRef, useState } from "react"
-import {
-  KeyboardAvoidingView,
-  Modal,
-  Pressable,
-  ScrollView,
-  StyleSheet,
-  Text,
-  TextInput,
-  View,
-} from "react-native"
+import { Modal, Pressable, StyleSheet, Text, TextInput, View } from "react-native"
 import { useSafeAreaInsets } from "react-native-safe-area-context"
 
 import { router } from "expo-router"
 
 import { Button } from "@/components/ui/Button"
+import { FormScroll } from "@/components/ui/FormScroll"
 import { routes } from "@/constants/routes"
 import { colors, radius, spacing } from "@/features/client-home/theme"
 import { ESTIMATED_DAYS_OPTIONS } from "@/features/proposals/format"
@@ -99,7 +91,7 @@ export function ProposalFormModal({ visible, serviceRequestId, onClose, onSent }
 
   return (
     <Modal animationType="slide" onRequestClose={onClose} visible={visible}>
-      <KeyboardAvoidingView behavior="padding" style={styles.screen}>
+      <View style={styles.screen}>
         <View style={[styles.header, { paddingTop: insets.top + 12 }]}>
           <Pressable accessibilityLabel="Fechar" accessibilityRole="button" hitSlop={8} onPress={onClose}>
             <Ionicons color={colors.textPrimary} name="close" size={24} />
@@ -107,11 +99,7 @@ export function ProposalFormModal({ visible, serviceRequestId, onClose, onSent }
           <Text style={styles.headerTitle}>Enviar proposta</Text>
         </View>
 
-        <ScrollView
-          contentContainerStyle={styles.content}
-          keyboardShouldPersistTaps="handled"
-          showsVerticalScrollIndicator={false}
-        >
+        <FormScroll contentContainerStyle={styles.content} inModal>
           <View style={styles.field}>
             <Text style={styles.label}>Valor da proposta</Text>
             <View style={styles.priceWrap}>
@@ -187,8 +175,8 @@ export function ProposalFormModal({ visible, serviceRequestId, onClose, onSent }
             onPress={handleSubmit}
             style={styles.submit}
           />
-        </ScrollView>
-      </KeyboardAvoidingView>
+        </FormScroll>
+      </View>
     </Modal>
   )
 }

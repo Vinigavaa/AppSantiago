@@ -1,15 +1,8 @@
 import { Ionicons } from "@expo/vector-icons"
 import { useMemo, useState } from "react"
-import {
-  FlatList,
-  Modal,
-  Pressable,
-  StyleSheet,
-  Text,
-  TextInput,
-  View,
-} from "react-native"
+import { FlatList, Pressable, StyleSheet, Text, TextInput, View } from "react-native"
 
+import { FormSheet } from "@/components/ui/FormSheet"
 import { colors, radius } from "@/features/client-home/theme"
 
 export type SelectOption = {
@@ -85,66 +78,50 @@ export function SelectField({
 
       {error ? <Text style={styles.error}>{error}</Text> : null}
 
-      <Modal animationType="slide" onRequestClose={() => setOpen(false)} transparent visible={open}>
-        <Pressable onPress={() => setOpen(false)} style={styles.backdrop} />
-        <View style={styles.sheet}>
-          <View style={styles.sheetHeader}>
-            <Text style={styles.sheetTitle}>{label}</Text>
-            <Pressable accessibilityRole="button" hitSlop={8} onPress={() => setOpen(false)}>
-              <Ionicons color={colors.textSecondary} name="close" size={24} />
-            </Pressable>
-          </View>
-
-          {searchable ? (
-            <TextInput
-              autoCorrect={false}
-              onChangeText={setQuery}
-              placeholder="Buscar..."
-              placeholderTextColor={colors.textTertiary}
-              style={styles.search}
-              value={query}
-            />
-          ) : null}
-
-          <FlatList
-            data={visibleOptions}
-            keyboardShouldPersistTaps="handled"
-            keyExtractor={(item) => item.id}
-            ListEmptyComponent={<Text style={styles.empty}>Nenhuma opção encontrada.</Text>}
-            renderItem={({ item }) => {
-              const isSelected = item.id === value
-
-              return (
-                <Pressable
-                  accessibilityRole="button"
-                  onPress={() => handleSelect(item.id)}
-                  style={({ pressed }) => [styles.option, pressed && styles.optionPressed]}
-                >
-                  <View style={styles.optionTextColumn}>
-                    <Text style={styles.optionLabel}>{item.label}</Text>
-                    {item.description ? (
-                      <Text style={styles.optionDescription}>{item.description}</Text>
-                    ) : null}
-                  </View>
-                  {isSelected ? (
-                    <Ionicons color={colors.accent} name="checkmark" size={20} />
-                  ) : null}
-                </Pressable>
-              )
-            }}
-            style={styles.list}
+      <FormSheet onClose={() => setOpen(false)} title={label} visible={open}>
+        {searchable ? (
+          <TextInput
+            autoCorrect={false}
+            onChangeText={setQuery}
+            placeholder="Buscar..."
+            placeholderTextColor={colors.textTertiary}
+            style={styles.search}
+            value={query}
           />
-        </View>
-      </Modal>
+        ) : null}
+
+        <FlatList
+          data={visibleOptions}
+          keyboardShouldPersistTaps="handled"
+          keyExtractor={(item) => item.id}
+          ListEmptyComponent={<Text style={styles.empty}>Nenhuma opção encontrada.</Text>}
+          renderItem={({ item }) => {
+            const isSelected = item.id === value
+
+            return (
+              <Pressable
+                accessibilityRole="button"
+                onPress={() => handleSelect(item.id)}
+                style={({ pressed }) => [styles.option, pressed && styles.optionPressed]}
+              >
+                <View style={styles.optionTextColumn}>
+                  <Text style={styles.optionLabel}>{item.label}</Text>
+                  {item.description ? (
+                    <Text style={styles.optionDescription}>{item.description}</Text>
+                  ) : null}
+                </View>
+                {isSelected ? <Ionicons color={colors.accent} name="checkmark" size={20} /> : null}
+              </Pressable>
+            )
+          }}
+          style={styles.list}
+        />
+      </FormSheet>
     </View>
   )
 }
 
 const styles = StyleSheet.create({
-  backdrop: {
-    backgroundColor: "rgba(0,0,0,0.35)",
-    flex: 1,
-  },
   container: {
     gap: 6,
   },
@@ -163,6 +140,9 @@ const styles = StyleSheet.create({
     fontWeight: "600",
   },
   list: {
+    // Encolhe quando o sheet atinge a altura máxima (teclado aberto), em vez de
+    // estourar o container e ficar atrás do teclado.
+    flexShrink: 1,
     paddingHorizontal: 20,
   },
   option: {
@@ -205,26 +185,6 @@ const styles = StyleSheet.create({
     marginVertical: 12,
     paddingHorizontal: 14,
     paddingVertical: 12,
-  },
-  sheet: {
-    backgroundColor: colors.surface,
-    borderTopLeftRadius: 20,
-    borderTopRightRadius: 20,
-    maxHeight: "75%",
-    paddingBottom: 24,
-    paddingTop: 8,
-  },
-  sheetHeader: {
-    alignItems: "center",
-    flexDirection: "row",
-    justifyContent: "space-between",
-    paddingHorizontal: 20,
-    paddingVertical: 14,
-  },
-  sheetTitle: {
-    color: colors.textPrimary,
-    fontSize: 18,
-    fontWeight: "700",
   },
   trigger: {
     alignItems: "center",

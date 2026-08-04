@@ -27,6 +27,7 @@ import {
 } from "@/modules/chat/handlers"
 import { cancelContractHandler, reportNoShowHandler } from "@/modules/contracts/handlers"
 import {
+  listNotificationBadgesHandler,
   listNotificationsHandler,
   markNotificationsReadHandler,
   registerPushTokenHandler,
@@ -199,6 +200,8 @@ appRoutes.delete("/blocks/:targetUserId", unblockUserHandler)
 
 // Central de notificações: lista do usuário + marcar como lidas ao abrir.
 appRoutes.get("/notifications", listNotificationsHandler)
+// Contagem por aba da navegação inferior, para os indicadores de pendência.
+appRoutes.get("/notifications/badges", listNotificationBadgesHandler)
 appRoutes.post("/notifications/read", markNotificationsReadHandler)
 appRoutes.post("/push-tokens", registerPushTokenHandler)
 

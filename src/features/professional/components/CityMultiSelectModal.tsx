@@ -1,17 +1,9 @@
 import { Ionicons } from "@expo/vector-icons"
 import { useEffect, useState } from "react"
-import {
-  ActivityIndicator,
-  FlatList,
-  Modal,
-  Pressable,
-  StyleSheet,
-  Text,
-  TextInput,
-  View,
-} from "react-native"
+import { ActivityIndicator, FlatList, Pressable, StyleSheet, Text, TextInput, View } from "react-native"
 
 import { Button } from "@/components/ui/Button"
+import { FormSheet } from "@/components/ui/FormSheet"
 import { colors, radius } from "@/features/client-home/theme"
 import { fetchCitySearch } from "@/features/service-requests/service"
 import type { City } from "@/features/service-requests/types"
@@ -126,85 +118,75 @@ export function CityMultiSelectModal({ visible, title, selected, onClose, onSave
   }
 
   return (
-    <Modal animationType="slide" onRequestClose={onClose} transparent visible={visible}>
-      <Pressable onPress={onClose} style={styles.backdrop} />
-      <View style={styles.sheet}>
-        <View style={styles.sheetHeader}>
-          <Text style={styles.sheetTitle}>{title}</Text>
-          <Pressable accessibilityRole="button" hitSlop={8} onPress={onClose}>
-            <Ionicons color={colors.textSecondary} name="close" size={24} />
-          </Pressable>
+    <FormSheet onClose={onClose} title={title} visible={visible}>
+      {chosen.length > 0 ? (
+        <View style={styles.chips}>
+          {chosen.map((city) => (
+            <Pressable
+              accessibilityRole="button"
+              key={city.id}
+              onPress={() => remove(city.id)}
+              style={styles.chip}
+            >
+              <Text style={styles.chipText}>
+                {city.name} - {city.state}
+              </Text>
+              <Ionicons color={colors.accent} name="close-circle" size={16} />
+            </Pressable>
+          ))}
         </View>
+      ) : (
+        <Text style={styles.emptyChips}>Busque e adicione as cidades onde você atende.</Text>
+      )}
 
-        {chosen.length > 0 ? (
-          <View style={styles.chips}>
-            {chosen.map((city) => (
-              <Pressable
-                accessibilityRole="button"
-                key={city.id}
-                onPress={() => remove(city.id)}
-                style={styles.chip}
-              >
-                <Text style={styles.chipText}>
-                  {city.name} - {city.state}
-                </Text>
-                <Ionicons color={colors.accent} name="close-circle" size={16} />
-              </Pressable>
-            ))}
-          </View>
-        ) : (
-          <Text style={styles.emptyChips}>Busque e adicione as cidades onde você atende.</Text>
-        )}
+      <TextInput
+        autoCorrect={false}
+        onChangeText={setQuery}
+        placeholder="Buscar cidade para adicionar..."
+        placeholderTextColor={colors.textTertiary}
+        style={styles.search}
+        value={query}
+      />
 
-        <TextInput
-          autoCorrect={false}
-          onChangeText={setQuery}
-          placeholder="Buscar cidade para adicionar..."
-          placeholderTextColor={colors.textTertiary}
-          style={styles.search}
-          value={query}
+      <FlatList
+        data={results}
+        keyboardShouldPersistTaps="handled"
+        keyExtractor={(item) => item.id}
+        ListEmptyComponent={
+          <CityListEmpty error={searchError} loading={isSearching} query={query} />
+        }
+        renderItem={({ item }) => {
+          const isChosen = chosen.some((city) => city.id === item.id)
+
+          return (
+            <Pressable
+              accessibilityRole="button"
+              onPress={() => add(item)}
+              style={({ pressed }) => [styles.option, pressed && styles.optionPressed]}
+            >
+              <Text style={styles.optionLabel}>
+                {item.name} - {item.state}
+              </Text>
+              {isChosen ? (
+                <Ionicons color={colors.accent} name="checkmark" size={20} />
+              ) : (
+                <Ionicons color={colors.textTertiary} name="add" size={20} />
+              )}
+            </Pressable>
+          )
+        }}
+        style={styles.list}
+      />
+
+      <View style={styles.footer}>
+        {saveError ? <Text style={styles.error}>{saveError}</Text> : null}
+        <Button
+          disabled={isSaving}
+          label={isSaving ? "Salvando..." : `Salvar (${chosen.length})`}
+          onPress={handleSave}
         />
-
-        <FlatList
-          data={results}
-          keyboardShouldPersistTaps="handled"
-          keyExtractor={(item) => item.id}
-          ListEmptyComponent={
-            <CityListEmpty error={searchError} loading={isSearching} query={query} />
-          }
-          renderItem={({ item }) => {
-            const isChosen = chosen.some((city) => city.id === item.id)
-
-            return (
-              <Pressable
-                accessibilityRole="button"
-                onPress={() => add(item)}
-                style={({ pressed }) => [styles.option, pressed && styles.optionPressed]}
-              >
-                <Text style={styles.optionLabel}>
-                  {item.name} - {item.state}
-                </Text>
-                {isChosen ? (
-                  <Ionicons color={colors.accent} name="checkmark" size={20} />
-                ) : (
-                  <Ionicons color={colors.textTertiary} name="add" size={20} />
-                )}
-              </Pressable>
-            )
-          }}
-          style={styles.list}
-        />
-
-        <View style={styles.footer}>
-          {saveError ? <Text style={styles.error}>{saveError}</Text> : null}
-          <Button
-            disabled={isSaving}
-            label={isSaving ? "Salvando..." : `Salvar (${chosen.length})`}
-            onPress={handleSave}
-          />
-        </View>
       </View>
-    </Modal>
+    </FormSheet>
   )
 }
 
@@ -237,10 +219,6 @@ function CityListEmpty({
 }
 
 const styles = StyleSheet.create({
-  backdrop: {
-    backgroundColor: "rgba(0,0,0,0.35)",
-    flex: 1,
-  },
   chip: {
     alignItems: "center",
     backgroundColor: colors.accentSoftBg,
@@ -287,6 +265,9 @@ const styles = StyleSheet.create({
     paddingTop: 14,
   },
   list: {
+    // Encolhe quando o sheet atinge a altura máxima (teclado aberto), mantendo
+    // o rodapé com o botão salvar visível.
+    flexShrink: 1,
     paddingHorizontal: 20,
   },
   loadingBox: {
@@ -318,25 +299,5 @@ const styles = StyleSheet.create({
     marginVertical: 12,
     paddingHorizontal: 14,
     paddingVertical: 12,
-  },
-  sheet: {
-    backgroundColor: colors.surface,
-    borderTopLeftRadius: 20,
-    borderTopRightRadius: 20,
-    maxHeight: "80%",
-    paddingBottom: 24,
-    paddingTop: 8,
-  },
-  sheetHeader: {
-    alignItems: "center",
-    flexDirection: "row",
-    justifyContent: "space-between",
-    paddingHorizontal: 20,
-    paddingVertical: 14,
-  },
-  sheetTitle: {
-    color: colors.textPrimary,
-    fontSize: 18,
-    fontWeight: "700",
   },
 })

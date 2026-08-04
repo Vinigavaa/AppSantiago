@@ -2,7 +2,6 @@ import { Ionicons } from "@expo/vector-icons"
 import { useState } from "react"
 import {
   ActivityIndicator,
-  KeyboardAvoidingView,
   Modal,
   Pressable,
   StyleSheet,
@@ -12,6 +11,7 @@ import {
 } from "react-native"
 
 import { colors, radius } from "@/features/client-home/theme"
+import { useKeyboardHeight } from "@/lib/use-keyboard-height"
 import { STAR_COLOR } from "@/components/ui/Stars"
 
 import { submitReview } from "../service"
@@ -27,6 +27,7 @@ type Props = {
 }
 
 export function ReviewModal({ contractId, title, subtitle, onClose, onReviewed }: Props) {
+  const keyboardHeight = useKeyboardHeight()
   const [rating, setRating] = useState(0)
   const [comment, setComment] = useState("")
   const [error, setError] = useState<string | null>(null)
@@ -63,10 +64,7 @@ export function ReviewModal({ contractId, title, subtitle, onClose, onReviewed }
 
   return (
     <Modal animationType="slide" onRequestClose={onClose} transparent visible>
-      <KeyboardAvoidingView
-        behavior="padding"
-        style={styles.backdrop}
-      >
+      <View style={[styles.backdrop, { paddingBottom: keyboardHeight }]}>
         <View style={styles.sheet}>
           <View style={styles.header}>
             <Text style={styles.title}>{title}</Text>
@@ -124,7 +122,7 @@ export function ReviewModal({ contractId, title, subtitle, onClose, onReviewed }
             )}
           </Pressable>
         </View>
-      </KeyboardAvoidingView>
+      </View>
     </Modal>
   )
 }

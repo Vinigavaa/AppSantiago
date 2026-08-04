@@ -4,16 +4,45 @@ import { useRef } from "react"
 import { ActivityIndicator, type ColorValue, StyleSheet, View } from "react-native"
 import { useSafeAreaInsets } from "react-native-safe-area-context"
 
+import { TabBadge } from "@/components/ui/TabBadge"
 import { routes } from "@/constants/routes"
 import { colors } from "@/features/client-home/theme"
+import {
+  NotificationBadgesProvider,
+  useNotificationBadges,
+} from "@/features/notifications/badges-context"
+import type { BadgeArea } from "@/features/notifications/badges-types"
 import { usePushRegistration } from "@/features/notifications/push"
 import { authClient } from "@/lib/auth-client"
 
 type IoniconName = keyof typeof Ionicons.glyphMap
 
-function tabIcon(focused: IoniconName, unfocused: IoniconName) {
+// Ícone da aba com o indicador de pendência da área correspondente. Abas sem
+// área (Início, Buscar) não recebem indicador.
+function tabIcon(focused: IoniconName, unfocused: IoniconName, area?: BadgeArea) {
   return ({ color, focused: isFocused, size }: { color: ColorValue; focused: boolean; size: number }) => (
-    <Ionicons color={color} name={isFocused ? focused : unfocused} size={size} />
+    <TabIcon area={area} color={color} name={isFocused ? focused : unfocused} size={size} />
+  )
+}
+
+function TabIcon({
+  area,
+  color,
+  name,
+  size,
+}: {
+  area?: BadgeArea
+  color: ColorValue
+  name: IoniconName
+  size: number
+}) {
+  const { badges } = useNotificationBadges()
+
+  return (
+    <View style={styles.tabIcon}>
+      <Ionicons color={color} name={name} size={size} />
+      {area ? <TabBadge count={badges[area]} /> : null}
+    </View>
   )
 }
 
@@ -43,55 +72,73 @@ export default function PrivateLayout() {
     return <Redirect href={routes.login} />
   }
 
-  // O profissional tem uma jornada própria, com navegação inferior distinta
-  // (Home permanece no centro). Demais telas ficam acessíveis sem aba própria.
-  if (session.user.role === "PROFESSIONAL") {
-    return (
-      <Tabs screenOptions={buildScreenOptions(insets.bottom)}>
-        <Tabs.Screen
-          name="profile"
-          options={{ tabBarIcon: tabIcon("person", "person-outline"), title: "Perfil" }}
-        />
-        <Tabs.Screen
-          name="messages"
-          options={{
-            tabBarIcon: tabIcon("chatbubble-ellipses", "chatbubble-ellipses-outline"),
-            title: "Mensagens",
-          }}
-        />
-        <Tabs.Screen
-          name="home"
-          options={{ tabBarIcon: tabIcon("home", "home-outline"), title: "Home" }}
-        />
-        <Tabs.Screen
-          name="dashboard"
-          options={{ tabBarIcon: tabIcon("stats-chart", "stats-chart-outline"), title: "Dashboard" }}
-        />
-        <Tabs.Screen
-          name="services"
-          options={{ tabBarIcon: tabIcon("construct", "construct-outline"), title: "Serviços" }}
-        />
-
-        {/* Telas exclusivas do cliente / alcançáveis por push: sem aba. */}
-        <Tabs.Screen name="chat" options={{ href: null }} />
-        <Tabs.Screen name="search" options={{ href: null }} />
-        <Tabs.Screen name="proposals" options={{ href: null }} />
-        <Tabs.Screen name="new-request" options={{ href: null }} />
-        <Tabs.Screen name="request-details" options={{ href: null }} />
-        <Tabs.Screen name="edit-request" options={{ href: null }} />
-        <Tabs.Screen name="professional-profile" options={{ href: null }} />
-        <Tabs.Screen name="professionals" options={{ href: null }} />
-        <Tabs.Screen name="opportunity-details" options={{ href: null }} />
-        <Tabs.Screen name="notifications" options={{ href: null }} />
-        <Tabs.Screen name="blocked-users" options={{ href: null }} />
-        {/* Assinatura: alcançável pelo menu do perfil (router.push), nunca como aba. */}
-        <Tabs.Screen name="subscription" options={{ href: null }} />
-      </Tabs>
-    )
-  }
-
   return (
-    <Tabs screenOptions={buildScreenOptions(insets.bottom)}>
+    <NotificationBadgesProvider>
+      {session.user.role === "PROFESSIONAL" ? (
+        <ProfessionalTabs bottomInset={insets.bottom} />
+      ) : (
+        <ClientTabs bottomInset={insets.bottom} />
+      )}
+    </NotificationBadgesProvider>
+  )
+}
+
+// O profissional tem uma jornada própria, com navegação inferior distinta
+// (Home permanece no centro). Demais telas ficam acessíveis sem aba própria.
+function ProfessionalTabs({ bottomInset }: { bottomInset: number }) {
+  return (
+    <Tabs screenOptions={buildScreenOptions(bottomInset)}>
+      <Tabs.Screen
+        name="profile"
+        options={{ tabBarIcon: tabIcon("person", "person-outline", "profile"), title: "Perfil" }}
+      />
+      <Tabs.Screen
+        name="messages"
+        options={{
+          tabBarIcon: tabIcon("chatbubble-ellipses", "chatbubble-ellipses-outline", "messages"),
+          title: "Mensagens",
+        }}
+      />
+      <Tabs.Screen
+        name="home"
+        options={{ tabBarIcon: tabIcon("home", "home-outline"), title: "Home" }}
+      />
+      <Tabs.Screen
+        name="dashboard"
+        options={{
+          tabBarIcon: tabIcon("stats-chart", "stats-chart-outline", "dashboard"),
+          title: "Dashboard",
+        }}
+      />
+      <Tabs.Screen
+        name="services"
+        options={{
+          tabBarIcon: tabIcon("construct", "construct-outline", "services"),
+          title: "Serviços",
+        }}
+      />
+
+      {/* Telas exclusivas do cliente / alcançáveis por push: sem aba. */}
+      <Tabs.Screen name="chat" options={{ href: null }} />
+      <Tabs.Screen name="search" options={{ href: null }} />
+      <Tabs.Screen name="proposals" options={{ href: null }} />
+      <Tabs.Screen name="new-request" options={{ href: null }} />
+      <Tabs.Screen name="request-details" options={{ href: null }} />
+      <Tabs.Screen name="edit-request" options={{ href: null }} />
+      <Tabs.Screen name="professional-profile" options={{ href: null }} />
+      <Tabs.Screen name="professionals" options={{ href: null }} />
+      <Tabs.Screen name="opportunity-details" options={{ href: null }} />
+      <Tabs.Screen name="notifications" options={{ href: null }} />
+      <Tabs.Screen name="blocked-users" options={{ href: null }} />
+      {/* Assinatura: alcançável pelo menu do perfil (router.push), nunca como aba. */}
+      <Tabs.Screen name="subscription" options={{ href: null }} />
+    </Tabs>
+  )
+}
+
+function ClientTabs({ bottomInset }: { bottomInset: number }) {
+  return (
+    <Tabs screenOptions={buildScreenOptions(bottomInset)}>
       <Tabs.Screen
         name="home"
         options={{ tabBarIcon: tabIcon("home", "home-outline"), title: "Início" }}
@@ -103,20 +150,20 @@ export default function PrivateLayout() {
       <Tabs.Screen
         name="proposals"
         options={{
-          tabBarIcon: tabIcon("document-text", "document-text-outline"),
+          tabBarIcon: tabIcon("document-text", "document-text-outline", "proposals"),
           title: "Propostas",
         }}
       />
       <Tabs.Screen
         name="messages"
         options={{
-          tabBarIcon: tabIcon("chatbubble-ellipses", "chatbubble-ellipses-outline"),
+          tabBarIcon: tabIcon("chatbubble-ellipses", "chatbubble-ellipses-outline", "messages"),
           title: "Mensagens",
         }}
       />
       <Tabs.Screen
         name="profile"
-        options={{ tabBarIcon: tabIcon("person", "person-outline"), title: "Perfil" }}
+        options={{ tabBarIcon: tabIcon("person", "person-outline", "profile"), title: "Perfil" }}
       />
 
       {/* Telas exclusivas do profissional / alcançáveis por push: sem aba. */}
@@ -147,6 +194,11 @@ const styles = StyleSheet.create({
   tabBar: {
     backgroundColor: colors.surface,
     borderTopColor: colors.cardBorder,
+  },
+  // Âncora para o indicador absoluto. Sem dimensões próprias: a barra mantém
+  // exatamente a mesma altura e o mesmo espaçamento de quando não há badge.
+  tabIcon: {
+    position: "relative",
   },
   tabLabel: {
     fontSize: 11,

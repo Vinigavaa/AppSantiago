@@ -1,18 +1,10 @@
 import { Ionicons } from "@expo/vector-icons"
 import { useEffect, useState } from "react"
-import {
-  KeyboardAvoidingView,
-  Modal,
-  Pressable,
-  ScrollView,
-  StyleSheet,
-  Text,
-  TextInput,
-  View,
-} from "react-native"
+import { Modal, Pressable, StyleSheet, Text, TextInput, View } from "react-native"
 import { useSafeAreaInsets } from "react-native-safe-area-context"
 
 import { Button } from "@/components/ui/Button"
+import { FormScroll } from "@/components/ui/FormScroll"
 import { maskPhone } from "@/lib/masks"
 
 import type { ClientProfileInfo, UpdateClientProfileInput } from "../profile-types"
@@ -70,7 +62,7 @@ export function ClientPersonalInfoModal({ visible, profile, onClose, onSave }: P
 
   return (
     <Modal animationType="slide" onRequestClose={onClose} visible={visible}>
-      <KeyboardAvoidingView behavior="padding" style={styles.screen}>
+      <View style={styles.screen}>
         <View style={[styles.header, { paddingTop: insets.top + 12 }]}>
           <Pressable
             accessibilityLabel="Fechar"
@@ -83,11 +75,7 @@ export function ClientPersonalInfoModal({ visible, profile, onClose, onSave }: P
           <Text style={styles.headerTitle}>Informações pessoais</Text>
         </View>
 
-        <ScrollView
-          contentContainerStyle={styles.content}
-          keyboardShouldPersistTaps="handled"
-          showsVerticalScrollIndicator={false}
-        >
+        <FormScroll contentContainerStyle={styles.content} inModal>
           <Field label="Nome completo">
             <TextInput
               autoCapitalize="words"
@@ -128,8 +116,8 @@ export function ClientPersonalInfoModal({ visible, profile, onClose, onSave }: P
             onPress={handleSave}
             style={styles.save}
           />
-        </ScrollView>
-      </KeyboardAvoidingView>
+        </FormScroll>
+      </View>
     </Modal>
   )
 }

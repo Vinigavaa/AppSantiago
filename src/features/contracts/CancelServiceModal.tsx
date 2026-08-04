@@ -2,7 +2,6 @@ import { Ionicons } from "@expo/vector-icons"
 import { useState } from "react"
 import {
   ActivityIndicator,
-  KeyboardAvoidingView,
   Modal,
   Pressable,
   StyleSheet,
@@ -12,6 +11,7 @@ import {
 } from "react-native"
 
 import { colors, radius } from "@/features/client-home/theme"
+import { useKeyboardHeight } from "@/lib/use-keyboard-height"
 
 import { cancelContract } from "./service"
 
@@ -22,6 +22,7 @@ type Props = {
 }
 
 export function CancelServiceModal({ contractId, onClose, onCanceled }: Props) {
+  const keyboardHeight = useKeyboardHeight()
   const [reason, setReason] = useState("")
   const [error, setError] = useState<string | null>(null)
   const [isSubmitting, setIsSubmitting] = useState(false)
@@ -48,7 +49,7 @@ export function CancelServiceModal({ contractId, onClose, onCanceled }: Props) {
 
   return (
     <Modal animationType="slide" onRequestClose={onClose} transparent visible>
-      <KeyboardAvoidingView behavior="padding" style={styles.backdrop}>
+      <View style={[styles.backdrop, { paddingBottom: keyboardHeight }]}>
         <View style={styles.sheet}>
           <View style={styles.header}>
             <Text style={styles.title}>Cancelar serviço</Text>
@@ -89,7 +90,7 @@ export function CancelServiceModal({ contractId, onClose, onCanceled }: Props) {
             )}
           </Pressable>
         </View>
-      </KeyboardAvoidingView>
+      </View>
     </Modal>
   )
 }

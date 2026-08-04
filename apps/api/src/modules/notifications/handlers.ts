@@ -2,7 +2,17 @@ import { prisma } from "@santiago/database"
 import type { Prisma } from "@prisma/client"
 import { z } from "zod"
 
+import { countUnreadMessages } from "@/modules/chat/unread"
 import type { AuthedContext } from "@/modules/shared/require-auth"
+
+import {
+  ALERT_TYPES,
+  BADGE_AREAS,
+  areaForNotification,
+  isBadgeArea,
+  notificationTypesForArea,
+  type BadgeArea,
+} from "./areas"
 
 const registerPushTokenSchema = z.object({
   token: z.string().trim().min(1, "Token inválido.").max(255),
@@ -53,12 +63,75 @@ export async function listNotificationsHandler(context: AuthedContext) {
   return context.json({ notifications: notifications.map(serializeNotification), unreadCount })
 }
 
-// Marca todas as notificações não lidas do usuário como lidas (ao abrir a tela).
+// Quantidade máxima de avisos devolvidos por ciclo. O que passar disso continua
+// no indicador da aba, que é o canal persistente.
+const MAX_PENDING_ALERTS = 5
+
+// Contagem de pendências por área da navegação inferior, mais os eventos que
+// merecem um aviso imediato no app. Chamado com frequência pelo poll, por isso
+// carrega no máximo 5 linhas além das agregações.
+export async function listNotificationBadgesHandler(context: AuthedContext) {
+  const user = context.get("user")
+
+  const [grouped, unreadMessages, alerts] = await Promise.all([
+    prisma.notification.groupBy({
+      by: ["type"],
+      where: { userId: user.id, readAt: null },
+      _count: { _all: true },
+    }),
+    countUnreadMessages(user.id),
+    prisma.notification.findMany({
+      where: { userId: user.id, readAt: null, type: { in: ALERT_TYPES } },
+      orderBy: { createdAt: "desc" },
+      take: MAX_PENDING_ALERTS,
+      select: { id: true, type: true, title: true, message: true },
+    }),
+  ])
+
+  // Todas as áreas sempre presentes: o app não precisa tratar undefined e
+  // simplesmente ignora as que não têm aba no perfil dele.
+  const badges = Object.fromEntries(BADGE_AREAS.map((area) => [area, 0])) as Record<
+    BadgeArea,
+    number
+  >
+
+  for (const row of grouped) {
+    const area = areaForNotification(row.type, user.role)
+
+    // "messages" vem de Message.readAt (abaixo). Somar as notificações
+    // MESSAGE_RECEIVED aqui dobraria a contagem.
+    if (area === "messages") {
+      continue
+    }
+
+    badges[area] += row._count._all
+  }
+
+  badges.messages = unreadMessages
+
+  // Os textos vão como estão na notificação: o app não reescreve conteúdo por
+  // tipo, então toast, central e push contam sempre a mesma história.
+  return context.json({ badges, events: alerts })
+}
+
+// Marca notificações não lidas como lidas. Sem `area`, marca todas — é o que a
+// central de notificações (e a versão do app já instalada) faz. Com `area`,
+// marca apenas os tipos daquela aba, para o badge sumir só onde foi visualizado.
 export async function markNotificationsReadHandler(context: AuthedContext) {
   const user = context.get("user")
 
+  const body = await context.req.json().catch(() => null)
+  const rawArea = (body as { area?: unknown } | null)?.area
+
+  if (rawArea !== undefined && !isBadgeArea(rawArea)) {
+    return context.json({ code: "INVALID_DATA", message: "Área inválida." }, 400)
+  }
+
+  const typeFilter =
+    rawArea === undefined ? {} : { type: { in: notificationTypesForArea(rawArea, user.role) } }
+
   await prisma.notification.updateMany({
-    where: { userId: user.id, readAt: null },
+    where: { userId: user.id, readAt: null, ...typeFilter },
     data: { readAt: new Date() },
   })
 

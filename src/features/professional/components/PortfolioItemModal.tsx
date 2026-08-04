@@ -1,19 +1,10 @@
 import { Ionicons } from "@expo/vector-icons"
 import { useEffect, useRef, useState } from "react"
-import {
-  Image,
-  KeyboardAvoidingView,
-  Modal,
-  Pressable,
-  ScrollView,
-  StyleSheet,
-  Text,
-  TextInput,
-  View,
-} from "react-native"
+import { Image, Modal, Pressable, StyleSheet, Text, TextInput, View } from "react-native"
 import { useSafeAreaInsets } from "react-native-safe-area-context"
 
 import { Button } from "@/components/ui/Button"
+import { FormScroll } from "@/components/ui/FormScroll"
 import { colors, radius, spacing } from "@/features/client-home/theme"
 import { uploadPortfolioImage } from "@/features/uploads/portfolioUpload"
 
@@ -83,7 +74,7 @@ export function PortfolioItemModal({ uri, onClose, onCreated }: Props) {
 
   return (
     <Modal animationType="slide" onRequestClose={onClose} visible={uri !== null}>
-      <KeyboardAvoidingView behavior="padding" style={styles.screen}>
+      <View style={styles.screen}>
         <View style={[styles.header, { paddingTop: insets.top + 12 }]}>
           <Pressable
             accessibilityLabel="Fechar"
@@ -96,11 +87,7 @@ export function PortfolioItemModal({ uri, onClose, onCreated }: Props) {
           <Text style={styles.headerTitle}>Adicionar ao portfólio</Text>
         </View>
 
-        <ScrollView
-          contentContainerStyle={styles.content}
-          keyboardShouldPersistTaps="handled"
-          showsVerticalScrollIndicator={false}
-        >
+        <FormScroll contentContainerStyle={styles.content} inModal>
           {uri ? <Image source={{ uri }} style={styles.preview} /> : null}
 
           <View style={styles.field}>
@@ -141,8 +128,8 @@ export function PortfolioItemModal({ uri, onClose, onCreated }: Props) {
             onPress={handleSave}
             style={styles.save}
           />
-        </ScrollView>
-      </KeyboardAvoidingView>
+        </FormScroll>
+      </View>
     </Modal>
   )
 }

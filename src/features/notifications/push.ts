@@ -97,3 +97,43 @@ export function usePushRegistration(userId: string | undefined) {
     })()
   }, [userId])
 }
+
+// Avisa quando uma notificação push chega com o app aberto, para revalidar os
+// indicadores na hora. No Expo Go (sem push) o listener simplesmente não existe
+// e a atualização fica por conta do poll.
+export function usePushReceived(onReceived: () => void) {
+  const callback = useRef(onReceived)
+  callback.current = onReceived
+
+  useEffect(() => {
+    if (isExpoGo) {
+      return
+    }
+
+    let remove: (() => void) | null = null
+    let cancelled = false
+
+    void (async () => {
+      try {
+        const Notifications = await import("expo-notifications")
+        const subscription = Notifications.addNotificationReceivedListener(() => {
+          callback.current()
+        })
+
+        if (cancelled) {
+          subscription.remove()
+          return
+        }
+
+        remove = () => subscription.remove()
+      } catch (error) {
+        console.warn("[push] não foi possível ouvir notificações recebidas", error)
+      }
+    })()
+
+    return () => {
+      cancelled = true
+      remove?.()
+    }
+  }, [])
+}

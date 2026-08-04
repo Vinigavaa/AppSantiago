@@ -349,6 +349,45 @@ causa de um `isPending` transitório.** Distinguir "carregamento inicial" de
 
 ---
 
+## Teclado virtual cobrindo campos
+
+### Padrão obrigatório
+
+Todo formulário deve usar um dos componentes abaixo. Nunca escrever tratamento
+de teclado ad-hoc.
+
+| Situação | Usar |
+| --- | --- |
+| Tela com campos de texto | `FormScroll` |
+| Formulário dentro de um `<Modal>` | `FormScroll inModal` |
+| Bottom sheet de seleção com busca | `FormSheet` |
+| Barra fixa sem rolagem (chat) | `useKeyboardHeight` |
+
+### Nunca usar `KeyboardAvoidingView`
+
+No Android o `app.json` já define `softwareKeyboardLayoutMode: "resize"`, que
+encolhe a janela quando o teclado abre. O `KeyboardAvoidingView` soma padding
+por cima disso e gera espaço em excesso. No iOS, `automaticallyAdjustKeyboard
+Insets` (usado pelo `FormScroll`) é melhor: além de deslocar, rola até o campo
+focado.
+
+### Por que modais precisam de tratamento explícito
+
+No Android um `<Modal>` abre em uma janela própria, que **não** herda o
+`resize` da activity. Por isso `FormScroll inModal` e `FormSheet` aplicam a
+altura do teclado manualmente, via `useKeyboardHeight`. Em telas normais isso
+não é necessário — e aplicar mesmo assim causaria o espaço duplicado descrito
+acima.
+
+### Listas dentro de sheets
+
+Uma `FlatList` dentro de um `FormSheet` precisa de `flexShrink: 1` no estilo,
+senão ela estoura a altura máxima do sheet e os últimos itens ficam atrás do
+teclado. Manter também `keyboardShouldPersistTaps="handled"` para que o toque
+em um item selecione no primeiro toque, em vez de apenas fechar o teclado.
+
+---
+
 # Qualidade de Código
 
 Todo código novo deve ser:

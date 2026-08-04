@@ -1,17 +1,9 @@
 import { Ionicons } from "@expo/vector-icons"
 import { useEffect, useMemo, useState } from "react"
-import {
-  ActivityIndicator,
-  FlatList,
-  Modal,
-  Pressable,
-  StyleSheet,
-  Text,
-  TextInput,
-  View,
-} from "react-native"
+import { ActivityIndicator, FlatList, Pressable, StyleSheet, Text, TextInput, View } from "react-native"
 
 import { Button } from "@/components/ui/Button"
+import { FormSheet } from "@/components/ui/FormSheet"
 import { colors, radius } from "@/features/client-home/theme"
 import { normalizeText } from "@/lib/normalize-text"
 
@@ -130,99 +122,85 @@ export function MultiSelectModal({
   }
 
   return (
-    <Modal animationType="slide" onRequestClose={onClose} transparent visible={visible}>
-      <Pressable onPress={onClose} style={styles.backdrop} />
-      <View style={styles.sheet}>
-        <View style={styles.sheetHeader}>
-          <Text style={styles.sheetTitle}>{title}</Text>
-          <Pressable accessibilityRole="button" hitSlop={8} onPress={onClose}>
-            <Ionicons color={colors.textSecondary} name="close" size={24} />
-          </Pressable>
-        </View>
-
-        {searchable ? (
-          <TextInput
-            autoCorrect={false}
-            onChangeText={setQuery}
-            placeholder="Buscar..."
-            placeholderTextColor={colors.textTertiary}
-            style={styles.search}
-            value={query}
-          />
-        ) : null}
-
-        <FlatList
-          data={visibleOptions}
-          keyboardShouldPersistTaps="handled"
-          keyExtractor={(item) => item.id}
-          ListEmptyComponent={
-            <View>
-              <Text style={styles.empty}>Nenhuma opção encontrada.</Text>
-              {onSuggest && query.trim().length >= 2 ? (
-                <Pressable
-                  accessibilityRole="button"
-                  disabled={isSuggesting}
-                  onPress={handleSuggest}
-                  style={({ pressed }) => [styles.suggest, pressed && styles.optionPressed]}
-                >
-                  <Ionicons color={colors.accent} name="add-circle-outline" size={18} />
-                  <Text style={styles.suggestText}>
-                    {isSuggesting ? "Enviando..." : `Sugerir "${query.trim()}"`}
-                  </Text>
-                </Pressable>
-              ) : null}
-            </View>
-          }
-          renderItem={({ item }) => {
-            const isSelected = selected.includes(item.id)
-
-            return (
-              <Pressable
-                accessibilityRole="checkbox"
-                accessibilityState={{ checked: isSelected }}
-                onPress={() => toggle(item.id)}
-                style={({ pressed }) => [styles.option, pressed && styles.optionPressed]}
-              >
-                <View style={styles.optionTextColumn}>
-                  <Text style={styles.optionLabel}>{item.label}</Text>
-                  {item.description ? (
-                    <Text style={styles.optionDescription}>{item.description}</Text>
-                  ) : null}
-                </View>
-                <View style={[styles.checkbox, isSelected && styles.checkboxOn]}>
-                  {isSelected ? <Ionicons color="#FFFFFF" name="checkmark" size={16} /> : null}
-                </View>
-              </Pressable>
-            )
-          }}
-          style={styles.list}
+    <FormSheet onClose={onClose} title={title} visible={visible}>
+      {searchable ? (
+        <TextInput
+          autoCorrect={false}
+          onChangeText={setQuery}
+          placeholder="Buscar..."
+          placeholderTextColor={colors.textTertiary}
+          style={styles.search}
+          value={query}
         />
+      ) : null}
 
-        <View style={styles.footer}>
-          {suggestNotice ? <Text style={styles.notice}>{suggestNotice}</Text> : null}
-          {error ? <Text style={styles.error}>{error}</Text> : null}
-          <Button
-            disabled={isSaving}
-            label={isSaving ? "Salvando..." : `Salvar (${selected.length})`}
-            onPress={handleSave}
-          />
-        </View>
-
-        {isSaving ? (
-          <View style={styles.savingOverlay}>
-            <ActivityIndicator color={colors.accent} />
+      <FlatList
+        data={visibleOptions}
+        keyboardShouldPersistTaps="handled"
+        keyExtractor={(item) => item.id}
+        ListEmptyComponent={
+          <View>
+            <Text style={styles.empty}>Nenhuma opção encontrada.</Text>
+            {onSuggest && query.trim().length >= 2 ? (
+              <Pressable
+                accessibilityRole="button"
+                disabled={isSuggesting}
+                onPress={handleSuggest}
+                style={({ pressed }) => [styles.suggest, pressed && styles.optionPressed]}
+              >
+                <Ionicons color={colors.accent} name="add-circle-outline" size={18} />
+                <Text style={styles.suggestText}>
+                  {isSuggesting ? "Enviando..." : `Sugerir "${query.trim()}"`}
+                </Text>
+              </Pressable>
+            ) : null}
           </View>
-        ) : null}
+        }
+        renderItem={({ item }) => {
+          const isSelected = selected.includes(item.id)
+
+          return (
+            <Pressable
+              accessibilityRole="checkbox"
+              accessibilityState={{ checked: isSelected }}
+              onPress={() => toggle(item.id)}
+              style={({ pressed }) => [styles.option, pressed && styles.optionPressed]}
+            >
+              <View style={styles.optionTextColumn}>
+                <Text style={styles.optionLabel}>{item.label}</Text>
+                {item.description ? (
+                  <Text style={styles.optionDescription}>{item.description}</Text>
+                ) : null}
+              </View>
+              <View style={[styles.checkbox, isSelected && styles.checkboxOn]}>
+                {isSelected ? <Ionicons color="#FFFFFF" name="checkmark" size={16} /> : null}
+              </View>
+            </Pressable>
+          )
+        }}
+        style={styles.list}
+      />
+
+      <View style={styles.footer}>
+        {suggestNotice ? <Text style={styles.notice}>{suggestNotice}</Text> : null}
+        {error ? <Text style={styles.error}>{error}</Text> : null}
+        <Button
+          disabled={isSaving}
+          label={isSaving ? "Salvando..." : `Salvar (${selected.length})`}
+          onPress={handleSave}
+        />
       </View>
-    </Modal>
+
+      {isSaving ? (
+        <View style={styles.savingOverlay}>
+          <ActivityIndicator color={colors.accent} />
+        </View>
+      ) : null}
+    </FormSheet>
   )
 }
 
 const styles = StyleSheet.create({
-  backdrop: {
-    backgroundColor: "rgba(0,0,0,0.35)",
-    flex: 1,
-  },
   checkbox: {
     alignItems: "center",
     borderColor: colors.chipInactiveBorder,
@@ -272,6 +250,9 @@ const styles = StyleSheet.create({
     paddingTop: 14,
   },
   list: {
+    // Encolhe quando o sheet atinge a altura máxima (teclado aberto), mantendo
+    // o rodapé com o botão salvar visível.
+    flexShrink: 1,
     paddingHorizontal: 20,
   },
   option: {
@@ -317,25 +298,5 @@ const styles = StyleSheet.create({
     marginVertical: 12,
     paddingHorizontal: 14,
     paddingVertical: 12,
-  },
-  sheet: {
-    backgroundColor: colors.surface,
-    borderTopLeftRadius: 20,
-    borderTopRightRadius: 20,
-    maxHeight: "80%",
-    paddingBottom: 24,
-    paddingTop: 8,
-  },
-  sheetHeader: {
-    alignItems: "center",
-    flexDirection: "row",
-    justifyContent: "space-between",
-    paddingHorizontal: 20,
-    paddingVertical: 14,
-  },
-  sheetTitle: {
-    color: colors.textPrimary,
-    fontSize: 18,
-    fontWeight: "700",
   },
 })

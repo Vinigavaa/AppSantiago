@@ -25,6 +25,12 @@ const noShowSchema = z.object({
 // Status do contrato em que ainda faz sentido cancelar.
 const CANCELABLE = ["ACCEPTED", "IN_PROGRESS"] as const
 
+// Aviso ao cliente quando o profissional cancela. Diz o que aconteceu e onde a
+// proposta pode ser reconsultada — "Recusadas" é o rótulo real da aba que reúne
+// as propostas recusadas e canceladas.
+const CANCELED_BY_PROFESSIONAL_MESSAGE =
+  "O profissional cancelou o serviço. A proposta ficou disponível em Propostas, na aba Recusadas, e sua solicitação voltou a receber novas propostas."
+
 // Cancelamento de serviço: tanto o cliente quanto o profissional do contrato
 // podem cancelar enquanto não estiver concluído. Registra quem cancelou, o
 // motivo e a data, e notifica a outra parte. Um serviço concluído ou já
@@ -108,9 +114,12 @@ export async function cancelContractHandler(context: AuthedContext) {
           userId: contract.client.userId,
           type: "SERVICE_UPDATED",
           title: "Profissional cancelou o serviço",
+          // O ponteiro para a aba evita que o cliente procure a proposta onde
+          // ela não está mais: cancelada, ela sai de "Aceitas" e vai para
+          // "Recusadas". Mesmo texto no toast, na central e no push.
           message: reason
-            ? `O profissional cancelou o serviço. Sua solicitação voltou a ficar aberta para novas propostas. Motivo: ${reason}`
-            : "O profissional cancelou o serviço. Sua solicitação voltou a ficar aberta para novas propostas.",
+            ? `${CANCELED_BY_PROFESSIONAL_MESSAGE} Motivo: ${reason}`
+            : CANCELED_BY_PROFESSIONAL_MESSAGE,
         },
       }),
     ])
@@ -118,7 +127,7 @@ export async function cancelContractHandler(context: AuthedContext) {
     void sendPushToUser(
       contract.client.userId,
       "Profissional cancelou o serviço",
-      "Sua solicitação voltou a ficar aberta para novas propostas.",
+      CANCELED_BY_PROFESSIONAL_MESSAGE,
     )
 
     return context.json({ ok: true })

@@ -3,6 +3,7 @@ import { useMemo, useState } from "react"
 import { RefreshControl, ScrollView, StyleSheet, View } from "react-native"
 import { useSafeAreaInsets } from "react-native-safe-area-context"
 
+import { FormScroll } from "@/components/ui/FormScroll"
 import { LoadingState } from "@/components/ui/LoadingState"
 import { routes } from "@/constants/routes"
 import { EmptyState } from "@/features/client-home/components/EmptyState"
@@ -60,12 +61,11 @@ export function ProfessionalHome() {
   }
 
   return (
-    <ScrollView
+    <FormScroll
       contentContainerStyle={[styles.content, { paddingTop: insets.top + 12 }]}
       refreshControl={
         <RefreshControl onRefresh={refetch} refreshing={isRefreshing} tintColor={colors.accent} />
       }
-      showsVerticalScrollIndicator={false}
       style={styles.screen}
     >
       <HomeHeader
@@ -92,7 +92,7 @@ export function ProfessionalHome() {
         <SectionHeader title="Serviços disponíveis" />
         <View style={styles.listBlock}>{renderOpportunities()}</View>
       </View>
-    </ScrollView>
+    </FormScroll>
   )
 
   function renderOpportunities() {

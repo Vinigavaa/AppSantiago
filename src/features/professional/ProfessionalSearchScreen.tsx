@@ -76,9 +76,13 @@ export function ProfessionalSearchScreen() {
   return (
     <View style={styles.screen}>
       <FlatList
+        // Mesmo tratamento de teclado do `FormScroll`: o cabeçalho tem campo de
+        // busca e a lista precisa continuar tocável com o teclado aberto.
+        automaticallyAdjustKeyboardInsets
         contentContainerStyle={[styles.content, { paddingTop: insets.top + 12 }]}
         data={results}
         keyExtractor={(professional) => professional.id}
+        keyboardDismissMode="on-drag"
         keyboardShouldPersistTaps="handled"
         ListHeaderComponent={
           <View style={styles.header}>
