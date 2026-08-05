@@ -1,4 +1,4 @@
-import { useFocusEffect } from "expo-router"
+import { useFocusEffect, useIsFocused } from "expo-router"
 import {
   createContext,
   useCallback,
@@ -22,10 +22,15 @@ import {
 import { usePushReceived } from "./push"
 import { fetchNotificationBadges, markNotificationsRead } from "./service"
 
-// Intervalo do poll. Curto o bastante para parecer imediato, longo o bastante
-// para não castigar a API. O push cobre o caso urgente; o poll cobre quando o
-// push não chega (Expo Go, emulador, permissão negada).
-const POLL_INTERVAL_MS = 45_000
+// Intervalo do poll. Este é o tempo máximo até uma novidade aparecer, então ele
+// precisa ser menor que a paciência de quem está usando o app: cliente e
+// profissional costumam interagir em segundos (aceitar proposta, responder no
+// chat). Com 45s, a novidade acontecia e era lida antes do primeiro ciclo — na
+// prática o indicador nunca aparecia.
+//
+// O push não serve de rede de segurança aqui: não funciona em emulador nem no
+// Expo Go, e depende de permissão concedida. Ele só antecipa o que o poll já faz.
+const POLL_INTERVAL_MS = 15_000
 
 type BadgesContextValue = {
   badges: Badges
@@ -56,17 +61,27 @@ export function useRefreshBadgesOnFocus() {
   )
 }
 
-// Usado pela tela dona de uma aba: ao ganhar foco, a área é considerada
-// visualizada e o indicador some. "messages" é a exceção — lá a leitura é por
-// conversa aberta, não por abrir a lista.
+// Usado pela tela dona de uma aba: enquanto ela estiver em foco, o que já foi
+// contado é considerado visualizado e o indicador some. "messages" é a exceção —
+// lá a leitura é por conversa aberta, não por abrir a lista.
+//
+// A condição `> 0` é essencial: marcar a área ao simples foco fazia o app
+// destruir notificações que ele nem sabia que existiam. Bastava o usuário abrir
+// a aba nos segundos entre o evento acontecer e o poll perceber, e a novidade
+// era marcada como lida sem nunca ter virado badge nem aviso.
+//
+// Observar `badges[area]` com a tela em foco cobre o caso oposto: se a novidade
+// chegar enquanto o usuário já está na tela, ela é marcada ali mesmo — o
+// indicador não fica aceso na aba em que ele está parado.
 export function useMarkAreaRead(area: BadgeArea) {
-  const { markAreaRead } = useNotificationBadges()
+  const { badges, markAreaRead } = useNotificationBadges()
+  const isFocused = useIsFocused()
 
-  useFocusEffect(
-    useCallback(() => {
+  useEffect(() => {
+    if (isFocused && badges[area] > 0) {
       markAreaRead(area)
-    }, [area, markAreaRead]),
-  )
+    }
+  }, [area, badges, isFocused, markAreaRead])
 }
 
 // Mantém as contagens de pendência por aba atualizadas enquanto o app está em

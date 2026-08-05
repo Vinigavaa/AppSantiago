@@ -25,6 +25,7 @@ async function getExpoPushToken(): Promise<string | null> {
     const Notifications = await import("expo-notifications")
 
     if (!Device.isDevice) {
+      console.warn("[push] emulador não recebe push remoto; o indicador depende do poll.")
       return null
     }
 
@@ -49,6 +50,7 @@ async function getExpoPushToken(): Promise<string | null> {
     }
 
     if (status !== "granted") {
+      console.warn("[push] permissão de notificação negada; nenhum token será registrado.")
       return null
     }
 

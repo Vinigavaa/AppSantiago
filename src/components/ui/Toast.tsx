@@ -108,9 +108,14 @@ const styles = StyleSheet.create({
     ...shadow.modal,
   },
   container: {
+    // No Android as telas do navegador são views nativas (react-native-screens)
+    // e sobem acima de irmãos sem elevação — sem isto o aviso é renderizado,
+    // mas fica escondido atrás da tela.
+    elevation: 24,
     left: spacing.lg,
     position: "absolute",
     right: spacing.lg,
+    zIndex: 100,
   },
   message: {
     ...typography.caption,
