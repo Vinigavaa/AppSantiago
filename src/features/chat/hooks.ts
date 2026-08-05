@@ -3,24 +3,29 @@ import { useCallback, useRef, useState } from "react"
 import { Alert } from "react-native"
 
 import { routes } from "@/constants/routes"
+import { useRealtimeConnection, useRealtimeEvent } from "@/features/realtime/hooks"
 
-import { deleteMessage, fetchChats, fetchMessages, openChat, sendMessage } from "./service"
+import {
+  deleteMessage,
+  fetchChats,
+  fetchMessages,
+  markChatRead,
+  openChat,
+  sendMessage,
+} from "./service"
 import type { ChatMessage, ChatOtherUser, ChatSummary, PendingPhoto } from "./types"
 
-// Enquanto a lista/conversa está em foco, revalidamos em intervalo curto — é o
-// "tempo real" via polling, simples e suficiente para o volume esperado. A
-// conversa aberta atualiza mais rápido para novas mensagens chegarem quase na
-// hora; o envio é otimista (aparece na tela na hora, sem esperar o servidor).
-const CHAT_LIST_POLL_MS = 5_000
-const CHAT_MESSAGES_POLL_MS = 2_000
+// O chat é atualizado por eventos do servidor (WebSocket), não por consulta
+// periódica. As telas carregam ao abrir, aplicam os eventos que chegam e
+// reconciliam uma vez a cada (re)conexão — nunca por tempo.
 
 // Envio resiliente ao cold start do servidor: se a primeira tentativa falha
 // (timeout enquanto o servidor "acorda"), tenta de novo antes de marcar como falha.
 const MAX_SEND_ATTEMPTS = 3
 const SEND_RETRY_DELAY_MS = 1_500
 
-// Lista de conversas. Recarrega ao focar e faz polling silencioso para atualizar
-// prévias e não-lidas sem piscar a tela.
+// Lista de conversas. Carrega ao focar e daí em diante se mantém pelos eventos:
+// prévia, não-lidas e ordenação mudam sem nova consulta.
 export function useChats() {
   const [chats, setChats] = useState<ChatSummary[]>([])
   const [totalUnread, setTotalUnread] = useState(0)
@@ -28,6 +33,10 @@ export function useChats() {
   const [isRefreshing, setIsRefreshing] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const loadedOnce = useRef(false)
+  // Espelho do estado atual, para os handlers de evento consultarem a lista sem
+  // depender do updater do `setChats` (que só roda no re-render).
+  const chatsRef = useRef<ChatSummary[]>([])
+  chatsRef.current = chats
 
   const load = useCallback(async (mode: "initial" | "refresh" | "silent") => {
     if (mode === "refresh") {
@@ -54,10 +63,68 @@ export function useChats() {
   useFocusEffect(
     useCallback(() => {
       void load(loadedOnce.current ? "refresh" : "initial")
-      const interval = setInterval(() => void load("silent"), CHAT_LIST_POLL_MS)
-      return () => clearInterval(interval)
     }, [load]),
   )
+
+  // Mensagem nova: atualiza prévia, não-lidas e ordenação sem consultar o
+  // servidor. Se a conversa ainda não está na lista (primeira mensagem de um
+  // par novo), só aí uma carga é disparada, uma única vez.
+  useRealtimeEvent(
+    "message:new",
+    useCallback(
+      (event) => {
+        // A verificação usa a ref, não o updater do `setChats`: o updater só roda
+        // no re-render, então uma flag definida lá dentro ainda estaria falsa aqui
+        // e toda mensagem dispararia uma carga.
+        if (!chatsRef.current.some((chat) => chat.id === event.chatId)) {
+          void load("silent")
+          return
+        }
+
+        setChats((previous) =>
+          previous
+            .map((chat) =>
+              chat.id === event.chatId
+                ? {
+                    ...chat,
+                    lastMessage: {
+                      content: event.message.content,
+                      hasAttachment: event.message.attachmentUrl !== null,
+                      mine: event.message.mine,
+                      createdAt: event.message.createdAt,
+                    },
+                    unreadCount: chat.unreadCount + 1,
+                    updatedAt: event.message.createdAt,
+                  }
+                : chat,
+            )
+            // A conversa com a mensagem mais recente vai para o topo, mesma
+            // ordenação que o servidor aplica (`updatedAt` desc).
+            .sort((a, b) => b.updatedAt.localeCompare(a.updatedAt)),
+        )
+
+        setTotalUnread((previous) => previous + 1)
+      },
+      [load],
+    ),
+  )
+
+  // Exclusão apaga uma mensagem ainda não lida, então a contagem cai. A prévia
+  // pode ter sido a mensagem removida, e descobrir a nova exige o servidor —
+  // uma carga por exclusão, um evento raro.
+  useRealtimeEvent(
+    "message:deleted",
+    useCallback(() => void load("silent"), [load]),
+  )
+
+  // `message:read` não afeta a lista de propósito: ele avisa que as mensagens
+  // *enviadas* por este usuário foram lidas, e o resumo da conversa não exibe
+  // recibo. A contagem de não-lidas daqui é sobre mensagens recebidas, que
+  // zeram ao abrir a conversa (a lista recarrega ao voltar o foco).
+
+  // Reconciliação: uma carga por (re)conexão, para recuperar o que aconteceu
+  // enquanto o app esteve desconectado.
+  useRealtimeConnection(useCallback(() => void load("silent"), [load]))
 
   const refetch = useCallback(() => load("refresh"), [load])
 
@@ -65,10 +132,10 @@ export function useChats() {
 }
 
 // Junta as mensagens do servidor (fonte da verdade) com as locais ainda pendentes
-// (enviando/falha), que ainda não existem no servidor. Sem isso, o polling
-// "engoliria" a mensagem otimista recém-enviada. `deleting` são ids em exclusão
-// otimista: ficam de fora até o servidor confirmar, evitando que um poll que
-// chegue antes da confirmação faça a mensagem "piscar" de volta na tela.
+// (enviando/falha), que ainda não existem no servidor. Sem isso, a reconciliação
+// de (re)conexão "engoliria" a mensagem otimista recém-enviada. `deleting` são
+// ids em exclusão otimista: ficam de fora até o servidor confirmar, evitando que
+// uma carga que chegue antes da confirmação faça a mensagem "piscar" de volta.
 function mergeMessages(
   server: ChatMessage[],
   previous: ChatMessage[],
@@ -87,10 +154,10 @@ function localId(): string {
   return `local-${Date.now()}-${Math.random().toString(36).slice(2)}`
 }
 
-// Uma conversa: histórico, cabeçalho (outra pessoa) e envio. Faz polling enquanto
-// aberta, então mensagens novas e recibos de leitura chegam sozinhos. O envio é
-// otimista: a mensagem aparece na hora e depois é confirmada (ou marcada como
-// falha, com opção de reenviar).
+// Uma conversa: histórico, cabeçalho (outra pessoa) e envio. Mensagens novas,
+// recibos de leitura e exclusões chegam por evento enquanto a tela está aberta.
+// O envio é otimista: a mensagem aparece na hora e depois é confirmada (ou
+// marcada como falha, com opção de reenviar).
 export function useChat(chatId: string) {
   const [messages, setMessages] = useState<ChatMessage[]>([])
   const [otherUser, setOtherUser] = useState<ChatOtherUser | null>(null)
@@ -125,10 +192,74 @@ export function useChat(chatId: string) {
   useFocusEffect(
     useCallback(() => {
       void load(loadedOnce.current ? "silent" : "initial")
-      const interval = setInterval(() => void load("silent"), CHAT_MESSAGES_POLL_MS)
-      return () => clearInterval(interval)
     }, [load]),
   )
+
+  // Mensagem nova da outra pessoa: entra na conversa na hora, sem consulta. O
+  // id evita duplicar quando o evento e uma reconciliação se sobrepõem.
+  useRealtimeEvent(
+    "message:new",
+    useCallback(
+      (event) => {
+        if (event.chatId !== chatId) {
+          return
+        }
+
+        setMessages((previous) =>
+          previous.some((message) => message.id === event.message.id)
+            ? previous
+            : [...previous, event.message],
+        )
+
+        // A conversa está aberta na tela: a mensagem já foi vista. Sem isso ela
+        // ficaria como não lida no servidor até a tela ser reaberta, e quem
+        // enviou nunca veria o recibo.
+        void markChatRead(chatId)
+      },
+      [chatId],
+    ),
+  )
+
+  // Recibo de leitura das mensagens enviadas por este usuário.
+  useRealtimeEvent(
+    "message:read",
+    useCallback(
+      (event) => {
+        if (event.chatId !== chatId) {
+          return
+        }
+
+        const readIds = new Set(event.messageIds)
+
+        setMessages((previous) =>
+          previous.map((message) =>
+            readIds.has(message.id) ? { ...message, read: true } : message,
+          ),
+        )
+      },
+      [chatId],
+    ),
+  )
+
+  // Mensagem excluída pelo remetente antes de ser lida. Some da tela; se já não
+  // estiver na lista, o filtro simplesmente não encontra nada.
+  useRealtimeEvent(
+    "message:deleted",
+    useCallback(
+      (event) => {
+        if (event.chatId !== chatId) {
+          return
+        }
+
+        setMessages((previous) => previous.filter((message) => message.id !== event.messageId))
+      },
+      [chatId],
+    ),
+  )
+
+  // Reconciliação: uma carga por (re)conexão, cobrindo o que chegou enquanto o
+  // app esteve desconectado. Disparada por conexão, nunca por tempo.
+  useRealtimeConnection(useCallback(() => void load("silent"), [load]))
 
   // Faz a chamada ao servidor para uma mensagem já visível (otimista). Tenta
   // algumas vezes antes de desistir: cobre o cold start do servidor (a primeira

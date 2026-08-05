@@ -29,6 +29,13 @@ export async function fetchMessages(
   )
 }
 
+// Marca a conversa como lida sem baixar o histórico. Usado quando a mensagem
+// chega pelo WebSocket com a conversa já aberta na tela — abrir a tela já marca
+// pelo próprio `fetchMessages`.
+export async function markChatRead(chatId: string): Promise<ApiResult<{ read: number }>> {
+  return appFetch<{ read: number }>(`/chats/${chatId}/read`, { method: "POST" })
+}
+
 export async function sendMessage(
   chatId: string,
   content: string,

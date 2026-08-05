@@ -4,6 +4,7 @@ import { z } from "zod"
 import { getBlockedUserIds, isBlockedBetween } from "@/modules/blocks/service"
 import { sendPushToUser } from "@/modules/notifications/push"
 import { getOrCreateProfessionalProfileId } from "@/modules/professional/professional-context"
+import { publish } from "@/modules/realtime/registry"
 import { getOrCreateClientProfileId } from "@/modules/service-requests/client-profile"
 import type { AuthedContext } from "@/modules/shared/require-auth"
 import { getActiveSubscriberProfileIds } from "@/modules/subscriptions/entitlement"
@@ -201,6 +202,66 @@ export async function listChatsHandler(context: AuthedContext) {
   })
 }
 
+// Marca como lidas as mensagens recebidas na conversa e avisa quem as enviou.
+// Devolve quantas mudaram de estado.
+//
+// Os ids são buscados antes do update porque `updateMany` só devolve a
+// contagem — e o recibo precisa dizer *quais* mensagens foram lidas. Como a
+// conversa é 1:1 e o filtro exclui o próprio usuário, todas essas mensagens têm
+// o outro participante como remetente.
+async function markReceivedAsRead(
+  chatId: string,
+  userId: string,
+  senderUserId: string,
+): Promise<number> {
+  const unread = await prisma.message.findMany({
+    where: { chatId, senderId: { not: userId }, readAt: null },
+    select: { id: true },
+  })
+
+  if (unread.length === 0) {
+    return 0
+  }
+
+  const unreadIds = unread.map((message) => message.id)
+
+  await prisma.message.updateMany({
+    where: { id: { in: unreadIds } },
+    data: { readAt: new Date() },
+  })
+
+  // Só publicado quando algo mudou de estado: abrir uma conversa sem mensagens
+  // novas não gera evento.
+  publish(senderUserId, { type: "message:read", chatId, messageIds: unreadIds })
+
+  return unreadIds.length
+}
+
+// Marca a conversa como lida sem devolver o histórico. Existe para quando o
+// usuário já está com a conversa aberta e a mensagem chega pelo WebSocket: sem
+// isso ela ficaria como não lida até a tela ser reaberta. Rota separada em vez
+// de reusar o histórico para não trafegar todas as mensagens a cada recebimento.
+export async function markChatReadHandler(context: AuthedContext) {
+  const user = context.get("user")
+  const chatId = context.req.param("id")
+
+  const chat = await loadAuthorizedChat(chatId, user.id)
+
+  if (!chat) {
+    return chatNotFound(context)
+  }
+
+  const other = otherParticipant(chat, user.id)
+
+  if (await isBlockedBetween(user.id, other.userId)) {
+    return chatNotFound(context)
+  }
+
+  const read = await markReceivedAsRead(chat.id, user.id, other.userId)
+
+  return context.json({ read })
+}
+
 // Abre uma conversa: retorna o histórico em ordem cronológica e marca como lidas
 // as mensagens recebidas (o remetente passa a ver o recibo de leitura).
 export async function listMessagesHandler(context: AuthedContext) {
@@ -213,15 +274,14 @@ export async function listMessagesHandler(context: AuthedContext) {
     return chatNotFound(context)
   }
 
+  const other = otherParticipant(chat, user.id)
+
   // Conversa bloqueada fica indisponível como se não existisse (mesmo 404).
-  if (await isBlockedBetween(user.id, otherParticipant(chat, user.id).userId)) {
+  if (await isBlockedBetween(user.id, other.userId)) {
     return chatNotFound(context)
   }
 
-  await prisma.message.updateMany({
-    where: { chatId: chat.id, senderId: { not: user.id }, readAt: null },
-    data: { readAt: new Date() },
-  })
+  await markReceivedAsRead(chat.id, user.id, other.userId)
 
   const messages = await prisma.message.findMany({
     where: { chatId: chat.id },
@@ -314,6 +374,17 @@ export async function sendMessageHandler(context: AuthedContext) {
 
   void sendPushToUser(recipient.userId, "Nova mensagem", preview)
 
+  // Entrega em tempo real para quem está com o app aberto. Complementar como a
+  // notificação e o push acima: a mensagem já está gravada, então uma falha aqui
+  // não altera a resposta — o destinatário a encontra ao abrir a conversa.
+  // Serializada na perspectiva de quem recebe (`mine: false`), para o app
+  // inserir na tela sem nenhuma consulta.
+  publish(recipient.userId, {
+    type: "message:new",
+    chatId: chat.id,
+    message: serializeMessage(message, recipient.userId),
+  })
+
   return context.json({ message: serializeMessage(message, user.id) }, 201)
 }
 
@@ -372,6 +443,20 @@ export async function deleteMessageHandler(context: AuthedContext) {
   // acontecesse (mensagem lida nesse meio-tempo), a imagem sumiria de uma
   // mensagem que continua na conversa.
   await deleteImages([message.attachmentPublicId])
+
+  // Some da tela do destinatário na hora. Diferente do envio e da leitura, aqui
+  // o bloqueio não é verificado antes (a exclusão da própria mensagem continua
+  // permitida), então a checagem entra na publicação: conversa bloqueada não
+  // entrega evento.
+  const recipient = otherParticipant(chat, user.id)
+
+  if (!(await isBlockedBetween(user.id, recipient.userId))) {
+    publish(recipient.userId, {
+      type: "message:deleted",
+      chatId: chat.id,
+      messageId: message.id,
+    })
+  }
 
   return context.json({ deleted: true })
 }

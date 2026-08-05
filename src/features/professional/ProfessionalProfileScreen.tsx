@@ -11,6 +11,7 @@ import { routes } from "@/constants/routes"
 import { SectionHeader } from "@/features/client-home/components/SectionHeader"
 import { colors, radius, spacing } from "@/features/client-home/theme"
 import { useAuth } from "@/features/auth/hooks/useAuth"
+import { closeRealtime } from "@/features/realtime/client"
 import { EditableAvatar } from "@/features/uploads/EditableAvatar"
 import { pickPortfolioImage } from "@/features/uploads/portfolioUpload"
 import { useCatalog } from "@/features/service-requests/hooks"
@@ -158,6 +159,7 @@ export function ProfessionalProfileScreen() {
     if (!result.ok) {
       return result.error
     }
+    closeRealtime()
     await authClient.signOut().catch(() => {})
     router.replace(routes.login)
     return null

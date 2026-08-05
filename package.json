@@ -70,6 +70,7 @@
     "subs:reconcile": "tsx --tsconfig apps/api/tsconfig.json scripts/reconcile-subscriptions.ts",
     "subs:smoke": "tsx --tsconfig apps/api/tsconfig.json scripts/subscriptions-smoke.ts",
     "cities:smoke": "tsx --tsconfig apps/api/tsconfig.json scripts/cities-smoke.ts",
+    "realtime:smoke": "tsx --tsconfig apps/api/tsconfig.json scripts/realtime-smoke.ts",
     "categories:migrate": "tsx --tsconfig apps/api/tsconfig.json scripts/migrate-categories.ts"
   },
   "private": true

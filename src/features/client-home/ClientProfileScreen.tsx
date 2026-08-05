@@ -9,6 +9,7 @@ import { LoadingState } from "@/components/ui/LoadingState"
 import { Stars } from "@/components/ui/Stars"
 import { routes } from "@/constants/routes"
 import { useAuth } from "@/features/auth/hooks/useAuth"
+import { closeRealtime } from "@/features/realtime/client"
 import { EditableAvatar } from "@/features/uploads/EditableAvatar"
 import { authClient } from "@/lib/auth-client"
 
@@ -69,6 +70,7 @@ export function ClientProfileScreen() {
     if (!result.ok) {
       return result.error
     }
+    closeRealtime()
     await authClient.signOut().catch(() => {})
     router.replace(routes.login)
     return null

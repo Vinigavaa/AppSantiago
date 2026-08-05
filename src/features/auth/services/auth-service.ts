@@ -1,3 +1,4 @@
+import { closeRealtime } from "@/features/realtime/client"
 import { authBaseUrl, authClient } from "@/lib/auth-client"
 
 import type {
@@ -121,6 +122,10 @@ export async function signUp(input: SignUpInput): Promise<AuthResult> {
 }
 
 export async function signOut(): Promise<AuthResult> {
+  // A conexão de eventos morre com a sessão: sem isso ela tentaria reconectar
+  // com uma sessão que não existe mais.
+  closeRealtime()
+
   const response = await authClient.signOut()
 
   if (response.error) {

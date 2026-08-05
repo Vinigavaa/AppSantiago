@@ -10,6 +10,7 @@ import { emailVerificationGuard } from "@/modules/auth/email-verification-guard"
 import { publicSignUpGuard } from "@/modules/auth/public-sign-up-guard"
 import { authRoutes } from "@/modules/auth/routes"
 import { verifyCertificateHandler } from "@/modules/certificates/handlers"
+import { registerRealtimeWebSocket } from "@/modules/realtime/websocket"
 import { revenueCatWebhookHandler } from "@/modules/subscriptions/handlers"
 
 export const app = new Hono()
@@ -51,6 +52,11 @@ app.onError((error, context) => {
 app.notFound((context) => {
   return context.json({ code: "NOT_FOUND", message: "Recurso não encontrado." }, 404)
 })
+
+// Canal de eventos em tempo real do chat. Fica fora do grupo autenticado por
+// cookie: o handshake é autenticado pelo ticket de uso único obtido em
+// `POST /api/app/realtime/ticket`. O injetor é ligado ao servidor em `index.ts`.
+export const injectWebSocket = registerRealtimeWebSocket(app)
 
 app.use("/api/auth/*", authRateLimit)
 app.use("/api/auth/*", publicSignUpGuard)

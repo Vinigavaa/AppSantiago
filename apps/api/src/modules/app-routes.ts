@@ -22,6 +22,7 @@ import {
   deleteMessageHandler,
   listChatsHandler,
   listMessagesHandler,
+  markChatReadHandler,
   openChatHandler,
   sendMessageHandler,
 } from "@/modules/chat/handlers"
@@ -65,6 +66,7 @@ import {
   listReceivedProposalsHandler,
   rejectProposalHandler,
 } from "@/modules/proposals/handlers"
+import { createRealtimeTicketHandler } from "@/modules/realtime/handlers"
 import { createReviewHandler } from "@/modules/reviews/handlers"
 import {
   restoreSubscriptionHandler,
@@ -189,8 +191,15 @@ appRoutes.post("/chats", openChatHandler)
 appRoutes.get("/chats", listChatsHandler)
 appRoutes.get("/chats/:id/messages", listMessagesHandler)
 appRoutes.post("/chats/:id/messages", sendMessageHandler)
+// Marcar como lida sem baixar o histórico: usado quando a mensagem chega pelo
+// WebSocket com a conversa já aberta na tela.
+appRoutes.post("/chats/:id/read", markChatReadHandler)
 // Excluir mensagem enviada (apenas enquanto não foi lida pelo destinatário).
 appRoutes.delete("/chats/:id/messages/:messageId", deleteMessageHandler)
+
+// Ticket de uso único que autentica o handshake do WebSocket (`GET /ws`). Fica
+// aqui, sob a sessão, justamente para a conexão poder ser aberta sem cookie.
+appRoutes.post("/realtime/ticket", createRealtimeTicketHandler)
 
 // Bloqueio entre usuários: bloquear, listar bloqueados e desbloquear. O efeito
 // (sumir das listas/conversas) é aplicado nos próprios handlers de chat/oportunidades.
