@@ -196,9 +196,9 @@ export function useChat(chatId: string) {
     }, [load]),
   )
 
-  // Enquanto esta conversa estiver aberta, as mensagens dela não viram aviso
+  // Enquanto esta conversa estiver em foco, as mensagens dela não viram aviso
   // nem indicador: elas já aparecem aqui.
-  useActiveChat(chatId)
+  const isChatOpen = useActiveChat(chatId)
 
   // Mensagem nova da outra pessoa: entra na conversa na hora, sem consulta. O
   // id evita duplicar quando o evento e uma reconciliação se sobrepõem.
@@ -216,12 +216,15 @@ export function useChat(chatId: string) {
             : [...previous, event.message],
         )
 
-        // A conversa está aberta na tela: a mensagem já foi vista. Sem isso ela
-        // ficaria como não lida no servidor até a tela ser reaberta, e quem
-        // enviou nunca veria o recibo.
-        void markChatRead(chatId)
+        // Só marca como lida se a conversa estiver mesmo em foco. A tela
+        // continua montada depois que o usuário sai dela: marcar aqui de
+        // qualquer jeito daria a mensagem por vista sem ninguém ter visto, e
+        // zeraria o indicador de "Mensagens" no servidor.
+        if (isChatOpen.current) {
+          void markChatRead(chatId)
+        }
       },
-      [chatId],
+      [chatId, isChatOpen],
     ),
   )
 

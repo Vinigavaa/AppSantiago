@@ -58,15 +58,36 @@ export function useRefreshBadgesOnFocus() {
   )
 }
 
-// Declara qual conversa está aberta, enquanto a tela do chat estiver montada.
+// Declara qual conversa está aberta e devolve uma ref que responde à mesma
+// pergunta, para quem precisa consultá-la dentro de um handler.
+//
+// Amarrado ao FOCO, não à montagem: a tela do chat vive dentro do navegador de
+// abas e continua montada depois que o usuário sai dela. Com `useEffect`, a
+// última conversa visitada ficaria marcada como aberta para sempre — e nenhuma
+// mensagem dela voltaria a gerar indicador ou aviso.
 export function useActiveChat(chatId: string) {
-  const { setActiveChat } = useNotificationBadges()
+  const { setActiveChat, refresh } = useNotificationBadges()
+  const isOpen = useRef(false)
 
-  useEffect(() => {
-    setActiveChat(chatId)
+  useFocusEffect(
+    useCallback(() => {
+      isOpen.current = true
+      setActiveChat(chatId)
 
-    return () => setActiveChat(null)
-  }, [chatId, setActiveChat])
+      return () => {
+        isOpen.current = false
+        setActiveChat(null)
+
+        // Ao sair, revalida: abrir a conversa marcou as mensagens como lidas no
+        // servidor, e o indicador precisa refletir isso mesmo quando a volta não
+        // passa pela lista de conversas (é o caso de quem chegou aqui por um
+        // aviso, estando em outra aba).
+        refresh()
+      }
+    }, [chatId, refresh, setActiveChat]),
+  )
+
+  return isOpen
 }
 
 // Usado pela tela dona de uma aba: enquanto ela estiver em foco, o que já foi
