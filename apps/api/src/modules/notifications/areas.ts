@@ -37,12 +37,15 @@ const AREA_BY_TYPE: Record<NotificationType, { client: BadgeArea; professional: 
 // Tipos que rendem um aviso imediato (toast) além do indicador da aba: mudanças
 // que o usuário não deve descobrir só ao abrir a aba certa.
 //
-// MESSAGE_RECEIVED fica de fora de propósito: mensagem já tem push, contagem
-// própria e a conversa em si — um toast por mensagem recebida só poluiria.
+// MESSAGE_RECEIVED fica de fora daqui, mas mensagem também gera aviso: o app o
+// monta a partir do evento `message:new`, que já traz a mensagem pronta. Incluir
+// o tipo nesta lista faria o mesmo fato virar dois avisos.
 export const ALERT_TYPES: NotificationType[] = [
+  "PROPOSAL_RECEIVED",
   "PROPOSAL_ACCEPTED",
   "PROPOSAL_REJECTED",
   "SERVICE_UPDATED",
+  "REVIEW_RECEIVED",
 ]
 
 function isProfessional(role: string): boolean {

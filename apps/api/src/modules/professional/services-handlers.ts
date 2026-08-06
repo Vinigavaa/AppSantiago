@@ -2,7 +2,7 @@ import { prisma } from "@santiago/database"
 import type { Prisma } from "@prisma/client"
 import { z } from "zod"
 
-import { sendPushToUser } from "@/modules/notifications/push"
+import { notify } from "@/modules/notifications/notify"
 import type { AuthedContext } from "@/modules/shared/require-auth"
 
 import { getOrCreateProfessionalProfileId } from "./professional-context"
@@ -189,21 +189,14 @@ export async function startServiceHandler(context: AuthedContext) {
       where: { id: contract.serviceRequestId },
       data: { status: "IN_PROGRESS" },
     }),
-    prisma.notification.create({
-      data: {
-        userId: contract.client.userId,
-        type: "SERVICE_UPDATED",
-        title: "Serviço iniciado",
-        message: "O profissional iniciou o atendimento do seu serviço.",
-      },
-    }),
   ])
 
-  void sendPushToUser(
-    contract.client.userId,
-    "Serviço iniciado",
-    "O profissional iniciou o atendimento do seu serviço.",
-  )
+  await notify({
+    userId: contract.client.userId,
+    type: "SERVICE_UPDATED",
+    title: "Serviço iniciado",
+    message: "O profissional iniciou o atendimento do seu serviço.",
+  })
 
   return respondWithService(context, contract.id)
 }
@@ -233,21 +226,14 @@ export async function completeServiceHandler(context: AuthedContext) {
       where: { id: contract.serviceRequestId },
       data: { status: "COMPLETED" },
     }),
-    prisma.notification.create({
-      data: {
-        userId: contract.client.userId,
-        type: "SERVICE_UPDATED",
-        title: "Serviço concluído",
-        message: "O serviço foi concluído. Que tal avaliar o profissional?",
-      },
-    }),
   ])
 
-  void sendPushToUser(
-    contract.client.userId,
-    "Serviço concluído",
-    "O serviço foi concluído. Que tal avaliar o profissional?",
-  )
+  await notify({
+    userId: contract.client.userId,
+    type: "SERVICE_UPDATED",
+    title: "Serviço concluído",
+    message: "O serviço foi concluído. Que tal avaliar o profissional?",
+  })
 
   return respondWithService(context, contract.id)
 }

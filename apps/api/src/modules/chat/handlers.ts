@@ -2,7 +2,7 @@ import { prisma } from "@santiago/database"
 import { z } from "zod"
 
 import { getBlockedUserIds, isBlockedBetween } from "@/modules/blocks/service"
-import { sendPushToUser } from "@/modules/notifications/push"
+import { notify } from "@/modules/notifications/notify"
 import { getOrCreateProfessionalProfileId } from "@/modules/professional/professional-context"
 import { publish } from "@/modules/realtime/registry"
 import { getOrCreateClientProfileId } from "@/modules/service-requests/client-profile"
@@ -358,21 +358,18 @@ export async function sendMessageHandler(context: AuthedContext) {
   const previewBody = content || "📷 Foto"
   const preview = `${firstName(user.name)}: ${previewBody}`.slice(0, 120)
 
-  await prisma.notification
-    .create({
-      data: {
-        userId: recipient.userId,
-        type: "MESSAGE_RECEIVED",
-        title: "Nova mensagem",
-        message: preview,
-      },
-    })
-    .catch((error) => {
-      // A notificação é complementar; nunca deve derrubar o envio da mensagem.
-      console.error("[chat] falha ao criar notificação", error)
-    })
-
-  void sendPushToUser(recipient.userId, "Nova mensagem", preview)
+  // `publishRealtime: false`: o evento em tempo real desta mensagem é o
+  // `message:new` publicado logo abaixo, que já leva a mensagem pronta. Um
+  // `notification:new` do mesmo fato viraria um segundo aviso na tela.
+  await notify(
+    {
+      userId: recipient.userId,
+      type: "MESSAGE_RECEIVED",
+      title: "Nova mensagem",
+      message: preview,
+    },
+    { publishRealtime: false },
+  )
 
   // Entrega em tempo real para quem está com o app aberto. Complementar como a
   // notificação e o push acima: a mensagem já está gravada, então uma falha aqui
@@ -382,6 +379,7 @@ export async function sendMessageHandler(context: AuthedContext) {
   publish(recipient.userId, {
     type: "message:new",
     chatId: chat.id,
+    senderName: firstName(user.name),
     message: serializeMessage(message, recipient.userId),
   })
 

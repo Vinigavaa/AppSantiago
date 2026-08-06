@@ -1,6 +1,10 @@
+import type { Ionicons } from "@expo/vector-icons"
+
 import type { ToastTone } from "@/components/ui/Toast"
 
 import type { NotificationType } from "./types"
+
+type IoniconName = keyof typeof Ionicons.glyphMap
 
 // Áreas da navegação inferior que podem exibir indicador de pendência. Espelha
 // o contrato de GET /notifications/badges — o backend sempre devolve todas as
@@ -26,12 +30,31 @@ export type PendingAlert = {
   message: string
 }
 
-// Tom visual do aviso por tipo de notificação.
+// Tom visual do aviso por tipo de notificação. Um tipo ausente aqui não gera
+// toast — é o que mantém `SYSTEM` e `MESSAGE_RECEIVED` fora da tela (mensagem
+// tem aviso próprio, montado a partir do evento do chat).
 export const ALERT_TONE: Partial<Record<NotificationType, ToastTone>> = {
+  PROPOSAL_RECEIVED: "info",
   PROPOSAL_ACCEPTED: "success",
   PROPOSAL_REJECTED: "info",
   SERVICE_UPDATED: "danger",
+  REVIEW_RECEIVED: "success",
 }
+
+// Ícone da situação. Tipos que dividem o mesmo tom precisam de ícones próprios
+// para serem distinguidos de relance.
+export const ALERT_ICON: Partial<Record<NotificationType, IoniconName>> = {
+  PROPOSAL_RECEIVED: "document-text",
+  PROPOSAL_ACCEPTED: "checkmark-circle",
+  PROPOSAL_REJECTED: "information-circle",
+  SERVICE_UPDATED: "alert-circle",
+  REVIEW_RECEIVED: "star",
+}
+
+// Aviso de mensagem de chat: não nasce de uma notificação, e sim do evento
+// `message:new`, então tom e ícone são fixos.
+export const MESSAGE_ALERT_TONE: ToastTone = "info"
+export const MESSAGE_ALERT_ICON: IoniconName = "chatbubble-ellipses"
 
 export const EMPTY_BADGES: Badges = {
   proposals: 0,

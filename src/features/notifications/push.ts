@@ -25,7 +25,9 @@ async function getExpoPushToken(): Promise<string | null> {
     const Notifications = await import("expo-notifications")
 
     if (!Device.isDevice) {
-      console.warn("[push] emulador não recebe push remoto; o indicador depende do poll.")
+      console.warn(
+        "[push] emulador não recebe push remoto; com o app aberto o indicador continua vindo pelo WebSocket.",
+      )
       return null
     }
 
@@ -100,9 +102,9 @@ export function usePushRegistration(userId: string | undefined) {
   }, [userId])
 }
 
-// Avisa quando uma notificação push chega com o app aberto, para revalidar os
-// indicadores na hora. No Expo Go (sem push) o listener simplesmente não existe
-// e a atualização fica por conta do poll.
+// Avisa quando uma notificação push chega com o app aberto. Serve de rede de
+// segurança: com a conexão de eventos saudável o indicador já subiu antes disso.
+// No Expo Go (sem push) o listener simplesmente não existe.
 export function usePushReceived(onReceived: () => void) {
   const callback = useRef(onReceived)
   callback.current = onReceived

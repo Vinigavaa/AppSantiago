@@ -18,6 +18,11 @@ export type ToastOptions = {
   tone: ToastTone
   title: string
   message?: string
+  // Ícone da situação. Sem ele, vale o ícone do tom — que basta quando o tom já
+  // conta a história. Situações diferentes podem dividir o mesmo tom (proposta
+  // recebida e proposta não selecionada são ambas neutras) e aí o ícone é o que
+  // as distingue de relance.
+  icon?: keyof typeof Ionicons.glyphMap
 }
 
 type ShowToastFn = (options: ToastOptions) => void
@@ -82,7 +87,7 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
           >
             <Ionicons
               color={status[current.tone].color}
-              name={TONE_ICON[current.tone]}
+              name={current.icon ?? TONE_ICON[current.tone]}
               size={20}
             />
             <View style={styles.texts}>

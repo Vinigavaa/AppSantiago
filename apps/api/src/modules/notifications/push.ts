@@ -51,7 +51,3 @@ export async function sendPushToUsers(
     console.error("[push] falha ao enviar push", error)
   }
 }
-
-export function sendPushToUser(userId: string, title: string, body: string): Promise<void> {
-  return sendPushToUsers([userId], title, body)
-}

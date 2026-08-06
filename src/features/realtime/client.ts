@@ -12,8 +12,8 @@ import type { RealtimeEvent } from "./types"
 // conexão existe enquanto houver ao menos um assinante.
 
 // Heartbeat: sem ele, uma conexão cortada por proxy continua "aberta" para o app
-// e o chat silencia sem ninguém perceber — o pior modo de falha possível depois
-// de remover o polling.
+// e o chat e as notificações silenciam sem ninguém perceber — o pior modo de
+// falha possível depois de remover o polling.
 const HEARTBEAT_INTERVAL_MS = 25_000
 const PONG_TIMEOUT_MS = 10_000
 

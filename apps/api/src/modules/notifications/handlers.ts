@@ -68,8 +68,12 @@ export async function listNotificationsHandler(context: AuthedContext) {
 const MAX_PENDING_ALERTS = 5
 
 // Contagem de pendências por área da navegação inferior, mais os eventos que
-// merecem um aviso imediato no app. Chamado com frequência pelo poll, por isso
-// carrega no máximo 5 linhas além das agregações.
+// merecem um aviso imediato no app.
+//
+// Deixou de ser a fonte primária: o app atual recebe as novidades pelo
+// WebSocket e chama este endpoint apenas uma vez por conexão, para reconciliar.
+// Continua sendo consultado em intervalo pelas versões já instaladas, e por
+// isso o formato da resposta não pode mudar.
 export async function listNotificationBadgesHandler(context: AuthedContext) {
   const user = context.get("user")
 

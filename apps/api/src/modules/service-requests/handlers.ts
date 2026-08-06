@@ -1,6 +1,7 @@
 import { prisma } from "@santiago/database"
 import { z } from "zod"
 
+import { notifyMany } from "@/modules/notifications/notify"
 import type { AuthedContext } from "@/modules/shared/require-auth"
 import { deleteImages } from "@/modules/uploads/cleanup"
 import { type ResolvedPhoto, resolveRequestPhotos } from "@/modules/uploads/handlers"
@@ -365,7 +366,17 @@ export async function deleteServiceRequestHandler(context: AuthedContext) {
     where: { id, client: { userId: user.id } },
     select: {
       id: true,
+      // O título vai no aviso aos profissionais: sem ele, quem tem várias
+      // propostas em aberto não saberia qual delas caiu. Precisa ser lido agora,
+      // porque depois da exclusão a linha não existe mais.
+      title: true,
       serviceContracts: { select: { id: true, status: true } },
+      // As propostas caem em cascata junto com a solicitação. Os destinatários
+      // do aviso precisam ser carregados antes, pelo mesmo motivo.
+      proposals: {
+        where: { status: "PENDING" },
+        select: { professional: { select: { userId: true } } },
+      },
       // As fotos caem em cascata: o publicId precisa vir agora, antes das linhas
       // sumirem, senão não há como apagar os arquivos no CDN depois.
       photos: { select: { publicId: true } },
@@ -405,6 +416,18 @@ export async function deleteServiceRequestHandler(context: AuthedContext) {
   // Arquivos das fotos saem depois do banco confirmar: apagar antes arriscaria
   // remover imagens de uma solicitação que continuaria existindo.
   await deleteImages(existing.photos.map((photo) => photo.publicId))
+
+  // Quem tinha proposta pendente perde a oportunidade sem nenhuma ação própria:
+  // avisar é o mínimo. Só depois da exclusão confirmada — uma exclusão recusada
+  // (solicitação contratada) já retornou acima e não chega aqui.
+  await notifyMany(
+    existing.proposals.map((proposal) => ({
+      userId: proposal.professional.userId,
+      type: "SERVICE_UPDATED" as const,
+      title: "Solicitação excluída",
+      message: `O cliente excluiu a solicitação "${existing.title}". Sua proposta não está mais em disputa.`,
+    })),
+  )
 
   return context.json({ ok: true })
 }

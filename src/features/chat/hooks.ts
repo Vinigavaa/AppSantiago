@@ -3,6 +3,7 @@ import { useCallback, useRef, useState } from "react"
 import { Alert } from "react-native"
 
 import { routes } from "@/constants/routes"
+import { useActiveChat } from "@/features/notifications/badges-context"
 import { useRealtimeConnection, useRealtimeEvent } from "@/features/realtime/hooks"
 
 import {
@@ -194,6 +195,10 @@ export function useChat(chatId: string) {
       void load(loadedOnce.current ? "silent" : "initial")
     }, [load]),
   )
+
+  // Enquanto esta conversa estiver aberta, as mensagens dela não viram aviso
+  // nem indicador: elas já aparecem aqui.
+  useActiveChat(chatId)
 
   // Mensagem nova da outra pessoa: entra na conversa na hora, sem consulta. O
   // id evita duplicar quando o evento e uma reconciliação se sobrepõem.

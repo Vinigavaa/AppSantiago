@@ -1,7 +1,7 @@
 import { prisma } from "@santiago/database"
 import { z } from "zod"
 
-import { sendPushToUser } from "@/modules/notifications/push"
+import { notify, notifyMany } from "@/modules/notifications/notify"
 import type { AuthedContext } from "@/modules/shared/require-auth"
 
 const idSchema = z.uuid()
@@ -109,26 +109,19 @@ export async function cancelContractHandler(context: AuthedContext) {
         where: { id: contract.serviceRequestId },
         data: { status: "OPEN" },
       }),
-      prisma.notification.create({
-        data: {
-          userId: contract.client.userId,
-          type: "SERVICE_UPDATED",
-          title: "Profissional cancelou o serviço",
-          // O ponteiro para a aba evita que o cliente procure a proposta onde
-          // ela não está mais: cancelada, ela sai de "Aceitas" e vai para
-          // "Recusadas". Mesmo texto no toast, na central e no push.
-          message: reason
-            ? `${CANCELED_BY_PROFESSIONAL_MESSAGE} Motivo: ${reason}`
-            : CANCELED_BY_PROFESSIONAL_MESSAGE,
-        },
-      }),
     ])
 
-    void sendPushToUser(
-      contract.client.userId,
-      "Profissional cancelou o serviço",
-      CANCELED_BY_PROFESSIONAL_MESSAGE,
-    )
+    await notify({
+      userId: contract.client.userId,
+      type: "SERVICE_UPDATED",
+      title: "Profissional cancelou o serviço",
+      // O ponteiro para a aba evita que o cliente procure a proposta onde ela
+      // não está mais: cancelada, ela sai de "Aceitas" e vai para "Recusadas".
+      // Mesmo texto no toast, na central e no push.
+      message: reason
+        ? `${CANCELED_BY_PROFESSIONAL_MESSAGE} Motivo: ${reason}`
+        : CANCELED_BY_PROFESSIONAL_MESSAGE,
+    })
 
     return context.json({ ok: true })
   }
@@ -151,23 +144,16 @@ export async function cancelContractHandler(context: AuthedContext) {
       where: { id: contract.serviceRequestId },
       data: { status: "CANCELED" },
     }),
-    prisma.notification.create({
-      data: {
-        userId: contract.professional.userId,
-        type: "SERVICE_UPDATED",
-        title: "Serviço cancelado",
-        message: reason
-          ? `O cliente cancelou o serviço. Motivo: ${reason}`
-          : "O cliente cancelou o serviço.",
-      },
-    }),
   ])
 
-  void sendPushToUser(
-    contract.professional.userId,
-    "Serviço cancelado",
-    reason ? `O cliente cancelou o serviço. Motivo: ${reason}` : "O cliente cancelou o serviço.",
-  )
+  await notify({
+    userId: contract.professional.userId,
+    type: "SERVICE_UPDATED",
+    title: "Serviço cancelado",
+    message: reason
+      ? `O cliente cancelou o serviço. Motivo: ${reason}`
+      : "O cliente cancelou o serviço.",
+  })
 
   return context.json({ ok: true })
 }
@@ -247,29 +233,22 @@ export async function reportNoShowHandler(context: AuthedContext) {
       where: { id: contract.serviceRequestId },
       data: { status: "OPEN" },
     }),
-    prisma.notification.create({
-      data: {
-        userId: contract.professional.userId,
-        type: "SERVICE_UPDATED",
-        title: "Contratação cancelada",
-        message: `A contratação foi cancelada por não comparecimento. Motivo: ${reason}`,
-      },
-    }),
-    prisma.notification.create({
-      data: {
-        userId: user.id,
-        type: "SERVICE_UPDATED",
-        title: "Solicitação reaberta",
-        message: "Sua solicitação voltou a receber propostas de outros profissionais.",
-      },
-    }),
   ])
 
-  void sendPushToUser(
-    contract.professional.userId,
-    "Contratação cancelada",
-    `A contratação foi cancelada por não comparecimento. Motivo: ${reason}`,
-  )
+  await notifyMany([
+    {
+      userId: contract.professional.userId,
+      type: "SERVICE_UPDATED",
+      title: "Contratação cancelada",
+      message: `A contratação foi cancelada por não comparecimento. Motivo: ${reason}`,
+    },
+    {
+      userId: user.id,
+      type: "SERVICE_UPDATED",
+      title: "Solicitação reaberta",
+      message: "Sua solicitação voltou a receber propostas de outros profissionais.",
+    },
+  ])
 
   return context.json({ ok: true })
 }

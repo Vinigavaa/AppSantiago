@@ -4,7 +4,7 @@ import { z } from "zod"
 
 import { env } from "@/config/env"
 import { getBlockedUserIds, isBlockedBetween } from "@/modules/blocks/service"
-import { sendPushToUser, sendPushToUsers } from "@/modules/notifications/push"
+import { notify, notifyMany } from "@/modules/notifications/notify"
 import { getProfessionalCoverage } from "@/modules/professional/professional-context"
 import type { AuthedContext } from "@/modules/shared/require-auth"
 import {
@@ -160,26 +160,12 @@ export async function createProposalHandler(context: AuthedContext) {
     },
   })
 
-  // Estrutura pronta para futuras notificações push. Por ora persiste o registro.
-  await prisma.notification
-    .create({
-      data: {
-        userId: request.client.userId,
-        type: "PROPOSAL_RECEIVED",
-        title: "Nova proposta recebida",
-        message: "Você recebeu uma nova proposta para seu serviço.",
-      },
-    })
-    .catch((error) => {
-      // A notificação é complementar; não deve derrubar o envio da proposta.
-      console.error("[proposals] falha ao criar notificação", error)
-    })
-
-  void sendPushToUser(
-    request.client.userId,
-    "Nova proposta recebida",
-    "Você recebeu uma nova proposta para seu serviço.",
-  )
+  await notify({
+    userId: request.client.userId,
+    type: "PROPOSAL_RECEIVED",
+    title: "Nova proposta recebida",
+    message: "Você recebeu uma nova proposta para seu serviço.",
+  })
 
   return context.json({ proposal: serializeOwnProposal(proposal) }, 201)
 }
@@ -323,26 +309,6 @@ export async function acceptProposalHandler(context: AuthedContext) {
         where: { id: proposal.serviceRequestId },
         data: { status: "ACCEPTED" },
       }),
-      prisma.notification.create({
-        data: {
-          userId: proposal.professional.userId,
-          type: "PROPOSAL_ACCEPTED",
-          title: "Proposta aceita",
-          message: "Sua proposta foi aceita.",
-        },
-      }),
-      ...(siblings.length > 0
-        ? [
-            prisma.notification.createMany({
-              data: siblings.map((sibling) => ({
-                userId: sibling.professional.userId,
-                type: "PROPOSAL_REJECTED" as const,
-                title: "Proposta não selecionada",
-                message: "Sua proposta não foi selecionada.",
-              })),
-            }),
-          ]
-        : []),
     ])
   } catch (error) {
     // Corrida de aceites concorrentes: o índice único de proposalId no contrato
@@ -356,14 +322,22 @@ export async function acceptProposalHandler(context: AuthedContext) {
     throw error
   }
 
-  void sendPushToUser(proposal.professional.userId, "Proposta aceita", "Sua proposta foi aceita.")
-  if (siblings.length > 0) {
-    void sendPushToUsers(
-      siblings.map((sibling) => sibling.professional.userId),
-      "Proposta não selecionada",
-      "Sua proposta não foi selecionada.",
-    )
-  }
+  // Depois do commit: o escolhido é avisado do aceite e os demais, de que a
+  // proposta não foi selecionada.
+  await notifyMany([
+    {
+      userId: proposal.professional.userId,
+      type: "PROPOSAL_ACCEPTED",
+      title: "Proposta aceita",
+      message: "Sua proposta foi aceita.",
+    },
+    ...siblings.map((sibling) => ({
+      userId: sibling.professional.userId,
+      type: "PROPOSAL_REJECTED" as const,
+      title: "Proposta não selecionada",
+      message: "Sua proposta não foi selecionada.",
+    })),
+  ])
 
   return respondWithUpdatedProposal(context, proposal.id)
 }
@@ -378,23 +352,14 @@ export async function rejectProposalHandler(context: AuthedContext) {
 
   const { proposal } = loaded
 
-  await prisma.$transaction([
-    prisma.proposal.update({ where: { id: proposal.id }, data: { status: "REJECTED" } }),
-    prisma.notification.create({
-      data: {
-        userId: proposal.professional.userId,
-        type: "PROPOSAL_REJECTED",
-        title: "Proposta não selecionada",
-        message: "Sua proposta não foi selecionada.",
-      },
-    }),
-  ])
+  await prisma.proposal.update({ where: { id: proposal.id }, data: { status: "REJECTED" } })
 
-  void sendPushToUser(
-    proposal.professional.userId,
-    "Proposta não selecionada",
-    "Sua proposta não foi selecionada.",
-  )
+  await notify({
+    userId: proposal.professional.userId,
+    type: "PROPOSAL_REJECTED",
+    title: "Proposta não selecionada",
+    message: "Sua proposta não foi selecionada.",
+  })
 
   return respondWithUpdatedProposal(context, proposal.id)
 }

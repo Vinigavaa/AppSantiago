@@ -1,7 +1,7 @@
 import { prisma } from "@santiago/database"
 import { Prisma } from "@prisma/client"
 
-import { sendPushToUser } from "@/modules/notifications/push"
+import { notify } from "@/modules/notifications/notify"
 import type { AuthedContext } from "@/modules/shared/require-auth"
 
 import { createReviewSchema } from "./schemas"
@@ -97,17 +97,6 @@ export async function createReviewHandler(context: AuthedContext) {
           data: { ratingAverage: stats._avg.rating ?? 0, ratingCount: stats._count.rating },
         })
       }
-
-      await tx.notification.create({
-        data: {
-          userId: reviewedId,
-          type: "REVIEW_RECEIVED",
-          title: "Você recebeu uma avaliação",
-          message: isClient
-            ? "Um cliente avaliou o serviço que você realizou."
-            : "Um profissional avaliou você como cliente.",
-        },
-      })
     })
   } catch (error) {
     // Índice único impede avaliação duplicada do mesmo contrato pelo mesmo autor.
@@ -120,13 +109,14 @@ export async function createReviewHandler(context: AuthedContext) {
     throw error
   }
 
-  void sendPushToUser(
-    reviewedId,
-    "Você recebeu uma avaliação",
-    isClient
+  await notify({
+    userId: reviewedId,
+    type: "REVIEW_RECEIVED",
+    title: "Você recebeu uma avaliação",
+    message: isClient
       ? "Um cliente avaliou o serviço que você realizou."
       : "Um profissional avaliou você como cliente.",
-  )
+  })
 
   return context.json({ ok: true }, 201)
 }
