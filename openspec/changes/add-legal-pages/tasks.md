@@ -43,6 +43,6 @@
 ## 6. Publicação
 
 - [x] 6.1 Preencher `CONTROLLER` com o nome completo e o email de contato reais — Rodrigo Santiago / maosaobra@suporte.com.br
-- [ ] 6.2 Push para `main` e confirmar as três URLs em produção pelo navegador e pelo celular
+- [x] 6.2 Push para `main` e confirmar as três URLs em produção — commit d5fa251, as três respondem 200 em HTML
 - [ ] 6.3 Abrir a tela de assinatura em um build já publicado e confirmar que os dois links abrem conteúdo válido
 - [ ] 6.4 Cadastrar a URL de privacidade na ficha da Play Store e as duas URLs no App Store Connect (ação manual, fora do código)
