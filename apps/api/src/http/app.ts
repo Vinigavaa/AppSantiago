@@ -5,6 +5,7 @@ import { logger } from "hono/logger"
 import { corsOrigins } from "@/config/env"
 import { authRateLimit, createRateLimitMiddleware } from "@/http/rate-limit"
 import { landingPages } from "@/http/landing-pages"
+import { legalPages } from "@/http/legal-pages"
 import { appRoutes } from "@/modules/app-routes"
 import { emailVerificationGuard } from "@/modules/auth/email-verification-guard"
 import { publicSignUpGuard } from "@/modules/auth/public-sign-up-guard"
@@ -85,3 +86,7 @@ app.use("/api/certificates/*", certificateRateLimit)
 app.get("/api/certificates/:code", verifyCertificateHandler)
 
 app.route("/", landingPages)
+
+// Termos de Uso e Politica de Privacidade. Publicos e sem autenticacao: sao as
+// URLs que o app linka na tela de assinatura e que ficam nas fichas das lojas.
+app.route("/", legalPages)

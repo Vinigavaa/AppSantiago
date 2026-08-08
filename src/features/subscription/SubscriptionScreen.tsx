@@ -19,8 +19,8 @@ import { openStoreManagement } from "./purchases"
 import type { PlanOffer } from "./purchases"
 import type { SubscriptionPlan } from "./types"
 
-// Links obrigatorios (Apple/Google) perto da compra. Configuraveis por env; padrao
-// aponta para o dominio de producao — crie as paginas antes de publicar.
+// Links obrigatorios (Apple/Google) perto da compra. Configuraveis por env; o padrao
+// aponta para as paginas servidas pela propria API (apps/api/src/http/legal-pages.ts).
 const TERMS_URL = process.env.EXPO_PUBLIC_TERMS_URL ?? "https://appsantiago.onrender.com/termos"
 const PRIVACY_URL =
   process.env.EXPO_PUBLIC_PRIVACY_URL ?? "https://appsantiago.onrender.com/privacidade"
