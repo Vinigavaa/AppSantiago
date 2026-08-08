@@ -1,5 +1,6 @@
 import { prisma } from "@santiago/database"
 
+import { offensiveTextResponse } from "@/modules/moderation/text-filter"
 import type { AuthedContext } from "@/modules/shared/require-auth"
 
 import { getOrCreateClientProfileId } from "./client-context"
@@ -48,6 +49,12 @@ export async function updateClientProfileHandler(context: AuthedContext) {
 
   const { name } = parsed.data
 
+  const offensive = offensiveTextResponse(context, "client-profile:update", user.id, [name])
+
+  if (offensive) {
+    return offensive
+  }
+
   let phone: string | null = null
   const rawPhone = normalizeOptional(parsed.data.phone)
 
@@ -81,7 +88,7 @@ export async function clientReviewsHandler(context: AuthedContext) {
   }
 
   const reviews = await prisma.review.findMany({
-    where: { reviewedId: user.id },
+    where: { reviewedId: user.id, hiddenAt: null },
     select: {
       id: true,
       rating: true,

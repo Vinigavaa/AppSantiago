@@ -1,5 +1,6 @@
 import { prisma } from "@santiago/database"
 
+import { offensiveTextResponse } from "@/modules/moderation/text-filter"
 import type { AuthedContext } from "@/modules/shared/require-auth"
 
 import { getProfessionalProfilePayload } from "./profile-data"
@@ -58,6 +59,17 @@ export async function updateProfessionalProfileHandler(context: AuthedContext) {
   const displayName = normalizeOptional(parsed.data.displayName)
   const bio = normalizeOptional(parsed.data.bio)
   const profession = normalizeOptional(parsed.data.profession)
+
+  const offensive = offensiveTextResponse(context, "professional-profile:update", user.id, [
+    name,
+    displayName,
+    bio,
+    profession,
+  ])
+
+  if (offensive) {
+    return offensive
+  }
 
   let phone: string | null = null
   const rawPhone = normalizeOptional(parsed.data.phone)
@@ -190,6 +202,14 @@ export async function createCategorySuggestionHandler(context: AuthedContext) {
     return invalidData(context, parsed.error.issues[0]?.message ?? "Sugestão inválida.")
   }
 
+  const offensive = offensiveTextResponse(context, "category-suggestion:create", user.id, [
+    parsed.data.name,
+  ])
+
+  if (offensive) {
+    return offensive
+  }
+
   const professionalId = await getOrCreateProfessionalProfileId(user.id)
 
   await prisma.categorySuggestion.create({
@@ -207,7 +227,7 @@ export async function professionalReviewsHandler(context: AuthedContext) {
   }
 
   const reviews = await prisma.review.findMany({
-    where: { reviewedId: user.id },
+    where: { reviewedId: user.id, hiddenAt: null },
     select: {
       id: true,
       rating: true,

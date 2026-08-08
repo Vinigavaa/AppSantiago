@@ -16,6 +16,9 @@ export async function countUnreadMessages(userId: string): Promise<number> {
     where: {
       readAt: null,
       senderId: { not: userId },
+      // Mensagem ocultada por moderação não existe para o destinatário — e não
+      // pode deixar o badge de "Mensagens" aceso para sempre.
+      hiddenAt: null,
       chat: {
         OR: [{ client: { userId } }, { professional: { userId } }],
         NOT: [

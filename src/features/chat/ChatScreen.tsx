@@ -1,5 +1,5 @@
 import { type Href, router } from "expo-router"
-import { useRef } from "react"
+import { useRef, useState } from "react"
 import { Alert, FlatList, Platform, StyleSheet, Text, View } from "react-native"
 import { useSafeAreaInsets } from "react-native-safe-area-context"
 
@@ -8,6 +8,7 @@ import { LoadingState } from "@/components/ui/LoadingState"
 import { routes } from "@/constants/routes"
 import { blockUser } from "@/features/blocks/service"
 import { colors, spacing } from "@/features/client-home/theme"
+import { ReportSheet } from "@/features/reports/ReportSheet"
 import { useKeyboardHeight } from "@/lib/use-keyboard-height"
 
 import { ChatHeader } from "./components/ChatHeader"
@@ -31,6 +32,8 @@ export function ChatScreen({ chatId }: { chatId: string }) {
   const { messages, otherUser, isLoading, error, send, retry, remove } = useChat(chatId)
   const listRef = useRef<FlatList>(null)
   const keyboardHeight = useKeyboardHeight()
+  // Alvo da denúncia em aberto: a pessoa (pelo menu) ou uma mensagem recebida.
+  const [report, setReport] = useState<{ type: "USER" | "MESSAGE"; id: string } | null>(null)
 
   // No Android o `softwareKeyboardLayoutMode: "resize"` já encolhe a janela: somar
   // padding aqui abriria uma faixa vazia entre o campo e o teclado. No iOS a
@@ -65,10 +68,34 @@ export function ChatScreen({ chatId }: { chatId: string }) {
     }
   }
 
-  // Pressionar e segurar uma mensagem enviada: só é possível excluir enquanto ela
-  // não foi lida. Mensagens ainda em envio/falha não entram nesse fluxo.
+  // Menu da conversa: denunciar a pessoa ou bloquear. As duas ações vivem juntas
+  // porque quem abre o menu costuma estar reagindo ao mesmo incômodo.
+  function openMenu() {
+    if (!otherUser) {
+      return
+    }
+
+    Alert.alert(otherUser.name, undefined, [
+      { text: "Cancelar", style: "cancel" },
+      {
+        text: "Denunciar",
+        onPress: () => setReport({ type: "USER", id: otherUser.userId }),
+      },
+      { text: "Bloquear", style: "destructive", onPress: confirmBlock },
+    ])
+  }
+
+  // Pressionar e segurar uma mensagem. Na recebida, a ação é denunciar; na
+  // enviada, excluir — e só enquanto ela não foi lida.
   async function handleLongPress(message: ChatMessage) {
-    if (!message.mine || message.status) {
+    if (!message.mine) {
+      if (otherUser) {
+        setReport({ type: "MESSAGE", id: message.id })
+      }
+      return
+    }
+
+    if (message.status) {
       return
     }
 
@@ -101,7 +128,7 @@ export function ChatScreen({ chatId }: { chatId: string }) {
     <View style={[styles.screen, { paddingBottom: keyboardInset }]}>
       <ChatHeader
         onBack={() => router.back()}
-        onBlock={confirmBlock}
+        onOpenMenu={openMenu}
         onOpenProfile={profileHref ? () => router.push(profileHref) : undefined}
         otherUser={otherUser}
         paddingTop={insets.top}
@@ -138,6 +165,18 @@ export function ChatScreen({ chatId }: { chatId: string }) {
           abas já reserva a área segura de baixo. Somar o inset de novo abriria
           uma faixa vazia entre o campo e a barra. */}
       <MessageInput onSend={send} />
+
+      {report && otherUser ? (
+        <ReportSheet
+          onBlocked={() => router.back()}
+          onClose={() => setReport(null)}
+          targetId={report.id}
+          targetType={report.type}
+          targetUserId={otherUser.userId}
+          targetUserName={otherUser.name}
+          visible
+        />
+      ) : null}
     </View>
   )
 }

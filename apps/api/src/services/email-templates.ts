@@ -104,6 +104,68 @@ export function renderVerificationEmail(input: RenderInput): RenderedEmail {
   return { subject, text, html }
 }
 
+type ReportNotificationInput = {
+  reportId: string
+  targetType: string
+  targetId: string
+  targetSummary: string
+  authorUserId: string
+  reason: string
+  details: string | null
+  reporterId: string
+  reporterEmail: string
+}
+
+// Aviso interno para a caixa de moderacao. Nao vai para usuario: traz os ids crus
+// que a ferramenta `npm run moderate` usa, para o operador agir dentro das 24h.
+export function renderReportNotificationEmail(
+  input: ReportNotificationInput,
+): RenderedEmail {
+  const subject = `[Moderacao] Denuncia ${input.reason} em ${input.targetType}`
+
+  const rows: [string, string][] = [
+    ["Denuncia", input.reportId],
+    ["Motivo", input.reason],
+    ["Tipo do alvo", input.targetType],
+    ["Id do alvo", input.targetId],
+    ["Conteudo", input.targetSummary],
+    ["Autor do conteudo", input.authorUserId],
+    ["Detalhe do denunciante", input.details ?? "(nao informado)"],
+    ["Denunciante", `${input.reporterEmail} (${input.reporterId})`],
+  ]
+
+  const body = `
+    <p style="margin:0 0 16px;">Uma nova denuncia foi registrada e precisa de analise em ate <strong>24 horas</strong>.</p>
+    <table role="presentation" cellpadding="0" cellspacing="0" width="100%" style="font-size:14px;line-height:1.6;">
+      ${rows
+        .map(
+          ([label, value]) => `<tr>
+        <td style="padding:6px 12px 6px 0;color:#475569;white-space:nowrap;vertical-align:top;">${escapeHtml(label)}</td>
+        <td style="padding:6px 0;color:#0F172A;word-break:break-word;">${escapeHtml(value)}</td>
+      </tr>`,
+        )
+        .join("")}
+    </table>
+    <p style="margin:20px 0 0;font-size:14px;color:#475569;">Para agir: <code>npm run moderate -- show ${escapeHtml(input.reportId)}</code></p>
+  `
+
+  const text = [
+    "Nova denuncia registrada. Analise em ate 24 horas.",
+    "",
+    ...rows.map(([label, value]) => `${label}: ${value}`),
+    "",
+    `Para agir: npm run moderate -- show ${input.reportId}`,
+  ].join("\n")
+
+  const html = baseLayout({
+    title: "Nova denuncia",
+    preheader: `Denuncia ${input.reason} em ${input.targetType}.`,
+    body,
+  })
+
+  return { subject, text, html }
+}
+
 export function renderPasswordResetEmail(input: RenderInput): RenderedEmail {
   const subject = "Redefinicao de senha no Mãos à Obra"
   const greeting = greet(input.userName)

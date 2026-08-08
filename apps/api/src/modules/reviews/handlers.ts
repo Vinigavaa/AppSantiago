@@ -1,6 +1,7 @@
 import { prisma } from "@santiago/database"
 import { Prisma } from "@prisma/client"
 
+import { offensiveTextResponse } from "@/modules/moderation/text-filter"
 import { notify } from "@/modules/notifications/notify"
 import type { AuthedContext } from "@/modules/shared/require-auth"
 
@@ -27,6 +28,12 @@ export async function createReviewHandler(context: AuthedContext) {
   }
 
   const input = parsed.data
+
+  const offensive = offensiveTextResponse(context, "review:create", user.id, [input.comment])
+
+  if (offensive) {
+    return offensive
+  }
 
   const contract = await prisma.serviceContract.findUnique({
     where: { id: input.serviceContractId },
@@ -81,7 +88,9 @@ export async function createReviewHandler(context: AuthedContext) {
       // Recalcula a reputação do avaliado a partir de todas as avaliações
       // recebidas por ele, e grava no perfil correspondente.
       const stats = await tx.review.aggregate({
-        where: { reviewedId },
+        // Avaliação ocultada por moderação não volta a contar quando a reputação
+        // é recalculada por uma avaliação nova.
+        where: { reviewedId, hiddenAt: null },
         _avg: { rating: true },
         _count: { rating: true },
       })

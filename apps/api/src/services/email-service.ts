@@ -1,6 +1,10 @@
 import { env } from "@/config/env"
 
-import { renderPasswordResetEmail, renderVerificationEmail } from "./email-templates"
+import {
+  renderPasswordResetEmail,
+  renderReportNotificationEmail,
+  renderVerificationEmail,
+} from "./email-templates"
 
 type SendEmailInput = {
   to: string
@@ -97,6 +101,29 @@ export async function sendVerificationEmail(input: {
 
   await sendEmail({
     to: input.to,
+    subject: rendered.subject,
+    text: rendered.text,
+    html: rendered.html,
+  })
+}
+
+// Aviso de denuncia para a caixa de moderacao. Quem chama trata a falha: a
+// denuncia ja esta gravada e nao pode ser perdida porque o email nao saiu.
+export async function sendReportNotificationEmail(input: {
+  reportId: string
+  targetType: string
+  targetId: string
+  targetSummary: string
+  authorUserId: string
+  reason: string
+  details: string | null
+  reporterId: string
+  reporterEmail: string
+}) {
+  const rendered = renderReportNotificationEmail(input)
+
+  await sendEmail({
+    to: env.MODERATION_EMAIL,
     subject: rendered.subject,
     text: rendered.text,
     html: rendered.html,

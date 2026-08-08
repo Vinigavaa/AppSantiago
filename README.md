@@ -145,6 +145,7 @@ EMAIL_PROVIDER="console"          # use "resend" em producao
 EMAIL_FROM="Santiago <no-reply@santiago.local>"
 # EMAIL_REPLY_TO="suporte@seudominio.com" # opcional
 RESEND_API_KEY=""
+MODERATION_EMAIL="maosaobra@suporte.com.br"  # obrigatoria: recebe cada denuncia
 ```
 
 Em producao, `EMAIL_PROVIDER=console` e bloqueado. A API publica esta hospedada
@@ -161,6 +162,7 @@ CORS_ORIGIN="https://appsantiago.onrender.com"
 EMAIL_PROVIDER="resend"
 EMAIL_FROM="Santiago <noreply@appsantiago.online>"
 RESEND_API_KEY="re_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+MODERATION_EMAIL="maosaobra@suporte.com.br"
 # EMAIL_REPLY_TO="suporte@appsantiago.online" # opcional
 ```
 
@@ -174,6 +176,41 @@ Importante:
 - `APP_DEEP_LINK_SCHEME` casa com `scheme` do `app.json` do Expo. Os links de
   reset de senha usam esse esquema.
 - Nunca coloque `DATABASE_URL`, `BETTER_AUTH_SECRET` ou `RESEND_API_KEY` no app mobile.
+- `MODERATION_EMAIL` e obrigatoria: a API nao sobe sem ela. E a caixa que recebe o
+  aviso de cada denuncia — perder denuncia em silencio quebraria o prazo de 24h
+  exigido pela regra 1.2 da App Store.
+
+## Moderacao
+
+Denuncias feitas no app entram numa fila operada por linha de comando (nao ha
+painel administrativo). O prazo de analise e de 24 horas.
+
+```bash
+npm run moderate -- list
+```
+
+Comandos disponiveis:
+
+```bash
+npm run moderate -- list                        # pendentes, atrasadas primeiro
+npm run moderate -- show <reportId>             # conteudo denunciado e contexto
+npm run moderate -- hide <reportId> "motivo"    # oculta o conteudo (nao apaga)
+npm run moderate -- suspend <userId> "motivo"   # suspende o usuario
+npm run moderate -- unsuspend <userId>          # reativa o usuario
+npm run moderate -- resolve <reportId> "nota"   # fecha como resolvida
+npm run moderate -- dismiss <reportId> "nota"   # fecha como improcedente
+```
+
+Smoke test do fluxo completo (filtro de texto, denuncia, ocultacao e suspensao):
+
+```bash
+EMAIL_PROVIDER=console npm run moderation:smoke
+```
+
+Para agir sobre producao, exporte o `DATABASE_URL` de producao antes de rodar.
+Conteudo ocultado some de todas as leituras da API mas continua no banco, para
+auditoria. Usuario suspenso recebe 403 `ACCOUNT_SUSPENDED` em toda rota
+autenticada e some das listagens publicas.
 
 ## Banco De Dados
 

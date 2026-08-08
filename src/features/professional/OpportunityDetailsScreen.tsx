@@ -16,6 +16,7 @@ import {
   getProposalStatusStyle,
 } from "@/features/proposals/format"
 import { cancelProposal } from "@/features/proposals/service"
+import { ReportSheet } from "@/features/reports/ReportSheet"
 import type { OwnProposal } from "@/features/proposals/types"
 import { PhotoStrip } from "@/features/service-requests/components/PhotoStrip"
 import {
@@ -42,6 +43,7 @@ export function OpportunityDetailsScreen() {
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [formOpen, setFormOpen] = useState(false)
+  const [isReporting, setIsReporting] = useState(false)
 
   const load = useCallback(async () => {
     if (!id) {
@@ -109,7 +111,23 @@ export function OpportunityDetailsScreen() {
 
   return (
     <View style={styles.screen}>
-      <ScreenHeader onBack={() => router.back()} title="Detalhes da oportunidade" />
+      <ScreenHeader
+        onBack={() => router.back()}
+        right={
+          opportunity ? (
+            <Pressable
+              accessibilityLabel="Denunciar solicitação"
+              accessibilityRole="button"
+              hitSlop={8}
+              onPress={() => setIsReporting(true)}
+              style={({ pressed }) => [styles.reportButton, pressed && styles.pressed]}
+            >
+              <Ionicons color={colors.textPrimary} name="flag-outline" size={18} />
+            </Pressable>
+          ) : undefined
+        }
+        title="Detalhes da oportunidade"
+      />
 
       {isLoading ? (
         <LoadingState />
@@ -141,6 +159,17 @@ export function OpportunityDetailsScreen() {
           onSent={handleSent}
           serviceRequestId={opportunity.id}
           visible={formOpen}
+        />
+      ) : null}
+
+      {opportunity && isReporting ? (
+        <ReportSheet
+          onClose={() => setIsReporting(false)}
+          targetId={opportunity.id}
+          targetType="SERVICE_REQUEST"
+          targetUserId={client?.userId}
+          targetUserName={client?.name}
+          visible
         />
       ) : null}
     </View>
@@ -374,6 +403,14 @@ function InfoRow({
 }
 
 const styles = StyleSheet.create({
+  reportButton: {
+    alignItems: "center",
+    backgroundColor: colors.iconMutedBg,
+    borderRadius: 999,
+    height: 36,
+    justifyContent: "center",
+    width: 36,
+  },
   cancelButton: {
     alignItems: "center",
     borderColor: colors.danger,

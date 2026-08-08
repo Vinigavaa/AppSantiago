@@ -30,6 +30,8 @@ export async function getProfessionalProfilePayload(user: AuthenticatedUser) {
           orderBy: { createdAt: "asc" },
         },
         portfolioItems: {
+          // Item ocultado por moderação some inclusive para o próprio dono.
+          where: { hiddenAt: null },
           select: { id: true, title: true, description: true, imageUrl: true },
           orderBy: { createdAt: "desc" },
         },
@@ -50,7 +52,8 @@ export async function getProfessionalProfilePayload(user: AuthenticatedUser) {
         : 0,
       prisma.review.groupBy({
         by: ["rating"],
-        where: { reviewedId: user.id },
+        // Avaliação ocultada por moderação não conta na distribuição de notas.
+        where: { reviewedId: user.id, hiddenAt: null },
         _count: { _all: true },
       }),
       // Selo Pro do próprio profissional (assinatura ativa). Sem perfil, sem selo.

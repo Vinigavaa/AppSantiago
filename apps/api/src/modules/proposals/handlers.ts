@@ -81,8 +81,9 @@ export async function createProposalHandler(context: AuthedContext) {
     return forbidden(context, "Seu perfil está indisponível. Reative-o para enviar propostas.")
   }
 
-  const request = await prisma.serviceRequest.findUnique({
-    where: { id: input.serviceRequestId },
+  const request = await prisma.serviceRequest.findFirst({
+    // Solicitação ocultada por moderação não aceita proposta nova.
+    where: { id: input.serviceRequestId, hiddenAt: null },
     select: { status: true, categoryId: true, cityId: true, client: { select: { userId: true } } },
   })
 

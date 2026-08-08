@@ -1,6 +1,7 @@
 import { prisma } from "@santiago/database"
 import { z } from "zod"
 
+import { offensiveTextResponse } from "@/modules/moderation/text-filter"
 import { notifyMany } from "@/modules/notifications/notify"
 import type { AuthedContext } from "@/modules/shared/require-auth"
 import { deleteImages } from "@/modules/uploads/cleanup"
@@ -55,6 +56,15 @@ export async function createServiceRequestHandler(context: AuthedContext) {
   }
 
   const input = parsed.data
+
+  const offensive = offensiveTextResponse(context, "service-request:create", user.id, [
+    input.title,
+    input.description,
+  ])
+
+  if (offensive) {
+    return offensive
+  }
 
   // Valida as referências para devolver erros amigáveis em vez de falha de FK.
   const [category, city] = await Promise.all([
@@ -234,6 +244,15 @@ export async function updateServiceRequestHandler(context: AuthedContext) {
   }
 
   const input = parsed.data
+
+  const offensive = offensiveTextResponse(context, "service-request:update", user.id, [
+    input.title,
+    input.description,
+  ])
+
+  if (offensive) {
+    return offensive
+  }
 
   const [category, city] = await Promise.all([
     prisma.category.findFirst({
@@ -434,7 +453,8 @@ export async function deleteServiceRequestHandler(context: AuthedContext) {
 
 export async function serviceRequestsSummaryHandler(context: AuthedContext) {
   const user = context.get("user")
-  const where = { client: { userId: user.id } }
+  // Solicitação removida por moderação não conta nos indicadores da home.
+  const where = { client: { userId: user.id }, hiddenAt: null }
 
   const [openRequests, completedServices, pendingProposals] = await Promise.all([
     prisma.serviceRequest.count({

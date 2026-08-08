@@ -12,6 +12,7 @@ import { blockUser, unblockUser } from "@/features/blocks/service"
 import { useStartChat } from "@/features/chat/hooks"
 import { getInitials } from "@/features/client-home/greeting"
 import { colors, radius, spacing } from "@/features/client-home/theme"
+import { ReportSheet } from "@/features/reports/ReportSheet"
 import { formatRelativeTime } from "@/features/service-requests/format"
 
 import { Stars } from "@/components/ui/Stars"
@@ -56,6 +57,10 @@ export function PublicProfessionalScreen({ id }: { id: string }) {
   const [isUpdatingBlock, setIsUpdatingBlock] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [reviewSort, setReviewSort] = useState<ReviewSort>("recent")
+  const [isReporting, setIsReporting] = useState(false)
+  // Avaliação sendo denunciada (o cliente pode denunciar uma avaliação de terceiro
+  // exibida no perfil).
+  const [reportedReviewId, setReportedReviewId] = useState<string | null>(null)
 
   const load = useCallback(async () => {
     setIsLoading(true)
@@ -75,6 +80,19 @@ export function PublicProfessionalScreen({ id }: { id: string }) {
   useEffect(() => {
     void load()
   }, [load])
+
+  // Menu do perfil: denunciar ou bloquear.
+  function openMenu() {
+    if (!professional) {
+      return
+    }
+
+    Alert.alert(professional.name, undefined, [
+      { text: "Cancelar", style: "cancel" },
+      { text: "Denunciar perfil", onPress: () => setIsReporting(true) },
+      { text: "Bloquear", style: "destructive", onPress: confirmBlock },
+    ])
+  }
 
   // Bloquear: confirma, bloqueia e volta — o profissional some das listas e
   // conversas do cliente. O bloqueio é aplicado no backend.
@@ -138,10 +156,10 @@ export function PublicProfessionalScreen({ id }: { id: string }) {
         right={
           professional && !professional.blockedByMe ? (
             <Pressable
-              accessibilityLabel="Bloquear profissional"
+              accessibilityLabel="Mais opções"
               accessibilityRole="button"
               hitSlop={8}
-              onPress={confirmBlock}
+              onPress={openMenu}
               style={({ pressed }) => [styles.menuButton, pressed && styles.pressed]}
             >
               <Ionicons color={colors.textPrimary} name="ellipsis-vertical" size={20} />
@@ -157,6 +175,27 @@ export function PublicProfessionalScreen({ id }: { id: string }) {
       >
         {renderBody()}
       </ScrollView>
+
+      {professional && isReporting ? (
+        <ReportSheet
+          onBlocked={() => router.back()}
+          onClose={() => setIsReporting(false)}
+          targetId={professional.userId}
+          targetType="USER"
+          targetUserId={professional.userId}
+          targetUserName={professional.name}
+          visible
+        />
+      ) : null}
+
+      {reportedReviewId ? (
+        <ReportSheet
+          onClose={() => setReportedReviewId(null)}
+          targetId={reportedReviewId}
+          targetType="REVIEW"
+          visible
+        />
+      ) : null}
     </View>
   )
 
@@ -288,7 +327,12 @@ export function PublicProfessionalScreen({ id }: { id: string }) {
               ) : null}
 
               {sortReviews(professional.reviews, reviewSort).map((review) => (
-                <View key={review.id} style={styles.reviewItem}>
+                <Pressable
+                  accessibilityHint="Toque e segure para denunciar esta avaliação"
+                  key={review.id}
+                  onLongPress={() => setReportedReviewId(review.id)}
+                  style={styles.reviewItem}
+                >
                   <View style={styles.reviewHeader}>
                     <Text style={styles.reviewName}>{review.reviewerName}</Text>
                     <Stars rating={review.rating} size={13} />
@@ -299,7 +343,7 @@ export function PublicProfessionalScreen({ id }: { id: string }) {
                   {review.comment ? (
                     <Text style={styles.reviewComment}>{review.comment}</Text>
                   ) : null}
-                </View>
+                </Pressable>
               ))}
             </View>
           )}

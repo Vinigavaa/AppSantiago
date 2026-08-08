@@ -37,6 +37,9 @@ export const signUpSchema = z.object({
   role: z.enum(["CLIENT", "PROFESSIONAL"], {
     error: "Selecione Cliente ou Profissional.",
   }),
+  acceptedTerms: z.boolean().refine((value) => value, {
+    error: "É preciso aceitar os Termos de Uso e a Política de Privacidade.",
+  }),
 })
 
 export const forgotPasswordSchema = z.object({

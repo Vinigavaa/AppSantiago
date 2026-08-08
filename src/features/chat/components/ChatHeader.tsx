@@ -14,13 +14,14 @@ export function ChatHeader({
   paddingTop,
   onBack,
   onOpenProfile,
-  onBlock,
+  onOpenMenu,
 }: {
   otherUser: ChatOtherUser | null
   paddingTop: number
   onBack: () => void
   onOpenProfile?: () => void
-  onBlock?: () => void
+  // Menu "Mais opções" da conversa: denunciar e bloquear.
+  onOpenMenu?: () => void
 }) {
   return (
     <View style={[styles.header, { paddingTop: paddingTop + 12 }]}>
@@ -59,12 +60,12 @@ export function ChatHeader({
         </Pressable>
       ) : null}
 
-      {otherUser && onBlock ? (
+      {otherUser && onOpenMenu ? (
         <Pressable
           accessibilityLabel="Mais opções"
           accessibilityRole="button"
           hitSlop={8}
-          onPress={onBlock}
+          onPress={onOpenMenu}
           style={({ pressed }) => [styles.menuButton, pressed && styles.pressed]}
         >
           <Ionicons color={colors.textPrimary} name="ellipsis-vertical" size={20} />

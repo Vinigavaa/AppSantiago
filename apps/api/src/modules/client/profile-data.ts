@@ -53,7 +53,8 @@ export async function getClientProfilePayload(user: AuthenticatedUser) {
         : [],
       prisma.review.groupBy({
         by: ["rating"],
-        where: { reviewedId: user.id },
+        // Avaliação ocultada por moderação não conta na distribuição de notas.
+        where: { reviewedId: user.id, hiddenAt: null },
         _count: { _all: true },
       }),
     ])

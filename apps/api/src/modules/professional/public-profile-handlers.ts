@@ -24,8 +24,10 @@ export async function publicProfessionalProfileHandler(context: AuthedContext) {
     return context.json({ code: "INVALID_ID", message: "Profissional inválido." }, 400)
   }
 
-  const profile = await prisma.professionalProfile.findUnique({
-    where: { id },
+  const profile = await prisma.professionalProfile.findFirst({
+    // Perfil de usuário suspenso fica indisponível (404 logo abaixo), como já
+    // acontece com quem bloqueou este cliente.
+    where: { id, user: { suspendedAt: null } },
     select: {
       id: true,
       bio: true,
@@ -42,6 +44,7 @@ export async function publicProfessionalProfileHandler(context: AuthedContext) {
         orderBy: { createdAt: "asc" },
       },
       portfolioItems: {
+        where: { hiddenAt: null },
         select: { id: true, title: true, description: true, imageUrl: true },
         orderBy: { createdAt: "desc" },
       },
@@ -64,7 +67,7 @@ export async function publicProfessionalProfileHandler(context: AuthedContext) {
   const [servicesCompleted, reviews, entitlement] = await Promise.all([
     prisma.serviceContract.count({ where: { professionalId: profile.id, status: "COMPLETED" } }),
     prisma.review.findMany({
-      where: { reviewedId: profile.user.id },
+      where: { reviewedId: profile.user.id, hiddenAt: null },
       select: {
         id: true,
         rating: true,

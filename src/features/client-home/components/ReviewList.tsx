@@ -1,6 +1,8 @@
-import { StyleSheet, Text, View } from "react-native"
+import { useState } from "react"
+import { Pressable, StyleSheet, Text, View } from "react-native"
 
 import { Stars } from "@/components/ui/Stars"
+import { ReportSheet } from "@/features/reports/ReportSheet"
 
 import { EmptyState } from "./EmptyState"
 import type { ReviewItem } from "../reputation-types"
@@ -26,6 +28,9 @@ const MAX_VISIBLE_REVIEWS = 3
 // Lista das avaliações mais recentes. Compartilhada pelo perfil do cliente e do
 // profissional; só o texto do estado vazio muda entre os dois.
 export function ReviewList({ reviews, isLoading, error, emptyTitle, emptyDescription }: Props) {
+  // Avaliação recebida que o usuário escolheu denunciar (toque longo).
+  const [reportedId, setReportedId] = useState<string | null>(null)
+
   if (isLoading && reviews.length === 0) {
     return null
   }
@@ -45,7 +50,12 @@ export function ReviewList({ reviews, isLoading, error, emptyTitle, emptyDescrip
   return (
     <View style={styles.list}>
       {visible.map((review) => (
-        <View key={review.id} style={styles.card}>
+        <Pressable
+          accessibilityHint="Toque e segure para denunciar esta avaliação"
+          key={review.id}
+          onLongPress={() => setReportedId(review.id)}
+          style={styles.card}
+        >
           <View style={styles.topRow}>
             <Stars rating={review.rating} size={15} />
             <Text style={styles.date}>{formatDate(review.createdAt)}</Text>
@@ -57,8 +67,17 @@ export function ReviewList({ reviews, isLoading, error, emptyTitle, emptyDescrip
             Serviço: {review.serviceTitle}
             <Text style={styles.category}> · {review.serviceCategory}</Text>
           </Text>
-        </View>
+        </Pressable>
       ))}
+
+      {reportedId ? (
+        <ReportSheet
+          onClose={() => setReportedId(null)}
+          targetId={reportedId}
+          targetType="REVIEW"
+          visible
+        />
+      ) : null}
     </View>
   )
 }

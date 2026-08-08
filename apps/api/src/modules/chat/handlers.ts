@@ -2,6 +2,7 @@ import { prisma } from "@santiago/database"
 import { z } from "zod"
 
 import { getBlockedUserIds, isBlockedBetween } from "@/modules/blocks/service"
+import { offensiveTextResponse } from "@/modules/moderation/text-filter"
 import { notify } from "@/modules/notifications/notify"
 import { getOrCreateProfessionalProfileId } from "@/modules/professional/professional-context"
 import { publish } from "@/modules/realtime/registry"
@@ -152,7 +153,9 @@ export async function listChatsHandler(context: AuthedContext) {
 
   const chats = await prisma.chat.findMany({
     where: {
-      messages: { some: {} },
+      // `hiddenAt: null` em toda leitura de mensagem: conteúdo ocultado por
+      // moderação some da conversa para os dois lados.
+      messages: { some: { hiddenAt: null } },
       OR: [{ client: { userId: user.id } }, { professional: { userId: user.id } }],
       NOT: [
         { client: { userId: { in: blockedUserIds } } },
@@ -163,6 +166,7 @@ export async function listChatsHandler(context: AuthedContext) {
     select: {
       ...chatParticipantsSelect,
       messages: {
+        where: { hiddenAt: null },
         orderBy: { createdAt: "desc" },
         take: 1,
         select: { content: true, attachmentUrl: true, senderId: true, createdAt: true },
@@ -180,6 +184,7 @@ export async function listChatsHandler(context: AuthedContext) {
         chatId: { in: chats.map((chat) => chat.id) },
         readAt: null,
         senderId: { not: user.id },
+        hiddenAt: null,
       },
       _count: { _all: true },
     })
@@ -215,7 +220,7 @@ async function markReceivedAsRead(
   senderUserId: string,
 ): Promise<number> {
   const unread = await prisma.message.findMany({
-    where: { chatId, senderId: { not: userId }, readAt: null },
+    where: { chatId, senderId: { not: userId }, readAt: null, hiddenAt: null },
     select: { id: true },
   })
 
@@ -284,7 +289,7 @@ export async function listMessagesHandler(context: AuthedContext) {
   await markReceivedAsRead(chat.id, user.id, other.userId)
 
   const messages = await prisma.message.findMany({
-    where: { chatId: chat.id },
+    where: { chatId: chat.id, hiddenAt: null },
     orderBy: { createdAt: "asc" },
     select: messageSelect,
   })
@@ -313,6 +318,16 @@ export async function sendMessageHandler(context: AuthedContext) {
 
   if (!parsed.success) {
     return invalidData(context, parsed.error.issues[0]?.message ?? "Dados inválidos.")
+  }
+
+  // Filtro de conteúdo ofensivo: barra antes de persistir, publicar no websocket
+  // ou notificar — a mensagem simplesmente não passa a existir.
+  const offensive = offensiveTextResponse(context, "chat:message", user.id, [
+    parsed.data.content,
+  ])
+
+  if (offensive) {
+    return offensive
   }
 
   const recipient = otherParticipant(chat, user.id)

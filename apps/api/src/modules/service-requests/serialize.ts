@@ -30,6 +30,9 @@ export function serializeServiceRequest(request: ServiceRequestWithRelations) {
     budgetMax: toNumber(request.budgetMax),
     proposalsCount: request._count.proposals,
     photosCount: request._count.photos,
+    // Removida por moderação: o dono continua vendo a solicitação, com o aviso —
+    // some apenas para os outros (oportunidades, detalhe, propostas).
+    moderationRemoved: request.hiddenAt !== null,
     createdAt: request.createdAt.toISOString(),
   }
 }
@@ -129,6 +132,7 @@ export function serializeServiceRequestDetail(
     budgetMax: toNumber(request.budgetMax),
     proposalsCount: request._count.proposals,
     photos: request.photos,
+    moderationRemoved: request.hiddenAt !== null,
     createdAt: request.createdAt.toISOString(),
     updatedAt: request.updatedAt.toISOString(),
     contract: contract

@@ -22,6 +22,11 @@ const envSchema = z.object({
   EMAIL_FROM: z.string().min(3).default("Mãos à Obra <no-reply@santiago.local>"),
   EMAIL_PROVIDER: z.enum(["console", "resend"]).default("console"),
   EMAIL_REPLY_TO: z.email().optional(),
+  // Caixa que recebe o aviso de cada denúncia — a mesma de suporte publicada nos
+  // Termos de Uso. Obrigatória: sem ela a moderação não fica sabendo dos casos, e
+  // o prazo de 24h da regra 1.2 da Apple não é cumprido — melhor a API não subir
+  // do que perder denúncia em silêncio.
+  MODERATION_EMAIL: z.email(),
   RESEND_API_KEY: z.string().optional(),
   // Cloudinary (armazenamento de imagens). Opcionais: sem elas a API sobe
   // normalmente e os endpoints de upload ficam desativados. Em producao ficam

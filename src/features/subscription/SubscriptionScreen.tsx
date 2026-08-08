@@ -2,7 +2,6 @@ import { Ionicons } from "@expo/vector-icons"
 import { useRouter } from "expo-router"
 import {
   ActivityIndicator,
-  Linking,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -11,6 +10,7 @@ import {
 } from "react-native"
 
 import { Button } from "@/components/ui/Button"
+import { openLegalPage, PRIVACY_URL, TERMS_URL } from "@/constants/legal"
 import { ScreenHeader } from "@/components/ui/ScreenHeader"
 import { colors, radius, spacing, status, typography } from "@/features/client-home/theme"
 
@@ -18,12 +18,6 @@ import { useSubscription } from "./hooks"
 import { openStoreManagement } from "./purchases"
 import type { PlanOffer } from "./purchases"
 import type { SubscriptionPlan } from "./types"
-
-// Links obrigatorios (Apple/Google) perto da compra. Configuraveis por env; o padrao
-// aponta para as paginas servidas pela propria API (apps/api/src/http/legal-pages.ts).
-const TERMS_URL = process.env.EXPO_PUBLIC_TERMS_URL ?? "https://appsantiago.onrender.com/termos"
-const PRIVACY_URL =
-  process.env.EXPO_PUBLIC_PRIVACY_URL ?? "https://appsantiago.onrender.com/privacidade"
 
 const PLAN_LABEL: Record<SubscriptionPlan, string> = {
   MONTHLY: "Mensal",
@@ -258,11 +252,11 @@ function LegalText() {
       <Text style={styles.legalStrong}>renova automaticamente até ser cancelada</Text>. Cancele a
       qualquer momento na própria loja; as vantagens seguem até o fim do período pago. Ao assinar,
       você concorda com os{" "}
-      <Text style={styles.link} onPress={() => Linking.openURL(TERMS_URL)}>
+      <Text style={styles.link} onPress={() => openLegalPage(TERMS_URL)}>
         Termos de Uso
       </Text>{" "}
       e a{" "}
-      <Text style={styles.link} onPress={() => Linking.openURL(PRIVACY_URL)}>
+      <Text style={styles.link} onPress={() => openLegalPage(PRIVACY_URL)}>
         Política de Privacidade
       </Text>
       .

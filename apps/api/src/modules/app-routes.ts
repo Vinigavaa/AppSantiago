@@ -67,6 +67,7 @@ import {
   rejectProposalHandler,
 } from "@/modules/proposals/handlers"
 import { createRealtimeTicketHandler } from "@/modules/realtime/handlers"
+import { createReportHandler } from "@/modules/reports/handlers"
 import { createReviewHandler } from "@/modules/reviews/handlers"
 import {
   restoreSubscriptionHandler,
@@ -130,6 +131,15 @@ const appRateLimit = createRateLimitMiddleware([
     windowMs: 24 * 60 * 60 * 1000,
     key: ipKey,
     matcher: isPost("/api/app/proposals"),
+  },
+  // Denúncia: o teto por usuário fica no handler; este limite por IP evita que uma
+  // automação despeje denúncias de várias contas a partir do mesmo ponto.
+  {
+    id: "app:report:create",
+    limit: 30,
+    windowMs: 60 * 60 * 1000,
+    key: ipKey,
+    matcher: isPost("/api/app/reports"),
   },
   // Sincronizar/restaurar assinatura é idempotente, mas limitamos por IP para
   // evitar flood contra o RevenueCat.
@@ -206,6 +216,10 @@ appRoutes.post("/realtime/ticket", createRealtimeTicketHandler)
 appRoutes.post("/blocks", blockUserHandler)
 appRoutes.get("/blocks", listBlockedUsersHandler)
 appRoutes.delete("/blocks/:targetUserId", unblockUserHandler)
+
+// Denúncia de conteúdo ou de usuário. O caso vai para a fila de moderação (vista
+// por `npm run moderate -- list`) e dispara o aviso para a caixa de moderação.
+appRoutes.post("/reports", createReportHandler)
 
 // Central de notificações: lista do usuário + marcar como lidas ao abrir.
 appRoutes.get("/notifications", listNotificationsHandler)

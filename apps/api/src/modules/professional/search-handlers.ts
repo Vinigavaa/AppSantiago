@@ -56,7 +56,8 @@ export async function searchProfessionalsHandler(context: AuthedContext) {
 
   const where: Prisma.ProfessionalProfileWhereInput = {
     isAvailable: true,
-    user: { id: { notIn: blockedUserIds } },
+    // Suspenso por moderação some da busca enquanto durar a suspensão.
+    user: { id: { notIn: blockedUserIds }, suspendedAt: null },
     // Só perfis com ao menos uma categoria definida: evita expor cadastros
     // incompletos e transmite mais confiança na descoberta.
     categories: { some: {} },

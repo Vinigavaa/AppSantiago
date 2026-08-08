@@ -146,6 +146,16 @@ const termsSections: Section[] = [
     ],
   },
   {
+    heading: "Conteúdo ofensivo e denúncias",
+    paragraphs: [
+      "Não há tolerância a conteúdo ofensivo nem a usuários abusivos no Mãos à Obra. Mensagens, descrições de serviço, perfis, fotos de portfólio e avaliações passam por um filtro automático que bloqueia termos ofensivos antes da publicação — e o filtro não substitui a sua denúncia.",
+      "Você pode denunciar qualquer conteúdo ou usuário diretamente no aplicativo: na conversa (no menu do topo ou pressionando uma mensagem recebida), no perfil do profissional, na solicitação de serviço e nas avaliações. A denúncia é anônima para a pessoa denunciada.",
+      "Analisamos toda denúncia em até 24 horas. Confirmada a violação, o conteúdo é removido e o usuário responsável pode ser suspenso ou ter a conta encerrada, conforme a gravidade e a reincidência.",
+      "Você também pode bloquear qualquer usuário a qualquer momento, sem precisar denunciar. Ao bloquear, vocês deixam de aparecer um para o outro e não trocam mais mensagens; o bloqueio pode ser desfeito em Perfil › Usuários bloqueados.",
+      `Se preferir, denúncias e dúvidas sobre moderação também podem ser enviadas para ${CONTROLLER.email}.`,
+    ],
+  },
+  {
     heading: "Avaliações e reputação",
     paragraphs: [
       "Após a conclusão de um serviço, cliente e profissional podem se avaliar. As avaliações refletem a opinião de quem as escreveu e ficam visíveis no perfil do avaliado.",
@@ -156,6 +166,7 @@ const termsSections: Section[] = [
     heading: "Suspensão e encerramento de conta",
     paragraphs: [
       "Podemos suspender ou encerrar uma conta, com ou sem aviso prévio conforme a gravidade, quando houver descumprimento destes Termos, suspeita fundada de fraude, risco à segurança de outros usuários ou determinação legal.",
+      "Enquanto suspensa, a conta não consegue acessar o aplicativo e o perfil deixa de aparecer nas buscas. Ao entrar, você vê o motivo da suspensão e o endereço para contestar.",
       "Se a sua conta for encerrada e houver assinatura ativa, o cancelamento na loja continua sendo feito por você — encerrar a conta no aplicativo não cancela a cobrança da Apple ou do Google.",
     ],
   },

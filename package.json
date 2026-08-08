@@ -68,6 +68,8 @@
     "profile:smoke": "tsx --tsconfig apps/api/tsconfig.json scripts/professional-profile-smoke.ts",
     "pro:coverage": "tsx --tsconfig apps/api/tsconfig.json scripts/grant-professional-coverage.ts",
     "subs:reconcile": "tsx --tsconfig apps/api/tsconfig.json scripts/reconcile-subscriptions.ts",
+    "moderate": "tsx --tsconfig apps/api/tsconfig.json apps/api/scripts/moderate.ts",
+    "moderation:smoke": "tsx --tsconfig apps/api/tsconfig.json scripts/moderation-smoke.ts",
     "subs:smoke": "tsx --tsconfig apps/api/tsconfig.json scripts/subscriptions-smoke.ts",
     "cities:smoke": "tsx --tsconfig apps/api/tsconfig.json scripts/cities-smoke.ts",
     "realtime:smoke": "tsx --tsconfig apps/api/tsconfig.json scripts/realtime-smoke.ts",

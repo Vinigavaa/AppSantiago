@@ -51,6 +51,32 @@ enum NotificationType {
   REVIEW_RECEIVED
 }
 
+// Tipo de alvo de uma denúncia. O par (targetType, targetId) aponta para o
+// registro denunciado sem relação forte — ver o comentário de ContentReport.
+enum ReportTargetType {
+  USER
+  MESSAGE
+  REVIEW
+  SERVICE_REQUEST
+  PORTFOLIO_ITEM
+}
+
+enum ReportReason {
+  SPAM
+  ASSEDIO
+  CONTEUDO_SEXUAL
+  VIOLENCIA
+  DISCURSO_DE_ODIO
+  GOLPE
+  OUTRO
+}
+
+enum ReportStatus {
+  PENDING
+  RESOLVED
+  DISMISSED
+}
+
 enum SubscriptionPlan {
   MONTHLY
   ANNUAL
@@ -90,6 +116,10 @@ model User {
   phone               String?
   role                UserRole             @default(CLIENT)
   avatarUrl           String?
+  // Suspensão por moderação: enquanto preenchida, toda rota autenticada responde
+  // 403 ACCOUNT_SUSPENDED e o usuário some das listagens públicas.
+  suspendedAt         DateTime?
+  suspendedReason     String?
   createdAt           DateTime             @default(now())
   updatedAt           DateTime             @updatedAt
   sessions            Session[]
@@ -103,6 +133,7 @@ model User {
   reviewsReceived     Review[]             @relation("ReviewReviewed")
   blocksMade          UserBlock[]          @relation("BlocksMade")
   blocksReceived      UserBlock[]          @relation("BlocksReceived")
+  reportsMade         ContentReport[]      @relation("ReportsMade")
 
   @@index([email])
   @@index([username])
@@ -313,6 +344,10 @@ model ServiceRequest {
   addressZipCode      String?
   latitude            Float?
   longitude           Float?
+  // Ocultação por moderação: a solicitação some das oportunidades e do detalhe; o
+  // cliente vê o aviso de remoção. Registro preservado. Nulo = visível.
+  hiddenAt            DateTime?
+  hiddenReason        String?
   createdAt           DateTime              @default(now())
   updatedAt           DateTime              @updatedAt
   client              ClientProfile         @relation(fields: [clientId], references: [id], onDelete: Cascade)
@@ -398,6 +433,10 @@ model Review {
   reviewedId        String          @db.Uuid
   rating            Int
   comment           String?         @db.Text
+  // Ocultação por moderação: a avaliação some das listagens e deixa de contar na
+  // nota média. Registro preservado para auditoria. Nulo = visível.
+  hiddenAt          DateTime?
+  hiddenReason      String?
   createdAt         DateTime        @default(now())
   serviceContract   ServiceContract @relation(fields: [serviceContractId], references: [id], onDelete: Cascade)
   reviewer          User            @relation("ReviewReviewer", fields: [reviewerId], references: [id], onDelete: Restrict)
@@ -437,6 +476,10 @@ model Message {
   // que permite apagar o arquivo na Cloudinary quando a mensagem é excluída.
   attachmentUrl      String?
   attachmentPublicId String?
+  // Ocultação por moderação: a mensagem some da conversa para os dois lados, mas o
+  // registro é preservado para auditoria. Nulo = visível.
+  hiddenAt      DateTime?
+  hiddenReason  String?
   readAt        DateTime?
   createdAt     DateTime  @default(now())
   chat          Chat      @relation(fields: [chatId], references: [id], onDelete: Cascade)
@@ -490,12 +533,40 @@ model UserBlock {
   @@index([blockedId])
 }
 
+// Denúncia de conteúdo ou de usuário. O alvo é polimórfico (targetType + targetId)
+// em vez de uma coluna por tabela: o volume não justifica multiplicar colunas e
+// migrations a cada novo tipo. A existência do alvo é validada no handler antes de
+// gravar. O índice único torna a denúncia repetida do mesmo alvo idempotente.
+model ContentReport {
+  id             String           @id @default(uuid()) @db.Uuid
+  reporterId     String           @db.Uuid
+  targetType     ReportTargetType
+  targetId       String           @db.Uuid
+  reason         ReportReason
+  // Detalhe livre do denunciante (obrigatório quando o motivo é OUTRO).
+  details        String?          @db.Text
+  status         ReportStatus     @default(PENDING)
+  createdAt      DateTime         @default(now())
+  // Data e nota da decisão do operador. Nulos enquanto a denúncia está PENDING.
+  resolvedAt     DateTime?
+  resolutionNote String?          @db.Text
+  reporter       User             @relation("ReportsMade", fields: [reporterId], references: [id], onDelete: Cascade)
+
+  @@unique([reporterId, targetType, targetId])
+  @@index([status])
+  @@index([createdAt])
+}
+
 model ProfessionalPortfolioItem {
   id             String              @id @default(uuid()) @db.Uuid
   professionalId String              @db.Uuid
   title          String
   description    String?             @db.Text
   imageUrl       String
+  // Ocultação por moderação: o item some de todas as leituras, mas o registro é
+  // preservado para auditoria. Nulo = visível.
+  hiddenAt       DateTime?
+  hiddenReason   String?
   // public_id na Cloudinary, necessário para apagar o arquivo quando o item sai.
   // Opcional: itens anteriores a esta coluna podem não ter valor derivável da URL.
   publicId       String?

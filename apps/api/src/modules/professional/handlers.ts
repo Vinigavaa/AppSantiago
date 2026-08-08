@@ -47,6 +47,8 @@ export async function listOpportunitiesHandler(context: AuthedContext) {
   const requests = await prisma.serviceRequest.findMany({
     where: {
       status: "OPEN",
+      // Solicitação ocultada por moderação sai das oportunidades.
+      hiddenAt: null,
       categoryId: { in: coverage.categoryIds },
       cityId: { in: coverage.cityIds },
       client: { userId: { notIn: blockedUserIds } },
@@ -81,8 +83,10 @@ export async function opportunityDetailHandler(context: AuthedContext) {
     return context.json({ code: "INVALID_ID", message: "Solicitação inválida." }, 400)
   }
 
-  const request = await prisma.serviceRequest.findUnique({
-    where: { id },
+  const request = await prisma.serviceRequest.findFirst({
+    // `hiddenAt: null`: solicitação removida por moderação responde 404 para o
+    // profissional, como se não existisse.
+    where: { id, hiddenAt: null },
     include: {
       ...serviceRequestInclude,
       // Fotos ajudam o profissional a entender o serviço antes de propor.

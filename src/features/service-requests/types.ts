@@ -50,6 +50,9 @@ export type ServiceRequest = {
   // Presente no detalhe da oportunidade (visão do profissional). A listagem traz
   // apenas photosCount.
   photos?: { id: string; url: string }[]
+  // Removida por moderação: o dono continua vendo a solicitação, com o aviso;
+  // para os outros ela some.
+  moderationRemoved?: boolean
   createdAt: string
   contract?: RequestContract | null
 }
@@ -86,6 +89,7 @@ export type ServiceRequestDetail = {
   budgetMax: number | null
   proposalsCount: number
   photos: { id: string; url: string }[]
+  moderationRemoved?: boolean
   createdAt: string
   updatedAt: string
   contract: RequestDetailContract | null

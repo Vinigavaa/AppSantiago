@@ -1,3 +1,5 @@
+import { Alert } from "react-native"
+
 import { authBaseUrl, authClient } from "@/lib/auth-client"
 
 export type ApiResult<T> =
@@ -33,6 +35,37 @@ function friendlyError(status: number, body: ApiErrorBody | null): string {
 // reiniciando) deixa a Promise pendurada para sempre e a tela fica girando.
 const REQUEST_TIMEOUT_MS = 30_000
 
+// E-mail de contato para quem teve a conta suspensa e quer contestar. Mesmo
+// endereço publicado nos Termos de Uso.
+const SUPPORT_EMAIL = "maosaobra@suporte.com.br"
+
+// Conta suspensa é um estado terminal: qualquer rota autenticada responde 403
+// enquanto durar. O tratamento fica aqui, num ponto só, porque pode chegar em
+// qualquer tela — explicamos o motivo e encerramos a sessão local, o que leva o
+// usuário de volta ao login pelo layout privado.
+//
+// A trava evita o efeito de várias telas carregando em paralelo: sem ela, o
+// usuário veria o mesmo alerta uma vez por requisição em voo.
+let isHandlingSuspension = false
+
+function handleSuspension(message: string) {
+  if (isHandlingSuspension) {
+    return
+  }
+
+  isHandlingSuspension = true
+
+  Alert.alert("Conta suspensa", `${message}\n\nDúvidas ou contestação: ${SUPPORT_EMAIL}`, [
+    {
+      text: "Entendi",
+      onPress: async () => {
+        await authClient.signOut().catch(() => {})
+        isHandlingSuspension = false
+      },
+    },
+  ])
+}
+
 // Cliente para as rotas autenticadas do app (/api/app/*). Anexa o cookie de
 // sessão do better-auth (necessário no mobile; na web o navegador já o envia).
 export async function appFetch<T>(
@@ -63,11 +96,18 @@ export async function appFetch<T>(
     const payload = (await response.json().catch(() => null)) as T | ApiErrorBody | null
 
     if (!response.ok) {
+      const body = payload as ApiErrorBody | null
+      const error = friendlyError(response.status, body)
+
+      if (body?.code === "ACCOUNT_SUSPENDED") {
+        handleSuspension(error)
+      }
+
       return {
         ok: false,
-        error: friendlyError(response.status, payload as ApiErrorBody | null),
+        error,
         status: response.status,
-        code: (payload as ApiErrorBody | null)?.code,
+        code: body?.code,
       }
     }
 

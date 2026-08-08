@@ -167,6 +167,18 @@ export function RequestDetailsScreen({ id }: { id: string }) {
 
         <Text style={styles.title}>{request.title}</Text>
 
+        {/* Removida por moderação: explicamos, em vez de a solicitação sumir sem
+            aviso. Ela deixa de aparecer para os profissionais. */}
+        {request.moderationRemoved ? (
+          <View style={styles.moderationNotice}>
+            <Ionicons color={colors.danger} name="alert-circle-outline" size={18} />
+            <Text style={styles.moderationText}>
+              Esta solicitação foi removida por violar as regras da comunidade e não aparece
+              mais para os profissionais.
+            </Text>
+          </View>
+        ) : null}
+
         {edited ? (
           <View style={styles.editedBadge}>
             <Ionicons color={colors.textSecondary} name="create-outline" size={14} />
@@ -331,6 +343,20 @@ function InfoLine({ label, value }: { label: string; value: string }) {
 }
 
 const styles = StyleSheet.create({
+  moderationNotice: {
+    alignItems: "flex-start",
+    backgroundColor: colors.dangerSoft,
+    borderRadius: radius.tag,
+    flexDirection: "row",
+    gap: 8,
+    padding: 12,
+  },
+  moderationText: {
+    color: colors.danger,
+    flex: 1,
+    fontSize: 13,
+    lineHeight: 18,
+  },
   actionSpacing: {
     marginTop: 12,
   },

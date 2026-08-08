@@ -1,6 +1,7 @@
 import { prisma } from "@santiago/database"
 import { z } from "zod"
 
+import { offensiveTextResponse } from "@/modules/moderation/text-filter"
 import type { AuthedContext } from "@/modules/shared/require-auth"
 import { deleteImages } from "@/modules/uploads/cleanup"
 import { portfolioFolder } from "@/modules/uploads/folders"
@@ -46,6 +47,15 @@ export async function createPortfolioItemHandler(context: AuthedContext) {
       { code: "INVALID_DATA", message: parsed.error.issues[0]?.message ?? "Dados inválidos." },
       400,
     )
+  }
+
+  const offensive = offensiveTextResponse(context, "portfolio-item:create", user.id, [
+    parsed.data.title,
+    parsed.data.description,
+  ])
+
+  if (offensive) {
+    return offensive
   }
 
   const professionalId = await getOrCreateProfessionalProfileId(user.id)

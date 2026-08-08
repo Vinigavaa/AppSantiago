@@ -1,3 +1,4 @@
+import { prisma } from "@santiago/database"
 import type { Context, MiddlewareHandler, Next } from "hono"
 
 import { auth } from "@/modules/auth/auth"
@@ -35,6 +36,26 @@ export const requireAuth: MiddlewareHandler<{ Variables: AuthVariables }> = asyn
     return context.json(
       { code: "UNAUTHORIZED", message: "Sessão inválida. Entre novamente." },
       401,
+    )
+  }
+
+  // Suspensão por moderação. Fica aqui, e não em cada handler, porque este é o
+  // único ponto que toda rota autenticada atravessa: um usuário suspenso não
+  // consegue usar nenhuma parte do app até ser reativado.
+  const suspension = await prisma.user.findUnique({
+    where: { id: session.user.id },
+    select: { suspendedAt: true, suspendedReason: true },
+  })
+
+  if (suspension?.suspendedAt) {
+    return context.json(
+      {
+        code: "ACCOUNT_SUSPENDED",
+        message:
+          suspension.suspendedReason ??
+          "Sua conta foi suspensa por violação das regras da comunidade.",
+      },
+      403,
     )
   }
 

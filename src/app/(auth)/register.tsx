@@ -10,6 +10,7 @@ import { Input } from "@/components/ui/Input"
 import { ProfileTypeSelector } from "@/components/ui/ProfileTypeSelector"
 import { routes } from "@/constants/routes"
 import { authStyles as styles } from "@/features/auth/authStyles"
+import { TermsAcceptance } from "@/features/auth/components/TermsAcceptance"
 import { useAuth } from "@/features/auth/hooks/useAuth"
 import { signUpSchema, type SignUpInput } from "@/features/auth/schemas/auth-schemas"
 
@@ -28,6 +29,7 @@ export default function Register() {
       email: "",
       password: "",
       role: "CLIENT",
+      acceptedTerms: false,
     },
   })
 
@@ -103,6 +105,18 @@ export default function Register() {
           name="role"
           render={({ field: { onChange, value } }) => (
             <ProfileTypeSelector error={errors.role?.message} onChange={onChange} value={value} />
+          )}
+        />
+
+        <Controller
+          control={control}
+          name="acceptedTerms"
+          render={({ field: { onChange, value } }) => (
+            <TermsAcceptance
+              error={errors.acceptedTerms?.message}
+              onChange={onChange}
+              value={value}
+            />
           )}
         />
 
