@@ -190,7 +190,14 @@ export async function getEmailVerificationStatus(
 }
 
 
-async function postAuth(path: string, body: Record<string, unknown>) {
+type PostAuthResult = AuthResult & {
+  payload?: { requestId?: string } | null
+}
+
+async function postAuth(
+  path: string,
+  body: Record<string, unknown>,
+): Promise<PostAuthResult> {
   const response = await fetch(`${authBaseUrl}/api/auth${path}`, {
     method: "POST",
     headers: {
@@ -200,7 +207,7 @@ async function postAuth(path: string, body: Record<string, unknown>) {
   })
 
   const payload = (await response.json().catch(() => null)) as
-    | { message?: string; code?: string }
+    | { message?: string; code?: string; requestId?: string }
     | null
 
   if (!response.ok) {
@@ -214,36 +221,108 @@ async function postAuth(path: string, body: Record<string, unknown>) {
     }
   }
 
-  return { success: true }
+  return { success: true, payload }
 }
 
-export async function requestPasswordReset(input: ForgotPasswordInput): Promise<AuthResult> {
-  const result = await postAuth("/request-password-reset", {
-    email: input.email,
-  })
+// Devolve o `requestId` da solicitação: é ele, e não o email, que autoriza o
+// app a buscar o token depois que o usuário confirmar pelo link.
+export async function requestPasswordReset(
+  input: ForgotPasswordInput,
+): Promise<AuthResult & { requestId?: string }> {
+  try {
+    const result = await postAuth("/password-reset-request", {
+      email: input.email,
+    })
 
-  if (!result.success) {
-    return result
-  }
+    if (!result.success) {
+      return result
+    }
 
-  return {
-    success: true,
-    message: "Se o email existir, enviaremos um link de redefinição.",
+    const requestId = result.payload?.requestId
+
+    if (!requestId) {
+      return {
+        success: false,
+        message: "Não foi possível iniciar a redefinição agora. Tente novamente.",
+      }
+    }
+
+    return { success: true, requestId }
+  } catch (error) {
+    return {
+      success: false,
+      message: getFriendlyAuthError(toAuthErrorDetails(error)),
+    }
   }
 }
 
-export async function resetPassword(input: ResetPasswordInput): Promise<AuthResult> {
-  const result = await postAuth("/reset-password", {
-    token: input.token,
-    newPassword: input.password,
-  })
+// Consultado pelo botão "Já verifiquei meu email". Só devolve o token depois
+// que o link do email foi aberto; a solicitação é consumida na entrega.
+export async function getPasswordResetStatus(
+  requestId: string,
+): Promise<AuthResult & { confirmed: boolean; token?: string }> {
+  try {
+    const response = await fetch(
+      `${authBaseUrl}/api/auth/password-reset-status?requestId=${encodeURIComponent(requestId)}`,
+      {
+        method: "GET",
+        headers: { "content-type": "application/json" },
+      },
+    )
 
-  if (!result.success) {
-    return result
+    const payload = (await response.json().catch(() => null)) as
+      | { confirmed?: boolean; token?: string; message?: string; code?: string }
+      | null
+
+    if (!response.ok) {
+      return {
+        success: false,
+        confirmed: false,
+        message: getFriendlyAuthError({
+          message: payload?.message,
+          code: payload?.code,
+          status: response.status,
+        }),
+      }
+    }
+
+    if (payload?.confirmed !== true || !payload.token) {
+      return { success: true, confirmed: false }
+    }
+
+    return { success: true, confirmed: true, token: payload.token }
+  } catch (error) {
+    return {
+      success: false,
+      confirmed: false,
+      message: getFriendlyAuthError(toAuthErrorDetails(error)),
+    }
   }
+}
 
-  return {
-    success: true,
-    message: "Senha redefinida. Entre com sua nova senha.",
+// O token vem da consulta de status, não digitado pelo usuário.
+export async function resetPassword(
+  token: string,
+  input: ResetPasswordInput,
+): Promise<AuthResult> {
+  try {
+    const result = await postAuth("/reset-password", {
+      token,
+      newPassword: input.password,
+    })
+
+    if (!result.success) {
+      return result
+    }
+
+    return {
+      success: true,
+      message: "Senha redefinida. Entre com sua nova senha.",
+    }
+  } catch (error) {
+    return {
+      success: false,
+      message: getFriendlyAuthError(toAuthErrorDetails(error)),
+    }
   }
 }

@@ -10,7 +10,11 @@ import {
   requestPasswordReset as requestPasswordResetService,
   resetPassword as resetPasswordService,
 } from "../services/auth-service"
-import { clearPendingVerificationEmail, savePendingVerificationEmail } from "../storage"
+import {
+  clearPendingVerificationEmail,
+  savePendingPasswordReset,
+  savePendingVerificationEmail,
+} from "../storage"
 import type {
   ForgotPasswordInput,
   ResetPasswordInput,
@@ -20,7 +24,6 @@ import type {
 
 export function useAuth() {
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
-  const [successMessage, setSuccessMessage] = useState<string | null>(null)
   const [isSubmitting, setIsSubmitting] = useState(false)
 
   async function signIn(input: SignInInput) {
@@ -30,7 +33,6 @@ export function useAuth() {
 
     setIsSubmitting(true)
     setErrorMessage(null)
-    setSuccessMessage(null)
 
     const result = await signInService(input)
 
@@ -52,7 +54,6 @@ export function useAuth() {
 
     setIsSubmitting(true)
     setErrorMessage(null)
-    setSuccessMessage(null)
 
     const result = await signUpService(input)
 
@@ -94,39 +95,39 @@ export function useAuth() {
 
     setIsSubmitting(true)
     setErrorMessage(null)
-    setSuccessMessage(null)
 
     const result = await requestPasswordResetService(input)
 
-    setIsSubmitting(false)
-
-    if (!result.success) {
+    if (!result.success || !result.requestId) {
+      setIsSubmitting(false)
       setErrorMessage(result.message ?? "Não foi possível solicitar a redefinição.")
       return
     }
 
-    setSuccessMessage(result.message ?? "Se o email existir, enviaremos um link de redefinição.")
+    // O requestId é o segredo que autoriza este aparelho a buscar o token.
+    await savePendingPasswordReset({ email: input.email, requestId: result.requestId })
+
+    // Mantém isSubmitting travado enquanto navega (evita toque duplo).
+    router.replace({ pathname: "/verify-password-reset", params: { email: input.email } })
   }
 
-  async function resetPassword(input: ResetPasswordInput) {
+  async function resetPassword(token: string, input: ResetPasswordInput) {
     if (isSubmitting) {
       return
     }
 
     setIsSubmitting(true)
     setErrorMessage(null)
-    setSuccessMessage(null)
 
-    const result = await resetPasswordService(input)
-
-    setIsSubmitting(false)
+    const result = await resetPasswordService(token, input)
 
     if (!result.success) {
+      setIsSubmitting(false)
       setErrorMessage(result.message ?? "Não foi possível redefinir a senha.")
       return
     }
 
-    setSuccessMessage(result.message ?? "Senha redefinida. Entre com sua nova senha.")
+    router.replace(routes.login)
   }
 
   return {
@@ -137,6 +138,5 @@ export function useAuth() {
     signIn,
     signUp,
     signOut,
-    successMessage,
   }
 }

@@ -236,6 +236,36 @@ export const authRateLimit = createRateLimitMiddleware([
     },
   },
   {
+    id: "auth:password-reset-request:ip",
+    limit: 4,
+    windowMs: 15 * 60 * 1000,
+    key: getIpKey,
+    matcher: (context) => {
+      const path = new URL(context.req.url).pathname
+      return context.req.method === "POST" && path === "/api/auth/password-reset-request"
+    },
+  },
+  {
+    id: "auth:password-reset-request:email",
+    limit: 3,
+    windowMs: 60 * 60 * 1000,
+    key: getEmailKey,
+    matcher: (context) => {
+      const path = new URL(context.req.url).pathname
+      return context.req.method === "POST" && path === "/api/auth/password-reset-request"
+    },
+  },
+  {
+    id: "auth:password-reset-status:ip",
+    limit: 30,
+    windowMs: 15 * 60 * 1000,
+    key: getIpKey,
+    matcher: (context) => {
+      const path = new URL(context.req.url).pathname
+      return context.req.method === "GET" && path === "/api/auth/password-reset-status"
+    },
+  },
+  {
     id: "auth:email-verification:ip",
     limit: 6,
     windowMs: 15 * 60 * 1000,

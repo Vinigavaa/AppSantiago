@@ -154,6 +154,23 @@ model Verification {
   @@index([identifier])
 }
 
+// Solicitacao de redefinicao de senha aguardando confirmacao pelo link do email.
+// `id` e `confirmationTokenHash` guardam apenas hashes: o requestId vive no app
+// e o token de confirmacao no email. A linha e apagada quando o resetToken e
+// entregue ao app, entao o token em claro tem vida curta e uso unico.
+model PasswordResetRequest {
+  id                    String    @id
+  email                 String
+  confirmationTokenHash String    @unique
+  resetToken            String
+  confirmedAt           DateTime?
+  expiresAt             DateTime
+  createdAt             DateTime  @default(now())
+
+  @@index([email])
+  @@index([expiresAt])
+}
+
 model RateLimitBucket {
   id        String   @id
   count     Int      @default(0)

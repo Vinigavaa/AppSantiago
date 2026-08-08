@@ -68,6 +68,13 @@ async function cleanup() {
       },
     },
   })
+  await prisma.passwordResetRequest.deleteMany({
+    where: {
+      email: {
+        startsWith: "security_smoke_",
+      },
+    },
+  })
   await prisma.rateLimitBucket.deleteMany({
     where: {
       OR: [
@@ -179,7 +186,7 @@ async function main() {
     throw new Error("Email verification token was reusable")
   }
 
-  const resetRequest = await post("/request-password-reset", {
+  const resetRequest = await post("/password-reset-request", {
     email,
   })
 
@@ -187,23 +194,64 @@ async function main() {
     throw new Error(`Expected reset request to succeed, got ${resetRequest.status}`)
   }
 
-  const resetVerification = await prisma.verification.findFirst({
-    where: {
-      identifier: {
-        startsWith: "reset-password:",
-      },
-      value: user.id,
-    },
-    orderBy: {
-      createdAt: "desc",
-    },
-  })
+  const requestId = (resetRequest.payload as { requestId?: string } | null)?.requestId
 
-  if (!resetVerification) {
-    throw new Error("Reset password token was not persisted")
+  if (!requestId) {
+    throw new Error("Reset request did not return a requestId")
   }
 
-  const resetToken = resetVerification.identifier.replace("reset-password:", "")
+  const pendingStatus = await get(`/password-reset-status?requestId=${encodeURIComponent(requestId)}`)
+  const pendingStatusBody = (await pendingStatus.json().catch(() => null)) as
+    | { confirmed?: boolean; token?: string }
+    | null
+
+  if (pendingStatusBody?.confirmed !== false || pendingStatusBody?.token) {
+    throw new Error("Reset token was handed out before the email link was opened")
+  }
+
+  const unknownRequestStatus = await get("/password-reset-status?requestId=nao-existe")
+  const unknownRequestBody = (await unknownRequestStatus.json().catch(() => null)) as
+    | { confirmed?: boolean }
+    | null
+
+  if (!unknownRequestStatus.ok || unknownRequestBody?.confirmed !== false) {
+    throw new Error("Unknown requestId did not respond with confirmed: false")
+  }
+
+  // Simula o clique no link do email: o token de confirmacao so existe em hash,
+  // entao o teste marca a confirmacao direto no banco.
+  const confirmed = await prisma.passwordResetRequest.updateMany({
+    where: { email },
+    data: { confirmedAt: new Date() },
+  })
+
+  if (confirmed.count !== 1) {
+    throw new Error("Password reset request was not persisted for the email")
+  }
+
+  const confirmedStatus = await get(
+    `/password-reset-status?requestId=${encodeURIComponent(requestId)}`,
+  )
+  const confirmedStatusBody = (await confirmedStatus.json().catch(() => null)) as
+    | { confirmed?: boolean; token?: string }
+    | null
+
+  if (confirmedStatusBody?.confirmed !== true || !confirmedStatusBody.token) {
+    throw new Error("Confirmed reset request did not return the reset token")
+  }
+
+  const replayedStatus = await get(
+    `/password-reset-status?requestId=${encodeURIComponent(requestId)}`,
+  )
+  const replayedStatusBody = (await replayedStatus.json().catch(() => null)) as
+    | { confirmed?: boolean }
+    | null
+
+  if (replayedStatusBody?.confirmed !== false) {
+    throw new Error("Reset token was delivered more than once")
+  }
+
+  const resetToken = confirmedStatusBody.token
   const resetResponse = await post("/reset-password", {
     token: resetToken,
     newPassword: "Password456!",
@@ -246,6 +294,8 @@ async function main() {
       emailVerificationRequired: true,
       emailVerificationSingleUse: true,
       professionalProfileCreated: true,
+      resetRequiresEmailConfirmation: true,
+      resetTokenSingleDelivery: true,
       resetTokenSingleUse: true,
       rateLimit: true,
     }),

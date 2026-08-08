@@ -1,5 +1,5 @@
 import { zodResolver } from "@hookform/resolvers/zod"
-import { Link, useLocalSearchParams } from "expo-router"
+import { Link, Redirect, useLocalSearchParams } from "expo-router"
 import { useRef } from "react"
 import { Controller, useForm } from "react-hook-form"
 import { Text, type TextInput, View } from "react-native"
@@ -17,8 +17,19 @@ import {
 
 export default function ResetPassword() {
   const params = useLocalSearchParams<{ token?: string }>()
-  const { errorMessage, isSubmitting, resetPassword, successMessage } = useAuth()
-  const passwordRef = useRef<TextInput>(null)
+  const token = typeof params.token === "string" && params.token ? params.token : null
+
+  // O token chega da consulta de status, nunca digitado. Sem ele não há nada a
+  // redefinir: o usuário precisa recomeçar pelo "Esqueci minha senha".
+  if (!token) {
+    return <Redirect href={routes.forgotPassword} />
+  }
+
+  return <ResetPasswordForm token={token} />
+}
+
+function ResetPasswordForm({ token }: { token: string }) {
+  const { errorMessage, isSubmitting, resetPassword } = useAuth()
   const confirmRef = useRef<TextInput>(null)
   const {
     control,
@@ -27,38 +38,21 @@ export default function ResetPassword() {
   } = useForm<ResetPasswordInput>({
     resolver: zodResolver(resetPasswordSchema),
     defaultValues: {
-      token: params.token ?? "",
       password: "",
       passwordConfirmation: "",
     },
   })
 
+  const submit = handleSubmit((input) => resetPassword(token, input))
+
   return (
     <FormScroll contentContainerStyle={styles.content} style={styles.container}>
       <View style={styles.header}>
         <Text style={styles.title}>Nova senha</Text>
-        <Text style={styles.subtitle}>Informe o token recebido e escolha uma nova senha.</Text>
+        <Text style={styles.subtitle}>Escolha a nova senha da sua conta.</Text>
       </View>
 
       <View style={styles.form}>
-        <Controller
-          control={control}
-          name="token"
-          render={({ field: { onChange, value } }) => (
-            <Input
-              autoCapitalize="none"
-              error={errors.token?.message}
-              label="Token"
-              onChangeText={onChange}
-              onSubmitEditing={() => passwordRef.current?.focus()}
-              placeholder="Token de redefinição"
-              returnKeyType="next"
-              submitBehavior="submit"
-              value={value}
-            />
-          )}
-        />
-
         <Controller
           control={control}
           name="password"
@@ -70,7 +64,6 @@ export default function ResetPassword() {
               maxLength={128}
               onChangeText={onChange}
               onSubmitEditing={() => confirmRef.current?.focus()}
-              ref={passwordRef}
               returnKeyType="next"
               secureTextEntry
               submitBehavior="submit"
@@ -89,7 +82,7 @@ export default function ResetPassword() {
               label="Confirmar senha"
               maxLength={128}
               onChangeText={onChange}
-              onSubmitEditing={handleSubmit(resetPassword)}
+              onSubmitEditing={submit}
               ref={confirmRef}
               returnKeyType="done"
               secureTextEntry
@@ -99,13 +92,8 @@ export default function ResetPassword() {
         />
 
         {errorMessage ? <Text style={styles.error}>{errorMessage}</Text> : null}
-        {successMessage ? <Text style={styles.success}>{successMessage}</Text> : null}
 
-        <Button
-          label="Redefinir senha"
-          loading={isSubmitting}
-          onPress={handleSubmit(resetPassword)}
-        />
+        <Button label="Redefinir senha" loading={isSubmitting} onPress={submit} />
       </View>
 
       <Link href={routes.login} style={styles.linkCentered}>

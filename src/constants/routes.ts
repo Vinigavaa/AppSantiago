@@ -23,4 +23,5 @@ export const routes = {
   services: "/services" as Href,
   subscription: "/subscription" as Href,
   verifyEmail: "/verify-email" as Href,
+  verifyPasswordReset: "/verify-password-reset" as Href,
 }

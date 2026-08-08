@@ -15,7 +15,7 @@ import {
 } from "@/features/auth/schemas/auth-schemas"
 
 export default function ForgotPassword() {
-  const { errorMessage, isSubmitting, requestPasswordReset, successMessage } = useAuth()
+  const { errorMessage, isSubmitting, requestPasswordReset } = useAuth()
   const {
     control,
     handleSubmit,
@@ -31,7 +31,9 @@ export default function ForgotPassword() {
     <FormScroll contentContainerStyle={styles.content} style={styles.container}>
       <View style={styles.header}>
         <Text style={styles.title}>Recuperar senha</Text>
-        <Text style={styles.subtitle}>Informe seu email para receber o link de redefinição.</Text>
+        <Text style={styles.subtitle}>
+          Informe seu email para receber a confirmação de redefinição.
+        </Text>
       </View>
 
       <View style={styles.form}>
@@ -55,10 +57,9 @@ export default function ForgotPassword() {
         />
 
         {errorMessage ? <Text style={styles.error}>{errorMessage}</Text> : null}
-        {successMessage ? <Text style={styles.success}>{successMessage}</Text> : null}
 
         <Button
-          label="Enviar link"
+          label="Enviar email"
           loading={isSubmitting}
           onPress={handleSubmit(requestPasswordReset)}
         />

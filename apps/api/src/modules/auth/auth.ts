@@ -10,7 +10,7 @@ import { sendPasswordResetEmail, sendVerificationEmail } from "@/services/email-
 
 import {
   getEmailVerificationUrl,
-  getPasswordResetWebFallbackUrl,
+  getPasswordResetConfirmUrl,
   getTrustedRedirectOrigins,
 } from "./auth-urls"
 import {
@@ -19,6 +19,8 @@ import {
   invalidatePreviousEmailVerificationTokens,
   storeEmailVerificationToken,
 } from "./email-verification-tokens"
+import { getPasswordResetContext } from "./password-reset-context"
+import { createPasswordResetRequest } from "./password-reset-requests"
 import type { PublicAuthRole } from "./schemas"
 
 function isPublicAuthRole(value: unknown): value is PublicAuthRole {
@@ -60,9 +62,33 @@ export const auth = betterAuth({
     resetPasswordTokenExpiresIn: 60 * 60,
     revokeSessionsOnPasswordReset: true,
     sendResetPassword: async ({ user, token }) => {
+      const context = getPasswordResetContext()
+
+      // Sem contexto a solicitacao nao teria requestId e o app nunca receberia
+      // o token — enviar o email deixaria o usuario em um fluxo sem saida.
+      if (!context) {
+        console.error(
+          JSON.stringify({
+            type: "password_reset_hook_without_context",
+            reason: "sendResetPassword chamado fora de runWithPasswordResetContext",
+          }),
+        )
+        throw APIError.from("INTERNAL_SERVER_ERROR", {
+          code: "PASSWORD_RESET_CONTEXT_MISSING",
+          message: "Nao foi possivel iniciar a redefinicao de senha.",
+        })
+      }
+
+      await createPasswordResetRequest({
+        requestId: context.requestId,
+        confirmationToken: context.confirmationToken,
+        email: user.email,
+        resetToken: token,
+      })
+
       await sendPasswordResetEmail({
         to: user.email,
-        url: getPasswordResetWebFallbackUrl(token),
+        url: getPasswordResetConfirmUrl(context.confirmationToken),
         userName: user.name,
       })
     },

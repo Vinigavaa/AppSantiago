@@ -8,7 +8,7 @@ const apiBaseUrl = trimTrailingSlash(env.BETTER_AUTH_URL)
 const deepLinkScheme = env.APP_DEEP_LINK_SCHEME
 
 export const verifyEmailCallbackPath = "/auth/email-verified"
-export const resetPasswordLandingPath = "/auth/reset-password"
+export const passwordResetConfirmPath = "/auth/password-reset-confirm"
 
 export function getEmailVerificationCallbackUrl() {
   return `${apiBaseUrl}${verifyEmailCallbackPath}`
@@ -19,12 +19,10 @@ export function getEmailVerificationUrl(token: string) {
   return `${apiBaseUrl}/api/auth/verify-email?token=${encodeURIComponent(token)}&callbackURL=${callbackURL}`
 }
 
-export function getPasswordResetUrl(token: string) {
-  return `${deepLinkScheme}://reset-password?token=${encodeURIComponent(token)}`
-}
-
-export function getPasswordResetWebFallbackUrl(token: string) {
-  return `${apiBaseUrl}${resetPasswordLandingPath}?token=${encodeURIComponent(token)}`
+// O link do email apenas confirma a solicitacao. O token de redefinicao nunca
+// sai do servidor por email: ele e entregue ao app pela consulta de status.
+export function getPasswordResetConfirmUrl(confirmationToken: string) {
+  return `${apiBaseUrl}${passwordResetConfirmPath}?token=${encodeURIComponent(confirmationToken)}`
 }
 
 export function getTrustedRedirectOrigins() {

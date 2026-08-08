@@ -68,14 +68,6 @@ export const authStyles = StyleSheet.create({
     fontSize: 16,
     lineHeight: 22,
   },
-  success: {
-    ...typography.caption,
-    backgroundColor: colors.primarySoft,
-    borderRadius: radius.control,
-    color: colors.primarySoftText,
-    fontSize: 14,
-    padding: 12,
-  },
   title: {
     color: colors.textPrimary,
     fontSize: 26,

@@ -49,12 +49,14 @@ A autenticacao roda apenas em `apps/api` com Better Auth. O mobile usa o client 
 Arquivos principais:
 
 - `apps/api/src/modules/auth/auth.ts`: configuracao do Better Auth, roles, criacao de perfis, verificacao de email e reset de senha.
-- `apps/api/src/modules/auth/auth-urls.ts`: helper centralizado para montar URLs de verificacao, reset e callbacks confiaveis.
+- `apps/api/src/modules/auth/auth-urls.ts`: helper centralizado para montar URLs de verificacao, confirmacao de reset e callbacks confiaveis.
 - `apps/api/src/modules/auth/public-sign-up-guard.ts`: bloqueia `ADMIN` e campos internos no cadastro publico.
 - `apps/api/src/modules/auth/email-verification-guard.ts`: rejeita token de verificacao ausente, expirado ou reutilizado; redireciona para landing page se `callbackURL` estiver presente.
 - `apps/api/src/modules/auth/email-verification-tokens.ts`: armazena hash do token de verificacao de email para garantir uso unico.
+- `apps/api/src/modules/auth/password-reset-requests.ts`: solicitacoes de redefinicao aguardando confirmacao por email (hash do requestId e do token do link).
+- `apps/api/src/modules/auth/password-reset-handlers.ts`: endpoints de solicitacao e de consulta de status da redefinicao.
 - `apps/api/src/http/rate-limit.ts`: rate limit persistido em banco.
-- `apps/api/src/http/landing-pages.ts`: paginas HTML servidas pela API para `/auth/email-verified` (sucesso/erro) e `/auth/reset-password` (fallback web).
+- `apps/api/src/http/landing-pages.ts`: paginas HTML servidas pela API para `/auth/email-verified` e `/auth/password-reset-confirm` (sucesso/erro).
 - `apps/api/src/services/email-service.ts`: envio via Resend (HTTP REST). Em desenvolvimento aceita `EMAIL_PROVIDER=console`.
 - `apps/api/src/services/email-templates.ts`: templates HTML/text para verificacao de email e reset de senha.
 - `src/features/auth/services/auth-service.ts`: chamadas do mobile para Better Auth/API.
@@ -71,7 +73,8 @@ POST /api/auth/sign-in/email
 POST /api/auth/sign-in/username
 GET  /api/auth/get-session
 POST /api/auth/sign-out
-POST /api/auth/request-password-reset
+POST /api/auth/password-reset-request
+GET  /api/auth/password-reset-status
 POST /api/auth/reset-password
 GET  /api/auth/verify-email
 POST /api/auth/send-verification-email
@@ -97,9 +100,15 @@ Email:
 
 Senha:
 
-- Reset de senha usa token gerado pelo Better Auth.
-- O token expira em 1 hora.
-- O token e de uso unico.
+- A redefinicao exige confirmacao por email: o link apenas confirma a solicitacao,
+  e o app busca o token ao tocar em "Ja verifiquei meu email".
+- O token de redefinicao nunca aparece no email nem em pagina web.
+- O `requestId` devolvido na solicitacao e o segredo que autoriza o aparelho a
+  buscar o token; e guardado em hash no banco e no armazenamento seguro do app.
+- A solicitacao responde sempre `200`, mesmo para email sem cadastro (anti-enumeracao).
+- Cada nova solicitacao invalida a anterior do mesmo email.
+- O token de redefinicao e gerado pelo Better Auth, expira em 1 hora, e entregue
+  uma unica vez e e de uso unico.
 - Sessoes antigas sao revogadas apos reset.
 
 Rate limit:
@@ -108,6 +117,8 @@ Rate limit:
 - Login por identificador: `12/15min`.
 - Cadastro por IP: `5/10min`.
 - Reset de senha por IP: `4/15min`.
+- Solicitacao de redefinicao por IP: `4/15min` e por email: `3/60min`.
+- Consulta de status da redefinicao por IP: `30/15min`.
 - Solicitacao de reset por email: `3/h`.
 - Verificacao de email por IP: `6/15min`.
 - Os contadores ficam na tabela `RateLimitBucket`, compartilhados por todas as instancias da API.

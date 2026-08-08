@@ -109,9 +109,9 @@ export function renderPasswordResetEmail(input: RenderInput): RenderedEmail {
   const greeting = greet(input.userName)
   const body = `
     <p style="margin:0 0 16px;">${greeting}</p>
-    <p style="margin:0 0 20px;">Recebemos uma solicitacao para redefinir a senha da sua conta. O link e valido por <strong>1 hora</strong> e expira apos o primeiro uso.</p>
-    <div style="margin:24px 0;">${primaryButton("Redefinir minha senha", input.url)}</div>
-    <p style="margin:0 0 8px;font-size:14px;color:#475569;">Se o botao nao abrir, copie e cole este endereco no seu navegador ou diretamente no app:</p>
+    <p style="margin:0 0 20px;">Recebemos uma solicitacao para redefinir a senha da sua conta. Confirme a solicitacao no botao abaixo e volte ao app para escolher a nova senha. O link e valido por <strong>1 hora</strong>.</p>
+    <div style="margin:24px 0;">${primaryButton("Confirmar solicitacao", input.url)}</div>
+    <p style="margin:0 0 8px;font-size:14px;color:#475569;">Se o botao nao abrir, copie e cole este endereco no seu navegador:</p>
     <p style="margin:0 0 16px;word-break:break-all;font-size:13px;color:#05013D;">${escapeHtml(input.url)}</p>
     <p style="margin:24px 0 0;font-size:14px;color:#475569;">Se voce nao solicitou a troca, voce pode ignorar esta mensagem com seguranca. Sua senha atual continua valida.</p>
   `
@@ -120,7 +120,8 @@ export function renderPasswordResetEmail(input: RenderInput): RenderedEmail {
     input.userName?.trim() ? `Ola, ${input.userName.trim()}!` : "Ola!",
     "",
     "Recebemos uma solicitacao para redefinir sua senha do Mãos à Obra.",
-    "O link e valido por 1 hora e expira apos o primeiro uso.",
+    "Confirme a solicitacao no link abaixo e volte ao app para escolher a nova senha.",
+    "O link e valido por 1 hora.",
     "",
     input.url,
     "",
@@ -128,8 +129,8 @@ export function renderPasswordResetEmail(input: RenderInput): RenderedEmail {
   ].join("\n")
 
   const html = baseLayout({
-    title: "Redefina sua senha",
-    preheader: "Use o link para escolher uma nova senha.",
+    title: "Confirme a redefinicao de senha",
+    preheader: "Confirme a solicitacao e volte ao app para escolher a nova senha.",
     body,
   })
 

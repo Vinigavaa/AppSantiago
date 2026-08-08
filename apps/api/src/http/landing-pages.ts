@@ -1,11 +1,8 @@
 import { Hono } from "hono"
 
 import { env } from "@/config/env"
-import {
-  getPasswordResetUrl,
-  resetPasswordLandingPath,
-  verifyEmailCallbackPath,
-} from "@/modules/auth/auth-urls"
+import { passwordResetConfirmPath, verifyEmailCallbackPath } from "@/modules/auth/auth-urls"
+import { confirmPasswordResetRequest } from "@/modules/auth/password-reset-requests"
 
 const deepLinkScheme = env.APP_DEEP_LINK_SCHEME
 
@@ -62,7 +59,6 @@ function renderPage(input: PageInput) {
       a.button { display:inline-block; text-align:center; padding:14px 18px; border-radius:10px; text-decoration:none; font-weight:600; }
       a.primary { background:#05013D; color:#FFFFFF; }
       a.secondary { background:#F1F5F9; color:#0F172A; }
-      .token { background:#F8FAFC; border:1px solid #E2E8F0; padding:12px; border-radius:10px; font-family:ui-monospace,SFMono-Regular,Menlo,monospace; word-break:break-all; font-size:13px; color:#0F172A; }
       footer { text-align:center; color:#94A3B8; margin-top:24px; font-size:12px; }
     </style>
   </head>
@@ -111,7 +107,10 @@ landingPages.get(verifyEmailCallbackPath, (context) => {
   )
 })
 
-landingPages.get(resetPasswordLandingPath, (context) => {
+// Confirma a solicitacao de redefinicao. A pagina nunca exibe o token de
+// redefinicao: ela apenas libera o app, que busca o token pela consulta de
+// status ao tocar em "Ja verifiquei meu email".
+landingPages.get(passwordResetConfirmPath, async (context) => {
   const token = context.req.query("token")?.trim()
 
   if (!token) {
@@ -126,15 +125,30 @@ landingPages.get(resetPasswordLandingPath, (context) => {
     )
   }
 
-  const deepLink = getPasswordResetUrl(token)
+  const confirmed = await confirmPasswordResetRequest(token)
+
+  if (!confirmed) {
+    return context.html(
+      renderPage({
+        title: "Link expirado",
+        heading: "Este link nao vale mais",
+        message:
+          "O link expirou ou foi substituido por uma solicitacao mais recente. Abra o app Mãos à Obra e peca um novo email de redefinicao.",
+        primary: { label: "Abrir o app Mãos à Obra", url: `${deepLinkScheme}://login` },
+        variant: "error",
+      }),
+      400,
+    )
+  }
 
   return context.html(
     renderPage({
-      title: "Redefinir senha",
-      heading: "Redefinir sua senha",
-      message: `Toque no botao abaixo para abrir o app Mãos à Obra com o token preenchido. Se voce estiver em um computador, copie o token abaixo e cole na tela <strong>Nova senha</strong> do app.<div class="token" style="margin-top:16px;">${escapeHtml(token)}</div>`,
-      primary: { label: "Abrir no app Mãos à Obra", url: deepLink },
-      variant: "info",
+      title: "Solicitacao confirmada",
+      heading: "Solicitacao confirmada!",
+      message:
+        'Volte ao app Mãos à Obra e toque em <strong>Ja verifiquei meu email</strong> para escolher a nova senha.',
+      primary: { label: "Abrir o app Mãos à Obra", url: `${deepLinkScheme}://login` },
+      variant: "success",
     }),
   )
 })

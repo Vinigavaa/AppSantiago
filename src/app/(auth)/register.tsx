@@ -14,7 +14,7 @@ import { useAuth } from "@/features/auth/hooks/useAuth"
 import { signUpSchema, type SignUpInput } from "@/features/auth/schemas/auth-schemas"
 
 export default function Register() {
-  const { errorMessage, isSubmitting, signUp, successMessage } = useAuth()
+  const { errorMessage, isSubmitting, signUp } = useAuth()
   const emailRef = useRef<TextInput>(null)
   const passwordRef = useRef<TextInput>(null)
   const {
@@ -107,7 +107,6 @@ export default function Register() {
         />
 
         {errorMessage ? <Text style={styles.error}>{errorMessage}</Text> : null}
-        {successMessage ? <Text style={styles.success}>{successMessage}</Text> : null}
 
         <Button label="Criar conta" loading={isSubmitting} onPress={handleSubmit(signUp)} />
       </View>
