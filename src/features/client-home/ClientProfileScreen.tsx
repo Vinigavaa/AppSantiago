@@ -11,7 +11,7 @@ import { routes } from "@/constants/routes"
 import { useAuth } from "@/features/auth/hooks/useAuth"
 import { closeRealtime } from "@/features/realtime/client"
 import { EditableAvatar } from "@/features/uploads/EditableAvatar"
-import { authClient } from "@/lib/auth-client"
+import { authClient, refreshSession } from "@/lib/auth-client"
 
 import { ChangePasswordModal } from "./components/ChangePasswordModal"
 import { ClientPersonalInfoModal } from "./components/ClientPersonalInfoModal"
@@ -112,6 +112,8 @@ export function ClientProfileScreen() {
             name={profile.name}
             onUploaded={(avatarUrl) => {
               setProfile({ ...profile, avatarUrl })
+              // A home lê a foto da sessão: sem revalidar, ela ficaria com a antiga.
+              refreshSession()
               showNotice("Foto de perfil atualizada.")
             }}
             uri={profile.avatarUrl}

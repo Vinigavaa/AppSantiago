@@ -48,3 +48,11 @@ export const authClient = createAuthClient({
     }),
   ],
 })
+
+// Força o `useSession` a buscar a sessão de novo. Necessário quando alteramos
+// dados do usuário por fora do better-auth (ex.: a foto de perfil, que sobe
+// pelo endpoint de uploads): sem isso, telas que leem `session.user` — como o
+// cabeçalho da home — continuam com o valor antigo até o app reabrir.
+export function refreshSession() {
+  authClient.$store.notify("$sessionSignal")
+}

@@ -98,6 +98,7 @@ export function ClientHome() {
       style={styles.screen}
     >
       <HomeHeader
+        avatarUrl={session?.user.image}
         greeting={getGreeting()}
         initials={getInitials(session?.user.name)}
         name={getFirstName(session?.user.name)}

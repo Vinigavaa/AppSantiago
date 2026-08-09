@@ -1,12 +1,17 @@
 import { Ionicons } from "@expo/vector-icons"
 import { Pressable, StyleSheet, Text, View } from "react-native"
 
+import { Avatar } from "@/components/ui/Avatar"
+
 import { colors, radius } from "../theme"
+
+const AVATAR_SIZE = 44
 
 type Props = {
   greeting: string
   name: string
   initials: string
+  avatarUrl: string | null | undefined
   unreadCount: number
   onPressNotifications: () => void
   onPressAvatar: () => void
@@ -16,6 +21,7 @@ export function HomeHeader({
   greeting,
   name,
   initials,
+  avatarUrl,
   unreadCount,
   onPressNotifications,
   onPressAvatar,
@@ -49,9 +55,9 @@ export function HomeHeader({
           accessibilityLabel="Seu perfil"
           accessibilityRole="button"
           onPress={onPressAvatar}
-          style={({ pressed }) => [styles.avatar, pressed && styles.pressed]}
+          style={({ pressed }) => pressed && styles.pressed}
         >
-          <Text style={styles.avatarText}>{initials}</Text>
+          <Avatar initials={initials} size={AVATAR_SIZE} uri={avatarUrl} />
         </Pressable>
       </View>
     </View>
@@ -63,19 +69,6 @@ const styles = StyleSheet.create({
     alignItems: "center",
     flexDirection: "row",
     gap: 12,
-  },
-  avatar: {
-    alignItems: "center",
-    backgroundColor: colors.avatarBg,
-    borderRadius: radius.avatar,
-    height: 44,
-    justifyContent: "center",
-    width: 44,
-  },
-  avatarText: {
-    color: colors.avatarText,
-    fontSize: 15,
-    fontWeight: "700",
   },
   badge: {
     alignItems: "center",

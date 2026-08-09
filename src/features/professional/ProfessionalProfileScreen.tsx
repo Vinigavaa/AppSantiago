@@ -15,7 +15,7 @@ import { closeRealtime } from "@/features/realtime/client"
 import { EditableAvatar } from "@/features/uploads/EditableAvatar"
 import { pickPortfolioImage } from "@/features/uploads/portfolioUpload"
 import { useCatalog } from "@/features/service-requests/hooks"
-import { authClient } from "@/lib/auth-client"
+import { authClient, refreshSession } from "@/lib/auth-client"
 
 import { ChangePasswordModal } from "@/features/client-home/components/ChangePasswordModal"
 import { DeleteAccountModal } from "@/features/client-home/components/DeleteAccountModal"
@@ -199,6 +199,8 @@ export function ProfessionalProfileScreen() {
             name={profile.name}
             onUploaded={(avatarUrl) => {
               setProfile({ ...profile, avatarUrl })
+              // A home lê a foto da sessão: sem revalidar, ela ficaria com a antiga.
+              refreshSession()
               showNotice("Foto de perfil atualizada.")
             }}
             uri={profile.avatarUrl}
