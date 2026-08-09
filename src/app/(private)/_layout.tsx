@@ -5,6 +5,7 @@ import { ActivityIndicator, type ColorValue, StyleSheet, View } from "react-nati
 import { useSafeAreaInsets } from "react-native-safe-area-context"
 
 import { TabBadge } from "@/components/ui/TabBadge"
+import { TAB_BAR_CONTENT_HEIGHT } from "@/constants/layout"
 import { routes } from "@/constants/routes"
 import { colors } from "@/features/client-home/theme"
 import {
@@ -205,11 +206,6 @@ const styles = StyleSheet.create({
     fontWeight: "500",
   },
 })
-
-// Altura útil da barra (ícone + rótulo). A biblioteca reserva 49dp fixos, que não
-// acomodam o rótulo quando o usuário aumenta a fonte do sistema — o texto era
-// cortado ao meio.
-const TAB_BAR_CONTENT_HEIGHT = 58
 
 // O inset entra somado na altura de propósito: definir `height` faz a biblioteca
 // usar este valor no lugar do cálculo dela (que já incluía o inset). Sem somar,

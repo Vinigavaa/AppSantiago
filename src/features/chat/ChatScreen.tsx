@@ -5,6 +5,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context"
 
 import { useConfirm } from "@/components/ui/ConfirmDialog"
 import { LoadingState } from "@/components/ui/LoadingState"
+import { TAB_BAR_CONTENT_HEIGHT } from "@/constants/layout"
 import { routes } from "@/constants/routes"
 import { blockUser } from "@/features/blocks/service"
 import { colors, spacing } from "@/features/client-home/theme"
@@ -38,7 +39,14 @@ export function ChatScreen({ chatId }: { chatId: string }) {
   // No Android o `softwareKeyboardLayoutMode: "resize"` já encolhe a janela: somar
   // padding aqui abriria uma faixa vazia entre o campo e o teclado. No iOS a
   // janela não muda, então o deslocamento precisa ser explícito.
-  const keyboardInset = Platform.OS === "ios" ? keyboardHeight : 0
+  //
+  // A altura do teclado é medida a partir da base da janela, mas esta tela vive
+  // dentro das abas: a barra inferior já ocupa a faixa que o teclado cobre por
+  // baixo. Sem descontá-la, o campo subia a mais e abria um vão (visível no
+  // iPhone 11, onde a barra tem 58 + 34 da área segura).
+  const tabBarHeight = TAB_BAR_CONTENT_HEIGHT + insets.bottom
+  const keyboardInset =
+    Platform.OS === "ios" ? Math.max(keyboardHeight - tabBarHeight, 0) : 0
 
   const profileHref = otherUser ? profileHrefFor(otherUser) : null
 
