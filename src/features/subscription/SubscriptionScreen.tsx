@@ -32,11 +32,6 @@ const PLAN_PERIOD: Record<SubscriptionPlan, string> = {
   ANNUAL: "por ano",
 }
 
-// Preço de referência do plano vendido hoje. O valor exibido é sempre o da loja
-// (localizado); esta constante só evita uma tela sem preço caso a oferta não
-// carregue — precisa acompanhar o preço cadastrado nas lojas.
-const FALLBACK_PRICE = "R$ 4,90"
-
 const BENEFITS = [
   "Apareça em destaque no topo das buscas",
   "Selo de destaque no seu perfil",
@@ -167,17 +162,25 @@ function PlanCard({
         <Text style={[styles.badgeText, { color: status.info.color }]}>Plano bimestral</Text>
       </View>
 
-      <Text style={styles.cardTitle}>Destaque Santiago</Text>
+      <Text style={styles.cardTitle}>Destaque FazAí</Text>
 
-      <View style={styles.priceRow}>
-        <Text style={styles.price}>{offer?.priceString ?? FALLBACK_PRICE}</Text>
-        <Text style={styles.pricePeriod}>{PLAN_PERIOD.BIMONTHLY}</Text>
-      </View>
+      {/* Preço só aparece quando vem da loja: exibir um valor fixo enquanto a
+          oferta não carrega mostraria um preço que pode não ser o cobrado. */}
+      {offer ? (
+        <>
+          <View style={styles.priceRow}>
+            <Text style={styles.price}>{offer.priceString}</Text>
+            <Text style={styles.pricePeriod}>{PLAN_PERIOD.BIMONTHLY}</Text>
+          </View>
 
-      <Text style={styles.muted}>
-        Acesso por 2 meses. Renova automaticamente por {offer?.priceString ?? FALLBACK_PRICE} a cada
-        2 meses até você cancelar.
-      </Text>
+          <Text style={styles.muted}>
+            Acesso por 2 meses. Renova automaticamente por {offer.priceString} a cada 2 meses até
+            você cancelar.
+          </Text>
+        </>
+      ) : (
+        <Text style={styles.muted}>Acesso por 2 meses, com renovação automática.</Text>
+      )}
 
       <View style={styles.benefits}>
         {BENEFITS.map((benefit) => (
