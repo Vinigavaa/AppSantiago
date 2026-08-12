@@ -1,6 +1,6 @@
 {
   "expo": {
-    "name": "Mãos à Obra",
+    "name": "FazAí",
     "slug": "santiago",
     "version": "1.0.0",
     "orientation": "portrait",
@@ -8,15 +8,19 @@
     "scheme": "santiago",
     "userInterfaceStyle": "automatic",
     "ios": {
-      "supportsTablet": true,
+      "supportsTablet": false,
       "bundleIdentifier": "com.vinigavaa.santiago",
+      "config": {
+        "usesNonExemptEncryption": false
+      },
       "infoPlist": {
         "LSApplicationQueriesSchemes": [
           "message",
           "googlegmail",
           "ms-outlook",
           "ymail"
-        ]
+        ],
+        "ITSAppUsesNonExemptEncryption": false
       }
     },
     "android": {

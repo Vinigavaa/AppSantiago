@@ -19,7 +19,7 @@ const envSchema = z.object({
   BETTER_AUTH_URL: z.url(),
   CORS_ORIGIN: z.string().default("http://localhost:8081"),
   DATABASE_URL: z.string().min(1),
-  EMAIL_FROM: z.string().min(3).default("Mãos à Obra <no-reply@santiago.local>"),
+  EMAIL_FROM: z.string().min(3).default("FazAí <no-reply@santiago.local>"),
   EMAIL_PROVIDER: z.enum(["console", "resend"]).default("console"),
   EMAIL_REPLY_TO: z.email().optional(),
   // Caixa que recebe o aviso de cada denúncia — a mesma de suporte publicada nos
@@ -47,6 +47,8 @@ const envSchema = z.object({
   // mensal de anual na hora de gravar o plano (aceitam varios ids por virgula).
   REVENUECAT_PRODUCT_MONTHLY: z.string().optional(),
   REVENUECAT_PRODUCT_ANNUAL: z.string().optional(),
+  // Plano bimestral (R$ 4,90 a cada 2 meses) — o unico ofertado no app hoje.
+  REVENUECAT_PRODUCT_BIMONTHLY: z.string().optional(),
   // Teto mensal de propostas para profissional SEM assinatura. Assinantes nao tem
   // limite. Configuravel para ajustar sem novo deploy.
   PROPOSAL_MONTHLY_LIMIT_FREE: z.coerce.number().int().positive().default(5),

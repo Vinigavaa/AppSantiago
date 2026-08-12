@@ -64,14 +64,14 @@ function renderPage(input: PageInput) {
   </head>
   <body>
     <main class="card">
-      <span class="badge">Mãos à Obra</span>
+      <span class="badge">FazAí</span>
       <h1>${escapeHtml(input.heading)}</h1>
       <p>${input.message}</p>
       <div class="actions">
         ${input.primary ? `<a class="button primary" href="${escapeHtml(input.primary.url)}">${escapeHtml(input.primary.label)}</a>` : ""}
         ${input.secondary ? `<a class="button secondary" href="${escapeHtml(input.secondary.url)}">${escapeHtml(input.secondary.label)}</a>` : ""}
       </div>
-      <footer>Mãos à Obra</footer>
+      <footer>FazAí</footer>
     </main>
   </body>
 </html>`
@@ -89,7 +89,7 @@ landingPages.get(verifyEmailCallbackPath, (context) => {
         title: "Falha na verificacao",
         heading: "Nao foi possivel confirmar seu email",
         message,
-        primary: { label: "Abrir o app Mãos à Obra", url: `${deepLinkScheme}://login` },
+        primary: { label: "Abrir o app FazAí", url: `${deepLinkScheme}://login` },
         variant: "error",
       }),
       400,
@@ -100,8 +100,8 @@ landingPages.get(verifyEmailCallbackPath, (context) => {
     renderPage({
       title: "Email confirmado",
       heading: "Email confirmado com sucesso!",
-      message: "Sua conta esta ativa. Voce ja pode fazer login no app Mãos à Obra.",
-      primary: { label: "Abrir o app Mãos à Obra", url: `${deepLinkScheme}://login` },
+      message: "Sua conta esta ativa. Voce ja pode fazer login no app FazAí.",
+      primary: { label: "Abrir o app FazAí", url: `${deepLinkScheme}://login` },
       variant: "success",
     }),
   )
@@ -133,8 +133,8 @@ landingPages.get(passwordResetConfirmPath, async (context) => {
         title: "Link expirado",
         heading: "Este link nao vale mais",
         message:
-          "O link expirou ou foi substituido por uma solicitacao mais recente. Abra o app Mãos à Obra e peca um novo email de redefinicao.",
-        primary: { label: "Abrir o app Mãos à Obra", url: `${deepLinkScheme}://login` },
+          "O link expirou ou foi substituido por uma solicitacao mais recente. Abra o app FazAí e peca um novo email de redefinicao.",
+        primary: { label: "Abrir o app FazAí", url: `${deepLinkScheme}://login` },
         variant: "error",
       }),
       400,
@@ -146,8 +146,8 @@ landingPages.get(passwordResetConfirmPath, async (context) => {
       title: "Solicitacao confirmada",
       heading: "Solicitacao confirmada!",
       message:
-        'Volte ao app Mãos à Obra e toque em <strong>Ja verifiquei meu email</strong> para escolher a nova senha.',
-      primary: { label: "Abrir o app Mãos à Obra", url: `${deepLinkScheme}://login` },
+        'Volte ao app FazAí e toque em <strong>Ja verifiquei meu email</strong> para escolher a nova senha.',
+      primary: { label: "Abrir o app FazAí", url: `${deepLinkScheme}://login` },
       variant: "success",
     }),
   )

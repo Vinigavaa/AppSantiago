@@ -20,7 +20,7 @@ const CONTROLLER = {
 // foi revisado hoje toda vez que a pagina abre.
 const LAST_UPDATED = "8 de agosto de 2026"
 
-const APP_NAME = "Mãos à Obra"
+const APP_NAME = "FazAí"
 
 function escapeHtml(value: string) {
   return value
@@ -99,16 +99,16 @@ function renderDocument(input: DocumentInput) {
 
 const termsSections: Section[] = [
   {
-    heading: "O que o Mãos à Obra é",
+    heading: "O que o FazAí é",
     paragraphs: [
-      "O Mãos à Obra é um aplicativo que conecta pessoas que precisam de um serviço a profissionais que oferecem esse serviço. Funcionamos como um ponto de encontro: o cliente descreve o que precisa, profissionais da categoria e da cidade enviam propostas, e as duas partes conversam pelo aplicativo até fechar (ou não) um acordo.",
+      "O FazAí é um aplicativo que conecta pessoas que precisam de um serviço a profissionais que oferecem esse serviço. Funcionamos como um ponto de encontro: o cliente descreve o que precisa, profissionais da categoria e da cidade enviam propostas, e as duas partes conversam pelo aplicativo até fechar (ou não) um acordo.",
       "Não executamos, não supervisionamos e não garantimos a execução de nenhum serviço anunciado na plataforma. Não somos empregadores, contratantes, intermediários de pagamento nem representantes dos profissionais cadastrados.",
     ],
   },
   {
     heading: "O contrato do serviço é entre você e a outra parte",
     paragraphs: [
-      "Quando um cliente aceita a proposta de um profissional, o contrato de prestação de serviço nasce entre esses dois — não com o Mãos à Obra. Preço, prazo, escopo, forma de pagamento, garantia e qualquer outra condição são acordados diretamente entre as partes.",
+      "Quando um cliente aceita a proposta de um profissional, o contrato de prestação de serviço nasce entre esses dois — não com o FazAí. Preço, prazo, escopo, forma de pagamento, garantia e qualquer outra condição são acordados diretamente entre as partes.",
       "Não intermediamos nem processamos o pagamento dos serviços. O que é combinado e pago fora do aplicativo é responsabilidade de quem combinou.",
       "Verificamos o cadastro na medida do que o próprio usuário informa. Não conferimos habilitação técnica, registro em conselho de classe, antecedentes ou capacidade financeira de ninguém. Avalie a outra parte antes de fechar negócio.",
     ],
@@ -134,7 +134,7 @@ const termsSections: Section[] = [
   },
   {
     heading: "Regras de conduta",
-    paragraphs: ["Ao usar o Mãos à Obra, você concorda em não:"],
+    paragraphs: ["Ao usar o FazAí, você concorda em não:"],
     bullets: [
       "Publicar informação falsa sobre sua identidade, sua qualificação ou o serviço oferecido",
       "Oferecer ou solicitar serviços ilegais, perigosos ou que exijam habilitação que você não possui",
@@ -148,7 +148,7 @@ const termsSections: Section[] = [
   {
     heading: "Conteúdo ofensivo e denúncias",
     paragraphs: [
-      "Não há tolerância a conteúdo ofensivo nem a usuários abusivos no Mãos à Obra. Mensagens, descrições de serviço, perfis, fotos de portfólio e avaliações passam por um filtro automático que bloqueia termos ofensivos antes da publicação — e o filtro não substitui a sua denúncia.",
+      "Não há tolerância a conteúdo ofensivo nem a usuários abusivos no FazAí. Mensagens, descrições de serviço, perfis, fotos de portfólio e avaliações passam por um filtro automático que bloqueia termos ofensivos antes da publicação — e o filtro não substitui a sua denúncia.",
       "Você pode denunciar qualquer conteúdo ou usuário diretamente no aplicativo: na conversa (no menu do topo ou pressionando uma mensagem recebida), no perfil do profissional, na solicitação de serviço e nas avaliações. A denúncia é anônima para a pessoa denunciada.",
       "Analisamos toda denúncia em até 24 horas. Confirmada a violação, o conteúdo é removido e o usuário responsável pode ser suspenso ou ter a conta encerrada, conforme a gravidade e a reincidência.",
       "Você também pode bloquear qualquer usuário a qualquer momento, sem precisar denunciar. Ao bloquear, vocês deixam de aparecer um para o outro e não trocam mais mensagens; o bloqueio pode ser desfeito em Perfil › Usuários bloqueados.",

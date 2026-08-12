@@ -5,7 +5,7 @@ import { type Prisma, prisma } from "@santiago/database"
 // vem do dispositivo. O estado e as datas são os que o servidor confirmou com a
 // loja (via RevenueCat); aqui só derivamos o "ativo agora" a partir deles.
 
-export type SubscriptionPlan = "MONTHLY" | "ANNUAL"
+export type SubscriptionPlan = "MONTHLY" | "ANNUAL" | "BIMONTHLY"
 
 export type Entitlement = {
   isActive: boolean

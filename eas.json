@@ -16,18 +16,25 @@
       "distribution": "internal",
       "environment": "preview",
       "env": {
-        "EXPO_PUBLIC_AUTH_BASE_URL": "https://appsantiago.onrender.com"
+        "EXPO_PUBLIC_AUTH_BASE_URL": "https://appsantiago.onrender.com",
+        "EXPO_PUBLIC_REVENUECAT_IOS_KEY": "appl_MgIuNsCuMXhLGnoEhygGDcNErtc"
       }
     },
     "production": {
       "autoIncrement": true,
       "environment": "production",
       "env": {
-        "EXPO_PUBLIC_AUTH_BASE_URL": "https://appsantiago.onrender.com"
+        "EXPO_PUBLIC_AUTH_BASE_URL": "https://appsantiago.onrender.com",
+        "EXPO_PUBLIC_REVENUECAT_IOS_KEY": "appl_MgIuNsCuMXhLGnoEhygGDcNErtc"
       }
     }
   },
   "submit": {
-    "production": {}
+    "production": {
+      "ios": {
+        "appleTeamId": "TD9647CQQN",
+        "ascAppId": "6800106772"
+      }
+    }
   }
 }

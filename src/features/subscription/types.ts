@@ -1,7 +1,9 @@
 // Estado da assinatura vindo do servidor (fonte de verdade). O app só exibe; a
 // decisão de vantagens é sempre do backend.
 
-export type SubscriptionPlan = "MONTHLY" | "ANNUAL"
+// BIMONTHLY é o plano vendido hoje (R$ 4,90 a cada 2 meses). Os outros seguem no
+// tipo porque o servidor pode devolvê-los para assinaturas antigas.
+export type SubscriptionPlan = "MONTHLY" | "ANNUAL" | "BIMONTHLY"
 
 export type SubscriptionStatusValue =
   | "ACTIVE"

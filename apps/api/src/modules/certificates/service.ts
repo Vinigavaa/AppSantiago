@@ -11,7 +11,7 @@ import { getEntitlementByProfessionalId } from "@/modules/subscriptions/entitlem
 // Aviso de escopo exibido no app e na verificacao publica. Centralizado aqui para
 // ter um texto unico e consistente.
 export const CERTIFICATE_DISCLAIMER =
-  "Selo de participacao e verificacao na plataforma Maos a Obra. Nao e uma " +
+  "Selo de participacao e verificacao na plataforma FazAi. Nao e uma " +
   "certificacao tecnica ou profissional oficial."
 
 // Codigo aleatorio, nao sequencial e legivel. A unicidade tambem e garantida pelo

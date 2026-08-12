@@ -77,9 +77,12 @@ enum ReportStatus {
   DISMISSED
 }
 
+// BIMONTHLY é o único plano vendido hoje (R$ 4,90 a cada 2 meses). MONTHLY e
+// ANNUAL permanecem para não invalidar assinaturas já gravadas.
 enum SubscriptionPlan {
   MONTHLY
   ANNUAL
+  BIMONTHLY
 }
 
 // Estado da assinatura. ACTIVE e IN_GRACE concedem as vantagens; CANCELED mantém

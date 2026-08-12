@@ -53,6 +53,7 @@ export type PlanOffer = {
 }
 
 function planForPackage(pkg: PurchasesPackage): SubscriptionPlan | null {
+  if (pkg.packageType === PACKAGE_TYPE.TWO_MONTH) return "BIMONTHLY"
   if (pkg.packageType === PACKAGE_TYPE.MONTHLY) return "MONTHLY"
   if (pkg.packageType === PACKAGE_TYPE.ANNUAL) return "ANNUAL"
   return null

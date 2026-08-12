@@ -5,7 +5,7 @@ import { env } from "@/config/env"
 // Sem os ids configurados, retornamos null e o registro da assinatura e recusado
 // (nao adivinhamos plano).
 
-export type Plan = "MONTHLY" | "ANNUAL"
+export type Plan = "MONTHLY" | "ANNUAL" | "BIMONTHLY"
 
 // Cada env pode listar VÁRIOS identificadores separados por vírgula (Android, iOS,
 // Test Store, ou o REST API id do RevenueCat) — todos apontando para o mesmo plano.
@@ -18,6 +18,10 @@ function idList(value: string | undefined): string[] {
 }
 
 export function planForProductId(productId: string): Plan | null {
+  if (idList(env.REVENUECAT_PRODUCT_BIMONTHLY).includes(productId)) {
+    return "BIMONTHLY"
+  }
+
   if (idList(env.REVENUECAT_PRODUCT_MONTHLY).includes(productId)) {
     return "MONTHLY"
   }
