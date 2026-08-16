@@ -1,6 +1,6 @@
 import { zodResolver } from "@hookform/resolvers/zod"
 import { Link } from "expo-router"
-import { useRef } from "react"
+import { useRef, useState } from "react"
 import { Controller, useForm } from "react-hook-form"
 import { Image, Text, type TextInput, View } from "react-native"
 
@@ -16,6 +16,9 @@ export default function Login() {
   const { errorMessage, isSubmitting, signIn } = useAuth()
   const emailRef = useRef<TextInput>(null)
   const passwordRef = useRef<TextInput>(null)
+  // Ver register.tsx: sem esta mensagem o botão não dá retorno algum quando o
+  // formulário está inválido.
+  const [validationError, setValidationError] = useState<string | null>(null)
   const {
     control,
     handleSubmit,
@@ -28,6 +31,16 @@ export default function Login() {
       password: "",
     },
   })
+
+  const submit = handleSubmit(
+    (values) => {
+      setValidationError(null)
+      return signIn(values)
+    },
+    () => {
+      setValidationError("Informe username ou email e a senha para entrar.")
+    },
+  )
 
   return (
     <FormScroll contentContainerStyle={styles.content} style={styles.container}>
@@ -93,7 +106,7 @@ export default function Login() {
               label="Senha"
               maxLength={128}
               onChangeText={onChange}
-              onSubmitEditing={handleSubmit(signIn)}
+              onSubmitEditing={submit}
               placeholder="Sua senha"
               ref={passwordRef}
               returnKeyType="done"
@@ -103,9 +116,11 @@ export default function Login() {
           )}
         />
 
-        {errorMessage ? <Text style={styles.error}>{errorMessage}</Text> : null}
+        {validationError ?? errorMessage ? (
+          <Text style={styles.error}>{validationError ?? errorMessage}</Text>
+        ) : null}
 
-        <Button label="Entrar" loading={isSubmitting} onPress={handleSubmit(signIn)} />
+        <Button label="Entrar" loading={isSubmitting} onPress={submit} />
 
         <Link href={routes.forgotPassword} style={styles.linkCentered}>
           Esqueci minha senha

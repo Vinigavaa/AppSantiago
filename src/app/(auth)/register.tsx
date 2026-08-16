@@ -1,6 +1,6 @@
 import { zodResolver } from "@hookform/resolvers/zod"
 import { Link } from "expo-router"
-import { useRef } from "react"
+import { useRef, useState } from "react"
 import { Controller, useForm } from "react-hook-form"
 import { Text, type TextInput, View } from "react-native"
 
@@ -18,6 +18,10 @@ export default function Register() {
   const { errorMessage, isSubmitting, signUp } = useAuth()
   const emailRef = useRef<TextInput>(null)
   const passwordRef = useRef<TextInput>(null)
+  // Sem isso, um formulário inválido não dá retorno algum junto ao botão: o
+  // handleSubmit apenas não chama o signUp. O erro de cada campo fica acima e
+  // pode estar fora da área visível — para quem toca, o botão parece morto.
+  const [validationError, setValidationError] = useState<string | null>(null)
   const {
     control,
     handleSubmit,
@@ -120,9 +124,27 @@ export default function Register() {
           )}
         />
 
-        {errorMessage ? <Text style={styles.error}>{errorMessage}</Text> : null}
+        {validationError ?? errorMessage ? (
+          <Text style={styles.error}>{validationError ?? errorMessage}</Text>
+        ) : null}
 
-        <Button label="Criar conta" loading={isSubmitting} onPress={handleSubmit(signUp)} />
+        <Button
+          label="Criar conta"
+          loading={isSubmitting}
+          onPress={handleSubmit(
+            (values) => {
+              setValidationError(null)
+              return signUp(values)
+            },
+            (fieldErrors) => {
+              setValidationError(
+                fieldErrors.acceptedTerms
+                  ? "É preciso aceitar os Termos de Uso e a Política de Privacidade para criar a conta."
+                  : "Revise os campos destacados acima para continuar.",
+              )
+            },
+          )}
+        />
       </View>
 
       <View style={styles.footer}>
