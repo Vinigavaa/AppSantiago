@@ -25,7 +25,8 @@ export const authStyles = StyleSheet.create({
   footer: {
     alignItems: "center",
     flexDirection: "row",
-    gap: 6,
+    // Sem gap: o espaçamento vem do padding do próprio link, que existe para
+    // dar a ele os 44pt de área tocável.
     justifyContent: "center",
     marginTop: spacing.xxl,
   },
@@ -47,15 +48,26 @@ export const authStyles = StyleSheet.create({
     marginBottom: spacing.xl,
     width: 88,
   },
+  // Links de navegação entre as telas de auth. O padding não é decorativo: a área
+  // tocável de um <Text> é a sua caixa de layout, que sem isso fica na altura da
+  // linha (~20pt) — abaixo dos 44pt mínimos das Human Interface Guidelines. Em
+  // iPad, onde o app roda escalado em modo de compatibilidade, o alvo fica ainda
+  // menor e o toque erra.
   link: {
     color: colors.primary,
     fontWeight: "700",
+    paddingHorizontal: spacing.sm,
+    paddingVertical: spacing.md,
   },
   linkCentered: {
     alignSelf: "center",
     color: colors.primary,
     fontWeight: "700",
-    marginTop: spacing.xxl,
+    // O padding vertical já soma 12 acima do texto; a margem desconta isso para
+    // o espaçamento visual continuar sendo o mesmo spacing.xxl de antes.
+    marginTop: spacing.md,
+    paddingHorizontal: spacing.sm,
+    paddingVertical: spacing.md,
   },
   loading: {
     alignItems: "center",
